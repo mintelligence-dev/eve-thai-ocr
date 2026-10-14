@@ -7,6 +7,15 @@ export const maxDuration = 60;
 const MAX_BYTES = 4 * 1024 * 1024;
 const TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+/** Operator-facing hints keyed by AI SDK / Gateway error class name. */
+const REASONS: Record<string, string> = {
+  GatewayAuthenticationError: "AI Gateway rejected the API key. Check AI_GATEWAY_API_KEY and redeploy.",
+  GatewayModelNotFoundError: "Model not found in AI Gateway. Check RECEIPT_MODEL.",
+  GatewayRateLimitError: "AI Gateway rate limit or spending cap reached.",
+  AI_NoObjectGeneratedError: "The model did not return data in the expected format. Try again or use another model.",
+  AI_TypeValidationError: "The model returned data that failed validation. Try again or use another model.",
+};
+
 const error = (message: string, status: number) =>
   Response.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
 
@@ -38,8 +47,9 @@ export async function POST(request: Request) {
     });
     return Response.json({ receipt }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
-    // Log the error class only; messages can echo model output from the document.
-    console.error("extract failed:", e instanceof Error ? e.name : "unknown");
-    return error("Extraction failed. Check the model configuration and try again.", 502);
+    // Use the error class only; messages can echo model output from the document.
+    const name = e instanceof Error ? e.name : "unknown";
+    console.error("extract failed:", name);
+    return error(`${REASONS[name] ?? "Extraction failed. Check the model configuration and try again."} (${name})`, 502);
   }
 }
