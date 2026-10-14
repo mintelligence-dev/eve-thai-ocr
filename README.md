@@ -81,7 +81,9 @@ Set `RECEIPT_MODEL` to change the model.
 - Uploaded images are processed in memory and never written to disk or storage by this app. The browser preview uses a local object URL.
 - The model provider receives the image. Choose a provider and AI Gateway data-retention settings that fit your obligations.
 - Use only synthetic data in public tests and issues. The fixtures in this repo are invented.
-- The demo has no authentication or rate limiting. Add both before exposing it publicly with your own API key.
+- The demo has no authentication. `/api/extract` has a built-in best-effort rate limit (`RATE_LIMIT_PER_HOUR` per visitor IP, default 10, and `RATE_LIMIT_PER_DAY` for the whole site, default 200). It is held in memory per server instance, so it is not a hard cap. Before sharing the link publicly, also:
+  - add a **Vercel Firewall rate-limit rule** for `/api/extract` (Project → Firewall), which holds across instances, and
+  - set an **AI Gateway budget** on the API key (AI Gateway → Budgets) as a hard spending cap.
 
 ### License
 
@@ -141,7 +143,9 @@ pnpm test                                      # รันเทสต์ขอ�
 - รูปที่อัปโหลดถูกประมวลผลในหน่วยความจำ ไม่ถูกเขียนลงดิสก์หรือที่เก็บข้อมูลโดยแอปนี้
 - ผู้ให้บริการโมเดลจะได้รับรูป โปรดเลือกผู้ให้บริการและการตั้งค่าการเก็บข้อมูลของ AI Gateway ให้เหมาะกับข้อผูกพันของคุณ
 - ข้อมูลทดสอบสาธารณะและ issue ต้องเป็นข้อมูลสังเคราะห์เท่านั้น (fixtures ใน repo นี้ถูกแต่งขึ้นทั้งหมด)
-- เดโมไม่มีระบบยืนยันตัวตนและ rate limit ควรเพิ่มก่อนเปิดสาธารณะด้วย API key ของคุณเอง
+- เดโมไม่มีระบบยืนยันตัวตน แต่ `/api/extract` มี rate limit ในตัวแบบ best-effort (`RATE_LIMIT_PER_HOUR` ต่อ IP ค่าเริ่มต้น 10 และ `RATE_LIMIT_PER_DAY` ทั้งเว็บ ค่าเริ่มต้น 200) เก็บในหน่วยความจำของแต่ละ server instance จึงไม่ใช่เพดานตายตัว ก่อนแชร์ลิงก์สาธารณะควรทำเพิ่มด้วย:
+  - เพิ่มกฎ **Vercel Firewall rate limit** สำหรับ `/api/extract` (Project → Firewall) ซึ่งทำงานข้าม instance และ
+  - ตั้ง **AI Gateway budget** ที่ API key (AI Gateway → Budgets) เป็นเพดานค่าใช้จ่ายจริง
 
 ### สัญญาอนุญาต
 

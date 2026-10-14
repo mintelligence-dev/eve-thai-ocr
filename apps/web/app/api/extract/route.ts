@@ -1,4 +1,5 @@
 import { extractReceipt } from "@thai-receipt-reader/extractor";
+import { clientKey, perVisitor, wholeSite } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -25,6 +26,21 @@ const error = (message: string, status: number) =>
  * disk or storage, and nothing from the document is logged.
  */
 export async function POST(request: Request) {
+  // Cheapest checks first: nothing is read or sent to a model when over limit.
+  for (const [limiter, key, who] of [
+    [perVisitor, clientKey(request.headers), "คุณใช้งานบ่อยเกินไป / You have made too many requests"],
+    [wholeSite, "all", "เดโมถึงโควตารายวันแล้ว / The demo has reached its daily limit"],
+  ] as const) {
+    const r = limiter.hit(key);
+    if (!r.ok) {
+      const mins = Math.ceil(r.retryAfterSec / 60);
+      return Response.json(
+        { error: `${who}. ลองใหม่ใน ${mins} นาที / Try again in ${mins} min.` },
+        { status: 429, headers: { "Retry-After": String(r.retryAfterSec), "Cache-Control": "no-store" } },
+      );
+    }
+  }
+
   let form: FormData;
   try {
     form = await request.formData();
