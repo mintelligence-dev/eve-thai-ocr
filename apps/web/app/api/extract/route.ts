@@ -47,9 +47,12 @@ export async function POST(request: Request) {
     });
     return Response.json({ receipt }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
-    // Use the error class only; messages can echo model output from the document.
+    // The client gets the error class and HTTP status only. The (truncated)
+    // gateway message goes to server logs, visible to the project owner.
     const name = e instanceof Error ? e.name : "unknown";
-    console.error("extract failed:", name);
-    return error(`${REASONS[name] ?? "Extraction failed. Check the model configuration and try again."} (${name})`, 502);
+    const status = (e as { statusCode?: number } | null)?.statusCode;
+    console.error("extract failed:", name, status ?? "", e instanceof Error ? e.message.slice(0, 300) : "");
+    const reason = REASONS[name] ?? "Extraction failed. Check the model configuration and try again.";
+    return error(`${reason} (${name}${status ? `, HTTP ${status}` : ""})`, 502);
   }
 }
