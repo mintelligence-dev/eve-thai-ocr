@@ -1,0 +1,13 @@
+{
+  "name": "thai-receipt-reader",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "packageManager": "pnpm@10.28.1",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter @thai-receipt-reader/extractor build && pnpm --filter web build",
+    "test": "pnpm --filter @thai-receipt-reader/extractor test",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

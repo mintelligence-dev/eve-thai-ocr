@@ -1,0 +1,59 @@
+import { generateText, Output, type LanguageModel } from "ai";
+import { normalizeExtraction } from "./normalize.js";
+import { RawExtractionSchema, type Receipt, type RawExtraction } from "./schema.js";
+import type { ValidateOptions } from "./validate.js";
+
+export const DEFAULT_MODEL = "google/gemini-2.5-flash";
+
+export const SYSTEM_PROMPT = `You read printed Thai receipts and bank transfer slips and return structured data.
+Rules:
+- Copy values exactly as printed, including Thai digits (๑๒๓), Buddhist Era years (2568), and currency symbols. Do not convert, translate, round or calculate.
+- If a field is not visible, return null. Never guess or invent values.
+- For a transfer slip, "merchant" is the payee / recipient name and "totalText" is the transferred amount.
+- Do NOT output bank account numbers, card numbers, phone numbers or national IDs.
+- List every field you could not read confidently in "uncertainFields".
+- You only extract text. You do not judge whether the document is genuine.`;
+
+export interface ExtractOptions extends ValidateOptions {
+  /** Image bytes or a URL/data URL. Not retained by this library. */
+  image: Uint8Array | ArrayBuffer | string | URL;
+  mediaType?: string;
+  /** "provider/model" string routed through Vercel AI Gateway, or a model instance. */
+  model?: LanguageModel;
+  /** Test seam: replace the model call. */
+  generate?: (args: { image: ExtractOptions["image"]; mediaType?: string }) => Promise<RawExtraction>;
+  abortSignal?: AbortSignal;
+}
+
+export interface ExtractResult {
+  receipt: Receipt;
+  raw: RawExtraction;
+}
+
+/**
+ * Extract and normalise a receipt from one image. The model only transcribes
+ * text; parsing, VAT checks and flags are deterministic.
+ */
+export async function extractReceipt(options: ExtractOptions): Promise<ExtractResult> {
+  const raw = options.generate
+    ? RawExtractionSchema.parse(await options.generate(options))
+    : (
+        await generateText({
+          model: options.model ?? DEFAULT_MODEL,
+          system: SYSTEM_PROMPT,
+          output: Output.object({ schema: RawExtractionSchema, name: "receipt" }),
+          abortSignal: options.abortSignal,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Extract the fields from this document." },
+                { type: "image", image: options.image, mediaType: options.mediaType },
+              ],
+            },
+          ],
+        })
+      ).output;
+
+  return { raw, receipt: normalizeExtraction(raw, options) };
+}

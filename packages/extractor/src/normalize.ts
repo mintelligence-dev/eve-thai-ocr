@@ -1,0 +1,129 @@
+import type { Flag, LineItem, RawExtraction, Receipt } from "./schema.js";
+import {
+  parseAmountToSatang,
+  parseQuantity,
+  parseThaiDate,
+  parseTime,
+} from "./thai.js";
+import { validateReceipt, type ValidateOptions } from "./validate.js";
+
+const clean = (s: string | null | undefined) => {
+  const t = s?.trim();
+  return t ? t : null;
+};
+
+/**
+ * Turn the model's raw text fields into typed values and attach review flags.
+ * All number and date parsing happens here, deterministically.
+ */
+export function normalizeExtraction(
+  raw: RawExtraction,
+  options: ValidateOptions = {},
+): Receipt {
+  const flags: Flag[] = [];
+
+  const money = (text: string | null, path: string): number | null => {
+    const t = clean(text);
+    if (t === null) return null;
+    const satang = parseAmountToSatang(t);
+    if (satang === null) {
+      flags.push({
+        path,
+        code: "unparseable",
+        severity: "error",
+        message: `Could not read "${t}" as an amount.`,
+      });
+      return null;
+    }
+    return satang / 100;
+  };
+
+  let date: string | null = null;
+  const dateText = clean(raw.dateText);
+  if (dateText !== null) {
+    const parsed = parseThaiDate(dateText, { today: options.today });
+    if (!parsed) {
+      flags.push({
+        path: "date",
+        code: "unparseable",
+        severity: "error",
+        message: `Could not read "${dateText}" as a date.`,
+      });
+    } else {
+      date = parsed.iso;
+      if (parsed.twoDigitYear) {
+        flags.push({
+          path: "date",
+          code: "two_digit_year",
+          severity: "warning",
+          message: `Two-digit year in "${dateText}" was interpreted as ${parsed.iso.slice(0, 4)}. Please confirm.`,
+        });
+      }
+    }
+  }
+
+  const timeText = clean(raw.timeText);
+  const time = timeText ? parseTime(timeText) : null;
+  if (timeText && !time) {
+    flags.push({
+      path: "time",
+      code: "unparseable",
+      severity: "warning",
+      message: `Could not read "${timeText}" as a time.`,
+    });
+  }
+
+  const currency = clean(raw.currency)?.toUpperCase() ?? "THB";
+  if (currency !== "THB") {
+    flags.push({
+      path: "currency",
+      code: "unsupported_currency",
+      severity: "warning",
+      message: `Currency ${currency} is not THB. Amounts are not converted.`,
+    });
+  }
+
+  const lineItems: LineItem[] = raw.lineItems.map((item, i) => ({
+    description: item.description.trim(),
+    quantity: clean(item.quantityText) ? parseQuantity(item.quantityText!) : null,
+    unitPrice: money(item.unitPriceText, `lineItems.${i}.unitPrice`),
+    amount: money(item.amountText, `lineItems.${i}.amount`),
+  }));
+
+  const base: Omit<Receipt, "flags"> = {
+    documentType: raw.documentType,
+    merchant: clean(raw.merchant),
+    date,
+    time,
+    currency,
+    subtotal: money(raw.subtotalText, "subtotal"),
+    vat: money(raw.vatText, "vat"),
+    total: money(raw.totalText, "total"),
+    lineItems,
+  };
+
+  for (const path of raw.uncertainFields) {
+    flags.push({
+      path,
+      code: "model_uncertain",
+      severity: "warning",
+      message: "The model was not confident about this field.",
+    });
+  }
+
+  // A path that failed to parse already has an error; don't also say "missing".
+  const failed = new Set(flags.filter((f) => f.code === "unparseable").map((f) => f.path));
+  const checks = validateReceipt(base, options).filter(
+    (f) => !(f.code === "missing" && failed.has(f.path)),
+  );
+  return { ...base, flags: [...flags, ...checks] };
+}
+
+/** Re-run validation after a user edit (e.g. on the review screen). */
+export function revalidate(
+  receipt: Receipt,
+  options: ValidateOptions = {},
+): Receipt {
+  const { flags: _old, ...base } = receipt;
+  return { ...base, flags: validateReceipt(base, options) };
+}
