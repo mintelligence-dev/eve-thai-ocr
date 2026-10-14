@@ -61,9 +61,9 @@ Browser-safe helpers (no model code) are at `@thai-receipt-reader/extractor/core
 
 ### Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FOWNER%2Fthai-receipt-reader&root-directory=apps%2Fweb&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FPattarapongS%2Fthai-receipt-reader&root-directory=apps%2Fweb&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
 
-> Replace `OWNER` in the button URL with the GitHub account that hosts this repo. Keep "Include source files outside of the Root Directory" enabled (Vercel's default) so the workspace package is available.
+> Keep "Include source files outside of the Root Directory" enabled (Vercel's default) so the workspace package is available. The repo must be public for the button to work.
 
 ### Costs
 
@@ -125,7 +125,7 @@ pnpm test                                      # รันเทสต์ขอ�
 
 ### Deploy บน Vercel
 
-ใช้ปุ่ม Deploy ด้านบน (แก้ `OWNER` ใน URL ของปุ่มเป็นบัญชี GitHub ที่เก็บ repo นี้ และเปิด "Include source files outside of the Root Directory" ไว้ตามค่าเริ่มต้นของ Vercel)
+ใช้ปุ่ม Deploy ด้านบน (repo ต้องเป็น public ปุ่มจึงจะใช้งานได้ และเปิด "Include source files outside of the Root Directory" ไว้ตามค่าเริ่มต้นของ Vercel)
 
 ### ค่าใช้จ่าย
 
