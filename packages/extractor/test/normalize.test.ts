@@ -105,6 +105,44 @@ describe("normalizeExtraction", () => {
     expect(codes(r)).toContain("currency:unsupported_currency");
   });
 
+  it("maps raw schema names in uncertainFields to field paths", () => {
+    const r = normalizeExtraction(
+      { ...fx.thaiDigitsReceipt, uncertainFields: ["dateText", "lineItems.1.amountText", "total"] },
+      { today },
+    );
+    expect(codes(r)).toEqual([
+      "date:model_uncertain",
+      "lineItems.1.amount:model_uncertain",
+      "total:model_uncertain",
+    ]);
+  });
+
+  it("does not ask to confirm a currency that was not printed", () => {
+    const r = normalizeExtraction(
+      { ...fx.thaiDigitsReceipt, currency: null, uncertainFields: ["currency"] },
+      { today },
+    );
+    expect(r.flags).toEqual([]);
+  });
+
+  it("keeps null quantity and unit price when only an amount is printed", () => {
+    const r = normalizeExtraction(
+      {
+        ...fx.thaiDigitsReceipt,
+        subtotalText: null, vatText: null, totalText: "174.41",
+        lineItems: [
+          { description: "A", quantityText: null, unitPriceText: null, amountText: "100.00" },
+          { description: "Promo", quantityText: null, unitPriceText: null, amountText: "-25.59" },
+        ],
+      },
+      { today },
+    );
+    expect(r.lineItems.map((l) => [l.quantity, l.unitPrice, l.amount])).toEqual([
+      [null, null, 100],
+      [null, null, -25.59],
+    ]);
+  });
+
   it("clears flags after the user fixes the fields", () => {
     const r = normalizeExtraction(fx.futureDateReceipt, { today });
     const fixed = revalidate({ ...r, date: "2025-05-12" }, { today });

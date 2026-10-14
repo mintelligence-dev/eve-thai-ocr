@@ -12,6 +12,10 @@ const clean = (s: string | null | undefined) => {
   return t ? t : null;
 };
 
+/** Models sometimes echo the raw schema names ("dateText"); map them to field paths. */
+const uncertainPath = (field: string) =>
+  field.trim().replace(/Text(?=\.|$)/g, "");
+
 /**
  * Turn the model's raw text fields into typed values and attach review flags.
  * All number and date parsing happens here, deterministically.
@@ -102,7 +106,10 @@ export function normalizeExtraction(
     lineItems,
   };
 
-  for (const path of raw.uncertainFields) {
+  for (const field of raw.uncertainFields) {
+    const path = uncertainPath(field);
+    // Currency defaults to THB when not printed, so there is nothing to confirm.
+    if (path === "currency" && clean(raw.currency) === null) continue;
     flags.push({
       path,
       code: "model_uncertain",

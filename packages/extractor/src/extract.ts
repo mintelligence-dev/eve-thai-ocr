@@ -9,9 +9,11 @@ export const SYSTEM_PROMPT = `You read printed Thai receipts and bank transfer s
 Rules:
 - Copy values exactly as printed, including Thai digits (๑๒๓), Buddhist Era years (2568), and currency symbols. Do not convert, translate, round or calculate.
 - If a field is not visible, return null. Never guess or invent values.
+- For line items, fill quantityText and unitPriceText ONLY when they are printed as their own values. If the receipt shows just one price per line, put it in amountText and leave quantityText and unitPriceText null. Do not assume a quantity of 1 and do not copy the amount into unitPriceText.
+- Discounts and promotions are line items with a negative amountText, as printed.
 - For a transfer slip, "merchant" is the payee / recipient name and "totalText" is the transferred amount.
 - Do NOT output bank account numbers, card numbers, phone numbers or national IDs.
-- List every field you could not read confidently in "uncertainFields".
+- List every field you could not read confidently in "uncertainFields", using these names: merchant, date, time, subtotal, vat, total, lineItems.<index>.description / quantity / unitPrice / amount (index starts at 0). Do not list a field that is simply not printed.
 - You only extract text. You do not judge whether the document is genuine.`;
 
 export interface ExtractOptions extends ValidateOptions {

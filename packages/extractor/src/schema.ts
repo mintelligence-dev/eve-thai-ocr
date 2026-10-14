@@ -34,7 +34,7 @@ export const RawExtractionSchema = z.object({
   uncertainFields: z
     .array(z.string())
     .describe(
-      "Field names you could not read confidently, e.g. 'total', 'date', 'lineItems.2.amount'.",
+      "Names of fields printed but not read confidently: merchant, date, time, subtotal, vat, total, or lineItems.<index>.<description|quantity|unitPrice|amount>.",
     ),
 });
 export type RawExtraction = z.infer<typeof RawExtractionSchema>;
