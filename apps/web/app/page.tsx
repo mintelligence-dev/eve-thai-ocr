@@ -71,6 +71,12 @@ export default function Home() {
     for (const f of receipt?.flags ?? []) map.set(f.path, [...(map.get(f.path) ?? []), f]);
     return map;
   }, [receipt]);
+  // Exactly what the export buttons will download. The CSV starts with a BOM
+  // for Excel; it is invisible, so drop it from the on-screen preview.
+  const previews = useMemo(
+    () => (receipt ? { json: toJSON(receipt), csv: toCSV(receipt).replace(/^\uFEFF/, "") } : null),
+    [receipt],
+  );
   const hasErrors = receipt?.flags.some((f) => f.severity === "error") ?? false;
 
   function choose(f: File | undefined) {
@@ -279,9 +285,30 @@ export default function Home() {
               {t.confirm}
             </label>
             {hasErrors && <small className="error">{t.fixErrors}</small>}
-            <div className="row">
-              <button disabled={!reviewed} onClick={() => download("receipt.json", "application/json", toJSON(receipt))}>{t.exportJson}</button>
-              <button disabled={!reviewed} onClick={() => download("receipt.csv", "text/csv;charset=utf-8", toCSV(receipt))}>{t.exportCsv}</button>
+          </div>
+        </section>
+      )}
+
+      {receipt && previews && (
+        <section className="card" aria-label={t.previewTitle}>
+          <h2>{t.previewTitle}</h2>
+          <p className="model">{t.previewHint}</p>
+          <div className="previews">
+            <div className="preview">
+              <div className="preview-head">
+                <h3>JSON</h3>
+                <button disabled={!reviewed} onClick={() => download("receipt.json", "application/json", previews.json)}>{t.exportJson}</button>
+              </div>
+              <small className="muted">{t.jsonNote}</small>
+              <pre tabIndex={0} aria-label="JSON"><code>{previews.json}</code></pre>
+            </div>
+            <div className="preview">
+              <div className="preview-head">
+                <h3>CSV</h3>
+                <button disabled={!reviewed} onClick={() => download("receipt.csv", "text/csv;charset=utf-8", toCSV(receipt))}>{t.exportCsv}</button>
+              </div>
+              <small className="muted">{t.csvNote}</small>
+              <pre tabIndex={0} aria-label="CSV"><code>{previews.csv}</code></pre>
             </div>
           </div>
         </section>
