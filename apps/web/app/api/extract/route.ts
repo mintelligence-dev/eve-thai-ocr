@@ -17,8 +17,21 @@ const REASONS: Record<string, string> = {
   AI_TypeValidationError: "The model returned data that failed validation. Try again or use another model.",
 };
 
-const error = (message: string, status: number) =>
-  Response.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
+/**
+ * Errors carry an English `error` for API consumers and a stable `code` (plus
+ * optional numbers) so the web UI can show the message in the user's language.
+ */
+const error = (
+  code: string,
+  message: string,
+  status: number,
+  extra: Record<string, unknown> = {},
+  headers: Record<string, string> = {},
+) =>
+  Response.json(
+    { error: message, code, ...extra },
+    { status, headers: { "Cache-Control": "no-store", ...headers } },
+  );
 
 /**
  * Receives one image, sends it to the model, returns the extraction. The image
@@ -27,17 +40,14 @@ const error = (message: string, status: number) =>
  */
 export async function POST(request: Request) {
   // Cheapest checks first: nothing is read or sent to a model when over limit.
-  for (const [limiter, key, who] of [
-    [perVisitor, clientKey(request.headers), "คุณใช้งานบ่อยเกินไป / You have made too many requests"],
-    [wholeSite, "all", "เดโมถึงโควตารายวันแล้ว / The demo has reached its daily limit"],
+  for (const [limiter, key, code, message] of [
+    [perVisitor, clientKey(request.headers), "rate_limited", "Too many requests from you."],
+    [wholeSite, "all", "daily_limit", "The demo has reached its daily limit."],
   ] as const) {
     const r = limiter.hit(key);
     if (!r.ok) {
-      const mins = Math.ceil(r.retryAfterSec / 60);
-      return Response.json(
-        { error: `${who}. ลองใหม่ใน ${mins} นาที / Try again in ${mins} min.` },
-        { status: 429, headers: { "Retry-After": String(r.retryAfterSec), "Cache-Control": "no-store" } },
-      );
+      return error(code, `${message} Try again in ${Math.ceil(r.retryAfterSec / 60)} min.`, 429,
+        { retryAfterSec: r.retryAfterSec }, { "Retry-After": String(r.retryAfterSec) });
     }
   }
 
@@ -45,14 +55,14 @@ export async function POST(request: Request) {
   try {
     form = await request.formData();
   } catch {
-    return error("Expected multipart form data with an 'image' field.", 400);
+    return error("bad_request", "Expected multipart form data with an 'image' field.", 400);
   }
 
   const file = form.get("image");
-  if (!(file instanceof File)) return error("Missing 'image' file.", 400);
-  if (!TYPES.has(file.type)) return error("Only JPEG, PNG or WebP images are supported.", 415);
-  if (file.size === 0) return error("The file is empty.", 400);
-  if (file.size > MAX_BYTES) return error("Image is larger than 4 MB.", 413);
+  if (!(file instanceof File)) return error("missing_image", "Missing 'image' file.", 400);
+  if (!TYPES.has(file.type)) return error("bad_type", "Only JPEG, PNG or WebP images are supported.", 415);
+  if (file.size === 0) return error("empty_file", "The file is empty.", 400);
+  if (file.size > MAX_BYTES) return error("too_large", "Image is larger than 4 MB.", 413);
 
   try {
     const { receipt } = await extractReceipt({
@@ -69,6 +79,8 @@ export async function POST(request: Request) {
     const status = (e as { statusCode?: number } | null)?.statusCode;
     console.error("extract failed:", name, status ?? "", e instanceof Error ? e.message.slice(0, 300) : "");
     const reason = REASONS[name] ?? "Extraction failed. Check the model configuration and try again.";
-    return error(`${reason} (${name}${status ? `, HTTP ${status}` : ""})`, 502);
+    return error("extract_failed", "Extraction failed.", 502, {
+      detail: `${reason} (${name}${status ? `, HTTP ${status}` : ""})`,
+    });
   }
 }

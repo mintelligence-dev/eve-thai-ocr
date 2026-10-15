@@ -56,7 +56,10 @@ export const FlagSchema = z.object({
     "negative_amount",
   ]),
   severity: z.enum(["error", "warning"]),
+  /** English text, for logs and API consumers. */
   message: z.string(),
+  /** Values used in `message`, so a UI can render the flag in another language. */
+  params: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
 });
 export type Flag = z.infer<typeof FlagSchema>;
 

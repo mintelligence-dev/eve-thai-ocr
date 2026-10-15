@@ -60,6 +60,7 @@ export function validateReceipt(
         code: "date_in_future",
         severity: "warning",
         message: `Date ${r.date} is in the future. Check the year (Buddhist vs Gregorian).`,
+        params: { date: r.date },
       });
     } else if (today.getTime() - d.getTime() > 3650 * dayMs) {
       flags.push({
@@ -67,6 +68,7 @@ export function validateReceipt(
         code: "date_too_old",
         severity: "warning",
         message: `Date ${r.date} is more than 10 years ago. Check the year.`,
+        params: { date: r.date },
       });
     }
   }
@@ -79,6 +81,7 @@ export function validateReceipt(
       code: "missing",
       severity: "warning",
       message: `${noAmount.length} line items have no amount.`,
+      params: { count: noAmount.length },
     });
   } else {
     for (const i of noAmount) {
@@ -108,6 +111,7 @@ export function validateReceipt(
           code: "line_total_mismatch",
           severity: "warning",
           message: `Quantity × unit price (${(expected / 100).toFixed(2)}) does not equal amount (${item.amount.toFixed(2)}).`,
+          params: { expected: (expected / 100).toFixed(2), amount: item.amount.toFixed(2) },
         });
       }
     }
@@ -125,6 +129,7 @@ export function validateReceipt(
         code: "items_total_mismatch",
         severity: "warning",
         message: `Line items add up to ${(sum / 100).toFixed(2)}, which matches neither the total nor the subtotal.`,
+        params: { sum: (sum / 100).toFixed(2) },
       });
     }
   }
@@ -143,6 +148,7 @@ export function validateReceipt(
         code: "vat_mismatch",
         severity: "warning",
         message: `VAT ${r.vat.toFixed(2)} is not ${(vatRate * 100).toFixed(0)}% of the total/subtotal.`,
+        params: { vat: r.vat.toFixed(2), rate: (vatRate * 100).toFixed(0) },
       });
     }
   }

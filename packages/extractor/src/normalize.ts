@@ -36,6 +36,7 @@ export function normalizeExtraction(
         code: "unparseable",
         severity: "error",
         message: `Could not read "${t}" as an amount.`,
+        params: { text: t },
       });
       return null;
     }
@@ -52,6 +53,7 @@ export function normalizeExtraction(
         code: "unparseable",
         severity: "error",
         message: `Could not read "${dateText}" as a date.`,
+        params: { text: dateText },
       });
     } else {
       date = parsed.iso;
@@ -61,6 +63,7 @@ export function normalizeExtraction(
           code: "two_digit_year",
           severity: "warning",
           message: `Two-digit year in "${dateText}" was interpreted as ${parsed.iso.slice(0, 4)}. Please confirm.`,
+          params: { text: dateText, year: parsed.iso.slice(0, 4) },
         });
       }
     }
@@ -74,6 +77,7 @@ export function normalizeExtraction(
       code: "unparseable",
       severity: "warning",
       message: `Could not read "${timeText}" as a time.`,
+      params: { text: timeText },
     });
   }
 
@@ -84,6 +88,7 @@ export function normalizeExtraction(
       code: "unsupported_currency",
       severity: "warning",
       message: `Currency ${currency} is not THB. Amounts are not converted.`,
+      params: { currency },
     });
   }
 
@@ -127,6 +132,7 @@ export function normalizeExtraction(
       code: "model_uncertain",
       severity: "warning",
       message: `The model was not confident about ${itemCells.length} line item fields. Check the items against the original.`,
+      params: { count: itemCells.length },
     });
   }
 

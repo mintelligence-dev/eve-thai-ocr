@@ -11,8 +11,11 @@ import {
   type LineItem,
   type Receipt,
 } from "@thai-receipt-reader/extractor/core";
+import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type Lang } from "@/lib/i18n";
 
 const MAX_BYTES = 4 * 1024 * 1024;
+const LANG_KEY = "trr-lang";
+const LANG_NAMES: Record<Lang, string> = { th: "ไทย", en: "English" };
 
 function download(name: string, mime: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: mime }));
@@ -26,13 +29,32 @@ function download(name: string, mime: string, text: string) {
 const num = (v: string): number | null => (v === "" ? null : Number(v));
 
 export default function Home() {
+  const [lang, setLang] = useState<Lang>("th");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Keep the cause, not the text, so a language switch re-renders the message.
+  const [error, setError] = useState<{ code?: string; retryAfterSec?: number; detail?: string } | null>(null);
   const [reviewed, setReviewed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = T[lang];
+
+  // Start from the saved choice, else the browser's language. Storage can be
+  // unavailable (private mode), so every access is guarded.
+  useEffect(() => {
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(LANG_KEY); } catch {}
+    setLang(saved === "th" || saved === "en" ? saved : detectLang(navigator.languages ?? [navigator.language]));
+  }, []);
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  function chooseLang(l: Lang) {
+    setLang(l);
+    try { localStorage.setItem(LANG_KEY, l); } catch {}
+  }
 
   // Preview only: the object URL is revoked when the file changes or on unmount.
   useEffect(() => {
@@ -54,9 +76,8 @@ export default function Home() {
     setReceipt(null);
     setReviewed(false);
     if (!f) return setFile(null);
-    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type))
-      return setError("รองรับเฉพาะ JPEG, PNG, WebP / Only JPEG, PNG or WebP.");
-    if (f.size > MAX_BYTES) return setError("ไฟล์ใหญ่เกิน 4 MB / File is larger than 4 MB.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) return setError({ code: "bad_type" });
+    if (f.size > MAX_BYTES) return setError({ code: "too_large" });
     setFile(f);
   }
 
@@ -69,11 +90,11 @@ export default function Home() {
       const body = new FormData();
       body.set("image", file);
       const res = await fetch("/api/extract", { method: "POST", body });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Request failed");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) return setError(json);
       setReceipt(json.receipt);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed");
+    } catch {
+      setError({});
     } finally {
       setBusy(false);
     }
@@ -94,31 +115,37 @@ export default function Home() {
     return fl ? (fl.some((f) => f.severity === "error") ? "bad" : "warn") : "";
   };
   const hint = (path: string) =>
-    flagsByPath.get(path)?.map((f) => (
-      <small key={f.code + f.message} className={f.severity}>{f.message}</small>
+    flagsByPath.get(path)?.map((f, i) => (
+      <small key={i} className={f.severity}>{flagText(f, lang)}</small>
     ));
 
   return (
     <main>
-      <h1>Thai Receipt Reader</h1>
-      <p className="lede">
-        อัปโหลดใบเสร็จหรือสลิปโอนเงิน แล้วตรวจแก้ข้อมูลก่อนส่งออก ·
-        Upload a receipt or transfer slip, review, then export.
-      </p>
-      <p className="note">
-        ดึงข้อมูลเท่านั้น ไม่ได้ตรวจสอบว่าสลิปหรือการชำระเงินเป็นของจริง · Extraction only — this tool
-        does not verify that a payment is genuine. รูปไม่ถูกเก็บไว้ / Images are not stored.
-      </p>
+      <div className="top">
+        <h1>{t.title}</h1>
+        <div className="lang" role="group" aria-label={t.langLabel}>
+          {LANGS.map((l) => (
+            <button key={l} className={l === lang ? "on" : "ghost"} aria-pressed={l === lang} onClick={() => chooseLang(l)}>
+              {LANG_NAMES[l]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="lede">{t.tagline}</p>
+      <p className="note">{t.notice}</p>
 
       <section className="card">
         <div
           className="drop"
+          role="button"
+          tabIndex={0}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
             choose(e.dataTransfer.files[0]);
           }}
           onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), inputRef.current?.click())}
         >
           <input
             ref={inputRef}
@@ -127,13 +154,17 @@ export default function Home() {
             hidden
             onChange={(e) => choose(e.target.files?.[0])}
           />
-          {preview ? <img src={preview} alt="ตัวอย่างรูปที่อัปโหลด" /> : <span>ลากรูปมาวาง หรือคลิกเพื่อเลือก · Drop an image or click</span>}
+          {preview ? (
+            <img src={preview} alt={t.preview} />
+          ) : (
+            <span>{t.drop}<br /><small>{t.dropHint}</small></span>
+          )}
         </div>
         <div className="row">
-          <button onClick={extract} disabled={!file || busy}>
-            {busy ? "กำลังอ่าน… / Reading…" : "อ่านข้อมูล / Extract"}
-          </button>
-          <span className="or">หรือลองตัวอย่างสังเคราะห์ (ไม่ต้องใช้ API) · or try a synthetic sample:</span>
+          <button onClick={extract} disabled={!file || busy}>{busy ? t.reading : t.extract}</button>
+        </div>
+        <div className="row">
+          <span className="or">{t.samplesLead}</span>
           {SAMPLES.map((s) => (
             <button
               key={s.id}
@@ -145,106 +176,106 @@ export default function Home() {
                 setReceipt(normalizeExtraction(s.raw));
               }}
             >
-              {s.label}
+              {t.sample[s.id] ?? s.id}
             </button>
           ))}
         </div>
-        {error && <p role="alert" className="error">{error}</p>}
+        {error && <p role="alert" className="error">{apiErrorText(error, lang)}</p>}
       </section>
 
       {receipt && (
-        <section className="card" aria-label="ตรวจทาน / Review">
-          <h2>ตรวจทาน / Review</h2>
+        <section className="card" aria-label={t.review}>
+          <h2>{t.review}</h2>
 
           {receipt.flags.length > 0 ? (
-            <ul className="flags">
-              {receipt.flags.map((f, i) => (
-                <li key={i} className={f.severity}>
-                  <b>{f.path}</b> — {f.message}
-                </li>
-              ))}
-            </ul>
+            <>
+              <h3>{t.flagsTitle}</h3>
+              <ul className="flags">
+                {receipt.flags.map((f, i) => (
+                  <li key={i} className={f.severity}>
+                    <b>{fieldLabel(f.path, lang)}</b> — {flagText(f, lang)}
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
-            <p className="ok">ไม่พบจุดที่น่าสงสัย แต่ควรเทียบกับรูปต้นฉบับทุกครั้ง · No issues found — still compare with the original.</p>
+            <p className="ok">{t.allClear}</p>
           )}
 
           <div className="grid">
             <label>
-              ประเภท / Type
-              <select
-                value={receipt.documentType}
-                onChange={(e) => edit({ documentType: e.target.value as Receipt["documentType"] })}
-              >
-                <option value="receipt">ใบเสร็จ / Receipt</option>
-                <option value="transfer_slip">สลิปโอนเงิน / Transfer slip</option>
-                <option value="unknown">ไม่ทราบ / Unknown</option>
+              {t.type}
+              <select value={receipt.documentType} onChange={(e) => edit({ documentType: e.target.value as Receipt["documentType"] })}>
+                {(Object.keys(t.docTypes) as (keyof typeof t.docTypes)[]).map((k) => (
+                  <option key={k} value={k}>{t.docTypes[k]}</option>
+                ))}
               </select>
             </label>
             <label>
-              ร้านค้า / ผู้รับเงิน · Merchant / payee
+              {t.merchant}
               <input className={cls("merchant")} value={receipt.merchant ?? ""} onChange={(e) => edit({ merchant: e.target.value || null })} />
               {hint("merchant")}
             </label>
             <label>
-              วันที่ (ค.ศ.) / Date
+              {t.date}
               <input type="date" className={cls("date")} value={receipt.date ?? ""} onChange={(e) => edit({ date: e.target.value || null })} />
               {hint("date")}
             </label>
             <label>
-              เวลา / Time
+              {t.time}
               <input type="time" className={cls("time")} value={receipt.time ?? ""} onChange={(e) => edit({ time: e.target.value || null })} />
               {hint("time")}
             </label>
             <label>
-              สกุลเงิน / Currency
+              {t.currency}
               <input className={cls("currency")} value={receipt.currency} onChange={(e) => edit({ currency: e.target.value.toUpperCase() })} />
               {hint("currency")}
             </label>
             {(["subtotal", "vat", "total"] as const).map((k) => (
               <label key={k}>
-                {{ subtotal: "ก่อน VAT / Subtotal", vat: "VAT", total: "ยอดรวม / Total" }[k]}
+                {t[k]}
                 <input type="number" step="0.01" className={cls(k)} value={receipt[k] ?? ""} onChange={(e) => edit({ [k]: num(e.target.value) })} />
                 {hint(k)}
               </label>
             ))}
           </div>
 
-          <h3>รายการ / Line items</h3>
+          <h3>{t.items}</h3>
           {hint("lineItems")}
           <div className="scroll">
             <table>
               <thead>
-                <tr><th>รายการ</th><th>จำนวน</th><th>ราคา/หน่วย</th><th>จำนวนเงิน</th><th /></tr>
+                <tr><th>{t.colName}</th><th>{t.colQty}</th><th>{t.colUnit}</th><th>{t.colAmount}</th><th /></tr>
               </thead>
               <tbody>
                 {receipt.lineItems.map((it, i) => (
                   <tr key={i}>
-                    <td><input value={it.description} aria-label={`รายการ ${i + 1}`} onChange={(e) => editItem(i, { description: e.target.value })} /></td>
-                    <td><input type="number" step="any" className={cls(`lineItems.${i}.quantity`)} value={it.quantity ?? ""} aria-label={`จำนวน ${i + 1}`} onChange={(e) => editItem(i, { quantity: num(e.target.value) })} /></td>
-                    <td><input type="number" step="0.01" className={cls(`lineItems.${i}.unitPrice`)} value={it.unitPrice ?? ""} aria-label={`ราคาต่อหน่วย ${i + 1}`} onChange={(e) => editItem(i, { unitPrice: num(e.target.value) })} /></td>
+                    <td><input className={cls(`lineItems.${i}.description`)} value={it.description} aria-label={`${t.colName} ${i + 1}`} onChange={(e) => editItem(i, { description: e.target.value })} /></td>
+                    <td><input type="number" step="any" className={cls(`lineItems.${i}.quantity`)} value={it.quantity ?? ""} aria-label={`${t.colQty} ${i + 1}`} onChange={(e) => editItem(i, { quantity: num(e.target.value) })} /></td>
+                    <td><input type="number" step="0.01" className={cls(`lineItems.${i}.unitPrice`)} value={it.unitPrice ?? ""} aria-label={`${t.colUnit} ${i + 1}`} onChange={(e) => editItem(i, { unitPrice: num(e.target.value) })} /></td>
                     <td>
-                      <input type="number" step="0.01" className={cls(`lineItems.${i}.amount`)} value={it.amount ?? ""} aria-label={`จำนวนเงิน ${i + 1}`} onChange={(e) => editItem(i, { amount: num(e.target.value) })} />
+                      <input type="number" step="0.01" className={cls(`lineItems.${i}.amount`)} value={it.amount ?? ""} aria-label={`${t.colAmount} ${i + 1}`} onChange={(e) => editItem(i, { amount: num(e.target.value) })} />
                       {hint(`lineItems.${i}.amount`)}
                     </td>
-                    <td><button className="ghost" aria-label={`ลบรายการ ${i + 1}`} onClick={() => edit({ lineItems: receipt.lineItems.filter((_, k) => k !== i) })}>✕</button></td>
+                    <td><button className="ghost" aria-label={tpl(t.removeItem, { n: i + 1 })} onClick={() => edit({ lineItems: receipt.lineItems.filter((_, k) => k !== i) })}>✕</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <button className="ghost" onClick={() => edit({ lineItems: [...receipt.lineItems, { description: "", quantity: null, unitPrice: null, amount: null }] })}>
-            + เพิ่มรายการ / Add item
+            {t.addItem}
           </button>
 
           <div className="export">
             <label className="check">
               <input type="checkbox" checked={reviewed} disabled={hasErrors} onChange={(e) => setReviewed(e.target.checked)} />
-              ฉันตรวจเทียบกับรูปต้นฉบับแล้ว · I have checked this against the original
+              {t.confirm}
             </label>
-            {hasErrors && <small className="error">แก้ข้อผิดพลาดสีแดงก่อนส่งออก · Fix the errors above before exporting.</small>}
+            {hasErrors && <small className="error">{t.fixErrors}</small>}
             <div className="row">
-              <button disabled={!reviewed} onClick={() => download("receipt.json", "application/json", toJSON(receipt))}>ส่งออก JSON</button>
-              <button disabled={!reviewed} onClick={() => download("receipt.csv", "text/csv;charset=utf-8", toCSV(receipt))}>ส่งออก CSV</button>
+              <button disabled={!reviewed} onClick={() => download("receipt.json", "application/json", toJSON(receipt))}>{t.exportJson}</button>
+              <button disabled={!reviewed} onClick={() => download("receipt.csv", "text/csv;charset=utf-8", toCSV(receipt))}>{t.exportCsv}</button>
             </div>
           </div>
         </section>
