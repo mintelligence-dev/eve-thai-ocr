@@ -37,6 +37,8 @@ export default function Home() {
   // Keep the cause, not the text, so a language switch re-renders the message.
   const [error, setError] = useState<{ code?: string; retryAfterSec?: number; detail?: string } | null>(null);
   const [reviewed, setReviewed] = useState(false);
+  // Model that read the current document; null for the built-in samples.
+  const [model, setModel] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = T[lang];
 
@@ -93,6 +95,7 @@ export default function Home() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) return setError(json);
       setReceipt(json.receipt);
+      setModel(typeof json.model === "string" ? json.model : null);
     } catch {
       setError({});
     } finally {
@@ -173,6 +176,7 @@ export default function Home() {
                 setFile(null);
                 setError(null);
                 setReviewed(false);
+                setModel(null);
                 setReceipt(normalizeExtraction(s.raw));
               }}
             >
@@ -186,6 +190,7 @@ export default function Home() {
       {receipt && (
         <section className="card" aria-label={t.review}>
           <h2>{t.review}</h2>
+          <p className="model">{model ? tpl(t.modelUsed, { model }) : t.sampleNoAi}</p>
 
           {receipt.flags.length > 0 ? (
             <>

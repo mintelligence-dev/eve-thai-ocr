@@ -1,4 +1,4 @@
-import { extractReceipt } from "@thai-receipt-reader/extractor";
+import { DEFAULT_MODEL, extractReceipt } from "@thai-receipt-reader/extractor";
 import { clientKey, perVisitor, wholeSite } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -64,14 +64,16 @@ export async function POST(request: Request) {
   if (file.size === 0) return error("empty_file", "The file is empty.", 400);
   if (file.size > MAX_BYTES) return error("too_large", "Image is larger than 4 MB.", 413);
 
+  const model = process.env.RECEIPT_MODEL || DEFAULT_MODEL;
   try {
     const { receipt } = await extractReceipt({
       image: new Uint8Array(await file.arrayBuffer()),
       mediaType: file.type,
-      model: process.env.RECEIPT_MODEL || undefined,
+      model,
       abortSignal: request.signal,
     });
-    return Response.json({ receipt }, { headers: { "Cache-Control": "no-store" } });
+    // `model` is returned so the UI can show which model read the document.
+    return Response.json({ receipt, model }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     // The client gets the error class and HTTP status only. The (truncated)
     // gateway message goes to server logs, visible to the project owner.

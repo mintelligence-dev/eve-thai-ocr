@@ -47,3 +47,5 @@ label.check input { width: auto; }
 .drop:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .drop small { font-size: 13px; }
 h3 { font-size: 15px; }
+.model { margin: -4px 0 8px; font-size: 13px; color: var(--muted); }
+.model, .flags b { overflow-wrap: anywhere; }
