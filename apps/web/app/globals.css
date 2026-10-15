@@ -24,9 +24,9 @@ button.ghost { background: transparent; color: var(--accent); }
 button:disabled { opacity: .45; cursor: not-allowed; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
-input, select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); width: 100%; }
-input.warn, select.warn { border-color: var(--warn); background: var(--warn-bg); }
-input.bad, select.bad { border-color: var(--bad); background: var(--bad-bg); }
+input, select, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); width: 100%; }
+input.warn, select.warn, textarea.warn { border-color: var(--warn); background: var(--warn-bg); }
+input.bad, select.bad, textarea.bad { border-color: var(--bad); background: var(--bad-bg); }
 small.warning { color: var(--warn); } small.error, .error { color: var(--bad); }
 .flags { list-style: none; padding: 0; display: grid; gap: 6px; }
 .flags li { padding: 6px 10px; border-radius: 6px; font-size: 14px; }
@@ -34,7 +34,8 @@ small.warning { color: var(--warn); } small.error, .error { color: var(--bad); }
 .flags li.error { background: var(--bad-bg); color: var(--bad); }
 .ok { color: var(--ok); }
 .scroll { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 560px; }
+table { width: 100%; border-collapse: collapse; }
+table.items { table-layout: fixed; min-width: 680px; }
 th { text-align: left; font-size: 13px; color: var(--muted); padding: 4px; }
 td { padding: 4px; vertical-align: top; }
 .export { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 12px; }
@@ -44,7 +45,7 @@ label.check input { width: auto; }
 .lang { display: flex; gap: 4px; }
 .lang button { padding: 4px 12px; font-size: 14px; }
 .lang button.on { background: var(--accent); color: var(--bg); }
-.drop:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.drop:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .drop small { font-size: 13px; }
 h3 { font-size: 15px; }
 .model { margin: -4px 0 8px; font-size: 13px; color: var(--muted); }
@@ -56,3 +57,26 @@ h3 { font-size: 15px; }
 .muted { color: var(--muted); }
 .preview pre { margin: 8px 0 0; padding: 12px; max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
 .preview pre:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Line items: the name gets the most room; long names wrap instead of being cut off. */
+.items th { padding: 4px; }
+.items td { padding: 4px; vertical-align: top; }
+.items .c-name { width: 42%; }
+.items .c-qty { width: 11%; }
+.items .c-unit { width: 19%; }
+.items .c-amount { width: 20%; }
+.items .c-del { width: 8%; text-align: center; }
+textarea { width: 100%; resize: vertical; min-height: 2.6em; field-sizing: content; line-height: 1.4; }
+
+/* Phones: one card per item instead of a table that scrolls sideways. */
+@media (max-width: 680px) {
+  table.items { min-width: 0; display: block; }
+  .items thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .items tbody { display: block; }
+  .items tr { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .items td { display: block; width: auto !important; padding: 0; }
+  .items td::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; color: var(--muted); }
+  .items td.c-name { grid-column: 1 / -1; }
+  .items td.c-del { grid-column: 1 / -1; text-align: right; }
+  .items td.c-del::before { content: none; }
+}

@@ -255,21 +255,30 @@ export default function Home() {
           <h3>{t.items}</h3>
           {hint("lineItems")}
           <div className="scroll">
-            <table>
+            <table className="items">
               <thead>
-                <tr><th>{t.colName}</th><th>{t.colQty}</th><th>{t.colUnit}</th><th>{t.colAmount}</th><th /></tr>
+                <tr>
+                  <th className="c-name">{t.colName}</th>
+                  <th className="c-qty">{t.colQty}</th>
+                  <th className="c-unit">{t.colUnit}</th>
+                  <th className="c-amount">{t.colAmount}</th>
+                  <th className="c-del" />
+                </tr>
               </thead>
               <tbody>
                 {receipt.lineItems.map((it, i) => (
                   <tr key={i}>
-                    <td><input className={cls(`lineItems.${i}.description`)} value={it.description} aria-label={`${t.colName} ${i + 1}`} onChange={(e) => editItem(i, { description: e.target.value })} /></td>
-                    <td><input type="number" step="any" className={cls(`lineItems.${i}.quantity`)} value={it.quantity ?? ""} aria-label={`${t.colQty} ${i + 1}`} onChange={(e) => editItem(i, { quantity: num(e.target.value) })} /></td>
-                    <td><input type="number" step="0.01" className={cls(`lineItems.${i}.unitPrice`)} value={it.unitPrice ?? ""} aria-label={`${t.colUnit} ${i + 1}`} onChange={(e) => editItem(i, { unitPrice: num(e.target.value) })} /></td>
-                    <td>
+                    <td className="c-name" data-label={t.colName}>
+                      {/* A textarea wraps long names instead of cutting them off. */}
+                      <textarea rows={1} className={cls(`lineItems.${i}.description`)} value={it.description} aria-label={`${t.colName} ${i + 1}`} onChange={(e) => editItem(i, { description: e.target.value.replace(/\n/g, " ") })} />
+                    </td>
+                    <td className="c-qty" data-label={t.colQty}><input type="number" step="any" className={cls(`lineItems.${i}.quantity`)} value={it.quantity ?? ""} aria-label={`${t.colQty} ${i + 1}`} onChange={(e) => editItem(i, { quantity: num(e.target.value) })} /></td>
+                    <td className="c-unit" data-label={t.colUnit}><input type="number" step="0.01" className={cls(`lineItems.${i}.unitPrice`)} value={it.unitPrice ?? ""} aria-label={`${t.colUnit} ${i + 1}`} onChange={(e) => editItem(i, { unitPrice: num(e.target.value) })} /></td>
+                    <td className="c-amount" data-label={t.colAmount}>
                       <input type="number" step="0.01" className={cls(`lineItems.${i}.amount`)} value={it.amount ?? ""} aria-label={`${t.colAmount} ${i + 1}`} onChange={(e) => editItem(i, { amount: num(e.target.value) })} />
                       {hint(`lineItems.${i}.amount`)}
                     </td>
-                    <td><button className="ghost" aria-label={tpl(t.removeItem, { n: i + 1 })} onClick={() => edit({ lineItems: receipt.lineItems.filter((_, k) => k !== i) })}>✕</button></td>
+                    <td className="c-del"><button className="ghost" aria-label={tpl(t.removeItem, { n: i + 1 })} onClick={() => edit({ lineItems: receipt.lineItems.filter((_, k) => k !== i) })}>✕</button></td>
                   </tr>
                 ))}
               </tbody>
