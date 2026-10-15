@@ -5,7 +5,7 @@ import {
   parseThaiDate,
   parseTime,
 } from "./thai.js";
-import { validateReceipt, type ValidateOptions } from "./validate.js";
+import { MAX_INDIVIDUAL_FLAGS, validateReceipt, type ValidateOptions } from "./validate.js";
 
 const clean = (s: string | null | undefined) => {
   const t = s?.trim();
@@ -106,15 +106,27 @@ export function normalizeExtraction(
     lineItems,
   };
 
-  for (const field of raw.uncertainFields) {
-    const path = uncertainPath(field);
+  // Dedupe, then summarise when the model doubts many line-item cells at once.
+  const uncertain = [...new Set(raw.uncertainFields.map(uncertainPath))].filter(
     // Currency defaults to THB when not printed, so there is nothing to confirm.
-    if (path === "currency" && clean(raw.currency) === null) continue;
+    (path) => !(path === "currency" && clean(raw.currency) === null),
+  );
+  const itemCells = uncertain.filter((p) => p.startsWith("lineItems."));
+  const summarise = itemCells.length > MAX_INDIVIDUAL_FLAGS;
+  for (const path of summarise ? uncertain.filter((p) => !p.startsWith("lineItems.")) : uncertain) {
     flags.push({
       path,
       code: "model_uncertain",
       severity: "warning",
       message: "The model was not confident about this field.",
+    });
+  }
+  if (summarise) {
+    flags.push({
+      path: "lineItems",
+      code: "model_uncertain",
+      severity: "warning",
+      message: `The model was not confident about ${itemCells.length} line item fields. Check the items against the original.`,
     });
   }
 

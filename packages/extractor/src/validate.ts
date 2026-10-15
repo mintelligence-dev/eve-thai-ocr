@@ -6,6 +6,9 @@ export interface ValidateOptions {
   vatRate?: number;
 }
 
+/** Above this many similar flags, report one summary flag instead. */
+export const MAX_INDIVIDUAL_FLAGS = 3;
+
 const toSatang = (baht: number) => Math.round(baht * 100);
 /** Tolerance of 1 baht to absorb per-line rounding on printed receipts. */
 const TOLERANCE = 100;
@@ -64,6 +67,26 @@ export function validateReceipt(
         code: "date_too_old",
         severity: "warning",
         message: `Date ${r.date} is more than 10 years ago. Check the year.`,
+      });
+    }
+  }
+
+  // A few missing amounts are reported per line; many are one problem, so one flag.
+  const noAmount = r.lineItems.flatMap((it, i) => (it.amount === null ? [i] : []));
+  if (noAmount.length > MAX_INDIVIDUAL_FLAGS) {
+    flags.push({
+      path: "lineItems",
+      code: "missing",
+      severity: "warning",
+      message: `${noAmount.length} line items have no amount.`,
+    });
+  } else {
+    for (const i of noAmount) {
+      flags.push({
+        path: `lineItems.${i}.amount`,
+        code: "missing",
+        severity: "warning",
+        message: "Line item amount is missing.",
       });
     }
   }

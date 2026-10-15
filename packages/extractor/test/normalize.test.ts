@@ -143,6 +143,48 @@ describe("normalizeExtraction", () => {
     ]);
   });
 
+  const noAmountItems = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      description: `item ${i}`, quantityText: null, unitPriceText: null, amountText: null,
+    }));
+
+  it("flags a line item with no amount", () => {
+    const r = normalizeExtraction(
+      { ...fx.thaiDigitsReceipt, lineItems: [
+        { description: "a", quantityText: null, unitPriceText: null, amountText: "174.41" },
+        ...noAmountItems(1),
+      ] },
+      { today },
+    );
+    expect(codes(r)).toEqual(["lineItems.1.amount:missing"]);
+  });
+
+  it("summarises many missing amounts into one flag", () => {
+    const r = normalizeExtraction(
+      { ...fx.thaiDigitsReceipt, lineItems: noAmountItems(19) },
+      { today },
+    );
+    expect(codes(r).filter((c) => c.includes("lineItems"))).toEqual(["lineItems:missing"]);
+  });
+
+  it("summarises many uncertain line item cells and dedupes repeats", () => {
+    const cells = [0, 1, 2, 3, 4].map((i) => `lineItems.${i}.amount`);
+    const r = normalizeExtraction(
+      { ...fx.thaiDigitsReceipt, uncertainFields: ["total", ...cells, "lineItems.0.amountText"] },
+      { today },
+    );
+    expect(codes(r)).toEqual(["total:model_uncertain", "lineItems:model_uncertain"]);
+    expect(r.flags[1]!.message).toContain("5 line item fields");
+  });
+
+  it("keeps up to three uncertain line item cells as individual flags", () => {
+    const r = normalizeExtraction(
+      { ...fx.thaiDigitsReceipt, uncertainFields: ["lineItems.0.amount", "lineItems.1.description"] },
+      { today },
+    );
+    expect(codes(r)).toEqual(["lineItems.0.amount:model_uncertain", "lineItems.1.description:model_uncertain"]);
+  });
+
   it("clears flags after the user fixes the fields", () => {
     const r = normalizeExtraction(fx.futureDateReceipt, { today });
     const fixed = revalidate({ ...r, date: "2025-05-12" }, { today });
