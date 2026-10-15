@@ -61,11 +61,14 @@ h3 { font-size: 15px; }
 /* Line items: the name gets the most room; long names wrap instead of being cut off. */
 .items th { padding: 4px; }
 .items td { padding: 4px; vertical-align: top; }
-.items .c-name { width: 42%; }
-.items .c-qty { width: 11%; }
-.items .c-unit { width: 19%; }
-.items .c-amount { width: 20%; }
-.items .c-del { width: 8%; text-align: center; }
+/* Fixed widths for the number columns (quantity: room for 4 digits); the name takes the rest. */
+.items .c-qty { width: 72px; }
+.items .c-unit, .items .c-amount { width: 108px; }
+.items .c-del { width: 52px; text-align: center; }
+/* Right-aligned numbers, and no spinner arrows eating space or changing values on scroll. */
+.items input[type="number"] { text-align: right; appearance: textfield; -moz-appearance: textfield; }
+.items input[type="number"]::-webkit-inner-spin-button,
+.items input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 textarea { width: 100%; resize: vertical; min-height: 2.6em; field-sizing: content; line-height: 1.4; }
 
 /* Phones: one card per item instead of a table that scrolls sideways. */
