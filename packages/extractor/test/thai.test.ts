@@ -79,9 +79,16 @@ describe("parseAmountToSatang", () => {
     ["(50.00)", -5000],
     ["@100.00", 10000],
     ["@ ๒๕.๐๐", 2500],
+    ["48.75 N", 4875],
+    ["59.00 P", 5900],
+    ["19.00 T", 1900],
+    ["-149.00", -14900],
+    ["41.00 / ชิ้น", 4100],
+    ["78.00 *", 7800],
+    ["1,203.75 BHT", 120375],
   ])("parses %s", (input, expected) => expect(parseAmountToSatang(input)).toBe(expected));
 
-  it.each(["", "abc", "1?4.4l", "12.345", "฿"])("rejects %j", (input) => {
+  it.each(["", "abc", "1?4.4l", "12.345", "฿", "12 ab", "N"])("rejects %j", (input) => {
     expect(parseAmountToSatang(input)).toBeNull();
   });
 

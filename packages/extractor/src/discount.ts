@@ -6,7 +6,7 @@
  * spaces between words, so Thai terms are matched as substrings.
  */
 const ENGLISH =
-  /\b(discounts?|promo|promos|promotions?|coupons?|vouchers?|rebates?|refunds?|redeem(ed)?|savings?|save|free|off|deduct(ion)?|credit|cashback)\b/i;
+  /\b(discounts?|promo|promos|promotions?|coupons?|vouchers?|rebates?|refunds?|redeem(ed)?|savings?|save|free|off|deduct(ion)?|credit|cashback|bogo|b1g1)\b/i;
 const THAI = /ส่วนลด|ลดราคา|ลด|โปรโมชั่น|โปรโมชัน|โปรฯ|คูปอง|คืนเงิน|แต้ม|ฟรี|แถม|หักเงิน/;
 
 export function isDiscountLabel(description: string): boolean {

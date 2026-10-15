@@ -142,9 +142,13 @@ export function parseTime(text: string): string | null {
  */
 export function parseAmountToSatang(text: string): number | null {
   let s = thaiDigitsToArabic(text)
-    .replace(/฿|บาท|baht|thb/gi, "")
+    .replace(/฿|บาท|baht|bht|thb/gi, "")
     // POS receipts print unit prices as "@100.00".
     .replace(/^@/, "")
+    // ...and per-unit prices as "41.00 / ชิ้น".
+    .replace(/\s*\/\s*[^\d\s]+\s*$/, "")
+    // A tax-class letter (or star) after the amount: "48.75 N", "59.00 P", "19.00 T".
+    .replace(/(\d)\s*[A-Za-z*]$/, "$1")
     .replace(/\s+/g, "")
     .replace(/^\+/, "");
   const negative = /^-|^\(.*\)$/.test(s);

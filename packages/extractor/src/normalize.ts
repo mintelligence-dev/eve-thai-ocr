@@ -82,7 +82,9 @@ export function normalizeExtraction(
     });
   }
 
-  const currency = clean(raw.currency)?.toUpperCase() ?? "THB";
+  // Receipts write the baht as THB, BHT, ฿ or บาท; they all mean the same thing.
+  const rawCurrency = clean(raw.currency)?.toUpperCase();
+  const currency = rawCurrency && !["BHT", "BAHT", "฿", "บาท"].includes(rawCurrency) ? rawCurrency : "THB";
   if (currency !== "THB") {
     flags.push({
       path: "currency",

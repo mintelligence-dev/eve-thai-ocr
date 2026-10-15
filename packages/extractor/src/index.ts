@@ -6,6 +6,7 @@ export { toJSON, toCSV } from "./export.js";
 export {
   extractReceipt,
   DEFAULT_MODEL,
+  defaultProviderOptions,
   SYSTEM_PROMPT,
   type ExtractOptions,
   type ExtractResult,

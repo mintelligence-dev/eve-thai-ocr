@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toCSV, toJSON } from "../src/export.js";
 import { normalizeExtraction } from "../src/normalize.js";
-import { extractReceipt } from "../src/extract.js";
+import { DEFAULT_MODEL, defaultProviderOptions, extractReceipt } from "../src/extract.js";
 import { ReceiptSchema } from "../src/schema.js";
 import * as fx from "./fixtures/index.js";
 
@@ -52,5 +52,20 @@ describe("extractReceipt", () => {
         generate: async () => ({ merchant: "x" }) as never,
       }),
     ).rejects.toThrow();
+  });
+});
+
+describe("defaultProviderOptions", () => {
+  it("caps Gemini 2.5 Flash thinking, and leaves other models alone", () => {
+    expect(defaultProviderOptions("google/gemini-2.5-flash")).toEqual({
+      google: { thinkingConfig: { thinkingBudget: 1024 } },
+    });
+    expect(defaultProviderOptions("openai/gpt-4.1-mini")).toBeUndefined();
+    expect(defaultProviderOptions("google/gemini-2.5-flash-lite")).toBeUndefined();
+  });
+
+  it("applies to the default model", () => {
+    expect(DEFAULT_MODEL).toBe("google/gemini-2.5-flash");
+    expect(defaultProviderOptions(DEFAULT_MODEL)).toBeDefined();
   });
 });

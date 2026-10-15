@@ -54,6 +54,35 @@ export function itemsReconcile(
 }
 
 /**
+ * Supermarket receipts mix VAT items with VAT-exempt ones (fresh produce, eggs),
+ * so the VAT can be less than 7/107 of the total. That is legitimate when a few
+ * items add up to exactly the amount left over. Checking small groups (1 to 3
+ * items) keeps a chance match unlikely; the tolerance covers VAT rounding.
+ */
+function vatExplainedByExemptItems(
+  items: Receipt["lineItems"],
+  totalSat: number,
+  vatSat: number,
+  rate: number,
+): boolean {
+  const exempt = totalSat - Math.round((vatSat * (1 + rate)) / rate);
+  if (exempt <= 0) return false;
+  const amounts = items.flatMap((i) => (i.amount !== null && i.amount > 0 ? [toSatang(i.amount)] : []));
+  if (amounts.length > 60) return false;
+  const near = (sum: number) => Math.abs(sum - exempt) <= 10;
+  for (let a = 0; a < amounts.length; a++) {
+    if (near(amounts[a]!)) return true;
+    for (let b = a + 1; b < amounts.length; b++) {
+      if (near(amounts[a]! + amounts[b]!)) return true;
+      for (let c = b + 1; c < amounts.length; c++) {
+        if (near(amounts[a]! + amounts[b]! + amounts[c]!)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Cross-field checks on a normalised receipt. Produces flags for the review
  * screen; never changes values. The checks are heuristics: a flag means "a
  * human should look", not "this is wrong".
@@ -188,7 +217,8 @@ export function validateReceipt(
     const exclusive = r.subtotal !== null ? Math.round(toSatang(r.subtotal) * vatRate) : null;
     const ok =
       Math.abs(vat - inclusive) <= TOLERANCE ||
-      (exclusive !== null && Math.abs(vat - exclusive) <= TOLERANCE);
+      (exclusive !== null && Math.abs(vat - exclusive) <= TOLERANCE) ||
+      vatExplainedByExemptItems(r.lineItems, total, vat, vatRate);
     if (!ok) {
       flags.push({
         path: "vat",

@@ -7,7 +7,7 @@ const today = new Date("2025-10-14T00:00:00Z");
 
 describe("isDiscountLabel", () => {
   it.each([
-    "Member discount 20.-", "DISCOUNT", "Promo code", "Coupon -10", "20% off", "Buy 300B. get free G",
+    "Member discount 20.-", "DISCOUNT", "Promo code", "Coupon -10", "20% off", "Buy 300B. get free G", "BOGO", "B1G1 promo",
     "ส่วนลด", "AIS รับส่วนลด 20.- ทุก", "โปรโมชั่นพิเศษ", "คูปองส่วนลด", "ลดราคา 10%", "แลกแต้ม", "คืนเงิน",
   ])("recognises %j", (name) => expect(isDiscountLabel(name)).toBe(true));
 

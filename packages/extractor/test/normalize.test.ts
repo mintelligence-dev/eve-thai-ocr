@@ -107,6 +107,32 @@ describe("normalizeExtraction", () => {
     expect(codes(r)).toContain("lineItems.0.amount:line_total_mismatch");
   });
 
+  it("treats BHT, ฿ and บาท as THB", () => {
+    for (const c of ["BHT", "฿", "บาท", "baht"]) {
+      const r = normalizeExtraction({ ...fx.thaiDigitsReceipt, currency: c }, { today });
+      expect(r.currency).toBe("THB");
+      expect(codes(r)).not.toContain("currency:unsupported_currency");
+    }
+  });
+
+  it("accepts a VAT lower than 7% when exempt items explain the gap", () => {
+    // A supermarket receipt: two items (48.75 and 62.00) carry no VAT, so VAT is 7/107 of the other 1,093.00.
+    const raw = {
+      ...fx.thaiDigitsReceipt,
+      subtotalText: null, totalText: "1,203.75", vatText: "71.50",
+      lineItems: [
+        ["Milk", "48.75 N"], ["Soap", "59.00 P"], ["Cheese", "190.00"], ["Noodles", "92.00"],
+        ["Rice", "803.00"], ["Eggs", "62.00 N"],
+      ].map(([description, amountText]) => ({ description: description!, quantityText: null, unitPriceText: null, amountText: amountText! })),
+    };
+    const r = normalizeExtraction(raw, { today });
+    expect(r.lineItems.map((l) => l.amount)).toEqual([48.75, 59, 190, 92, 803, 62]);
+    expect(codes(r)).not.toContain("vat:vat_mismatch");
+    // The same VAT with nothing to explain it is still flagged.
+    const odd = normalizeExtraction({ ...raw, vatText: "50.00" }, { today });
+    expect(codes(odd)).toContain("vat:vat_mismatch");
+  });
+
   it("flags non-THB currency", () => {
     const r = normalizeExtraction({ ...fx.thaiDigitsReceipt, currency: "usd" }, { today });
     expect(r.currency).toBe("USD");
