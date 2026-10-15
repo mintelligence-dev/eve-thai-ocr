@@ -7,12 +7,14 @@ const today = new Date("2025-10-14T00:00:00Z");
 
 describe("isDiscountLabel", () => {
   it.each([
-    "Member discount 20.-", "DISCOUNT", "Promo code", "Coupon -10", "20% off", "Buy 300B. get free G", "BOGO", "B1G1 promo",
-    "ส่วนลด", "AIS รับส่วนลด 20.- ทุก", "โปรโมชั่นพิเศษ", "คูปองส่วนลด", "ลดราคา 10%", "แลกแต้ม", "คืนเงิน",
+    "Member discount 20.-", "DISCOUNT", "Discounts", "Staff discount -10",
+    "ส่วนลด", "AIS รับส่วนลด 20.- ทุก", "ลดราคา 10%", "คูปองส่วนลด",
   ])("recognises %j", (name) => expect(isDiscountLabel(name)).toBe(true));
 
   it.each([
-    "Coffee", "Offline mode cable", "Freestyle shampoo", "Iced milk tea", "ข้าวมันไก่ต้ม", "น้ำเปล่า", "Adjustment", "",
+    // Store jargon and loose words are not guessed at: they get a warning.
+    "BOGO", "B1G1 promo", "Buy 300B. get free G", "Promo code", "Coupon -10", "20% off", "แลกแต้ม", "โปรโมชั่นพิเศษ", "แถม",
+    "Coffee", "Offline mode cable", "Freestyle shampoo", "Iced milk tea", "ข้าวมันไก่ต้ม", "Adjustment", "",
   ])("does not match %j", (name) => expect(isDiscountLabel(name)).toBe(false));
 });
 
@@ -37,5 +39,9 @@ describe("negative amounts", () => {
 
   it("still warns when a negative amount has no discount label", () => {
     expect(withItem("Adjustment", "-20.00")).toContain("negative_amount");
+  });
+
+  it("does not guess from jargon such as BOGO", () => {
+    expect(withItem("BOGO", "-20.00")).toContain("negative_amount");
   });
 });

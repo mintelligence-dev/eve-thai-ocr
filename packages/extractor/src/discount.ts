@@ -1,13 +1,14 @@
 /**
- * Does an item name say it is a discount, promotion or other credit? A
- * negative amount on such a line is expected, so it needs no warning.
+ * Does an item name plainly say it is a discount? A negative amount on such a
+ * line is expected, so it needs no warning. This list is deliberately short and
+ * literal: a negative amount under any other name (promo codes, "BOGO", "free",
+ * store jargon) is not guessed at, it is flagged for a person to confirm.
  *
- * English words are matched whole ("off" must not match "Coffee"); Thai has no
- * spaces between words, so Thai terms are matched as substrings.
+ * English is matched as whole words; Thai has no spaces between words, so Thai
+ * terms are matched as substrings.
  */
-const ENGLISH =
-  /\b(discounts?|promo|promos|promotions?|coupons?|vouchers?|rebates?|refunds?|redeem(ed)?|savings?|save|free|off|deduct(ion)?|credit|cashback|bogo|b1g1)\b/i;
-const THAI = /ส่วนลด|ลดราคา|ลด|โปรโมชั่น|โปรโมชัน|โปรฯ|คูปอง|คืนเงิน|แต้ม|ฟรี|แถม|หักเงิน/;
+const ENGLISH = /\bdiscounts?\b/i;
+const THAI = /ส่วนลด|ลดราคา/;
 
 export function isDiscountLabel(description: string): boolean {
   return ENGLISH.test(description) || THAI.test(description);

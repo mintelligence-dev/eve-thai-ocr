@@ -114,7 +114,8 @@ export function scoreReceipt(receipt: Receipt, expected: Expected): Score {
     }
   }
   if (expected.noQuantityOrUnitPrice) {
-    const invented = receipt.lineItems.filter((i) => i.quantity !== null || i.unitPrice !== null).length;
+    // Values filled in by assumeSingleUnits are marked `assumed`; they are not the model's doing.
+    const invented = receipt.lineItems.filter((i) => !i.assumed && (i.quantity !== null || i.unitPrice !== null)).length;
     add("noInventedQtyPrice", invented === 0, 0, invented);
   }
 

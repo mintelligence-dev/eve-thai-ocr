@@ -110,3 +110,6 @@ textarea { width: 100%; resize: none; min-height: 2.6em; field-sizing: content; 
 }
 
 .sum + button { margin-top: 12px; }
+
+/* Values filled in because the receipt printed only a price (1 x amount). */
+.item input.assumed { font-style: italic; color: var(--muted); }

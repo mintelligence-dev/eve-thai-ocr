@@ -72,6 +72,11 @@ export const LineItemSchema = z.object({
   unitPrice: z.number().nullable(),
   /** Baht. */
   amount: z.number().nullable(),
+  /**
+   * True when quantity and unit price were not printed and were filled in as
+   * 1 x amount. Cleared when a person edits either field.
+   */
+  assumed: z.boolean().optional(),
 });
 export type LineItem = z.infer<typeof LineItemSchema>;
 

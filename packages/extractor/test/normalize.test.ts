@@ -159,11 +159,11 @@ describe("normalizeExtraction", () => {
     expect(r.flags).toEqual([]);
   });
 
-  it("keeps null quantity and unit price when only an amount is printed", () => {
+  it("fills a price-only line as 1 x amount and marks it assumed; negatives stay empty", () => {
     const r = normalizeExtraction(
       {
         ...fx.thaiDigitsReceipt,
-        subtotalText: null, vatText: null, totalText: "174.41",
+        subtotalText: null, vatText: null, totalText: "74.41",
         lineItems: [
           { description: "A", quantityText: null, unitPriceText: null, amountText: "100.00" },
           { description: "Promo", quantityText: null, unitPriceText: null, amountText: "-25.59" },
@@ -171,9 +171,9 @@ describe("normalizeExtraction", () => {
       },
       { today },
     );
-    expect(r.lineItems.map((l) => [l.quantity, l.unitPrice, l.amount])).toEqual([
-      [null, null, 100],
-      [null, null, -25.59],
+    expect(r.lineItems.map((l) => [l.quantity, l.unitPrice, l.amount, l.assumed])).toEqual([
+      [1, 100, 100, true],
+      [null, null, -25.59, undefined],
     ]);
   });
 

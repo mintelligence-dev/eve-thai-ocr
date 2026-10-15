@@ -1,4 +1,5 @@
 import { splitAddOns } from "./addons.js";
+import { assumeSingleUnits } from "./assume.js";
 import type { Flag, LineItem, RawExtraction, Receipt } from "./schema.js";
 import {
   parseAmountToSatang,
@@ -103,7 +104,8 @@ export function normalizeExtraction(
   }));
 
   // Add-on lines whose price is already inside the line above (see addons.ts).
-  const { items: lineItems, splits } = splitAddOns(parsedItems);
+  const { items: splitItems, splits } = splitAddOns(parsedItems);
+  const lineItems = assumeSingleUnits(splitItems);
   for (const sp of splits) {
     flags.push({
       path: `lineItems.${sp.index}.amount`,

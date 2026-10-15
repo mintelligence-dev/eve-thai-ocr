@@ -311,9 +311,9 @@ export default function Home() {
                       {/* A textarea wraps long names instead of cutting them off. */}
                       <textarea rows={1} className={cls(`lineItems.${i}.description`)} value={it.description} aria-label={`${t.colName} ${i + 1}`} onChange={(e) => editItem(i, { description: e.target.value.replace(/\n/g, " ") })} />
                     </div>
-                    <div className="c-qty" role="cell" data-label={t.colQty}><input type="number" step="any" className={cls(`lineItems.${i}.quantity`)} value={it.quantity ?? ""} aria-label={`${t.colQty} ${i + 1}`} onChange={(e) => editItem(i, { quantity: num(e.target.value) })} /></div>
-                    <div className="c-unit" role="cell" data-label={t.colUnit}><input type="number" step="0.01" className={cls(`lineItems.${i}.unitPrice`)} value={it.unitPrice ?? ""} aria-label={`${t.colUnit} ${i + 1}`} onChange={(e) => editItem(i, { unitPrice: num(e.target.value) })} /></div>
-                    <div className="c-amount" role="cell" data-label={t.colAmount}><input type="number" step="0.01" className={cls(`lineItems.${i}.amount`)} value={it.amount ?? ""} aria-label={`${t.colAmount} ${i + 1}`} onChange={(e) => editItem(i, { amount: num(e.target.value) })} /></div>
+                    <div className="c-qty" role="cell" data-label={t.colQty}><input type="number" step="any" className={`${cls(`lineItems.${i}.quantity`)} ${it.assumed ? "assumed" : ""}`} title={it.assumed ? t.assumedHint : undefined} value={it.quantity ?? ""} aria-label={`${t.colQty} ${i + 1}`} onChange={(e) => editItem(i, { quantity: num(e.target.value), assumed: false })} /></div>
+                    <div className="c-unit" role="cell" data-label={t.colUnit}><input type="number" step="0.01" className={`${cls(`lineItems.${i}.unitPrice`)} ${it.assumed ? "assumed" : ""}`} title={it.assumed ? t.assumedHint : undefined} value={it.unitPrice ?? ""} aria-label={`${t.colUnit} ${i + 1}`} onChange={(e) => editItem(i, { unitPrice: num(e.target.value), assumed: false })} /></div>
+                    <div className="c-amount" role="cell" data-label={t.colAmount}><input type="number" step="0.01" className={cls(`lineItems.${i}.amount`)} value={it.amount ?? ""} aria-label={`${t.colAmount} ${i + 1}`} onChange={(e) => editItem(i, it.assumed ? { amount: num(e.target.value), unitPrice: num(e.target.value) } : { amount: num(e.target.value) })} /></div>
                     <div className="c-del" role="cell"><button className="ghost" aria-label={tpl(t.removeItem, { n: i + 1 })} onClick={() => edit({ lineItems: receipt.lineItems.filter((_, k) => k !== i) })}>✕</button></div>
                   </div>
                   {rowFlags.length > 0 && (
@@ -327,6 +327,7 @@ export default function Home() {
               );
             })}
           </div>
+          {receipt.lineItems.some((l) => l.assumed) && <p className="model">{t.assumedNote}</p>}
           {recon && (
             <div className={`sum ${recon.against ? "ok" : "warn"}`} role="status">
               <span>
