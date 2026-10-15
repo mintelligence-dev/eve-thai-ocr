@@ -10,3 +10,4 @@ export {
   type ExtractOptions,
   type ExtractResult,
 } from "./extract.js";
+export * from "./score.js";

@@ -30,6 +30,8 @@ export interface ExtractOptions extends ValidateOptions {
 export interface ExtractResult {
   receipt: Receipt;
   raw: RawExtraction;
+  /** Token usage reported by the model call. Absent when `generate` is used. */
+  usage?: { inputTokens?: number; outputTokens?: number };
 }
 
 /**
@@ -37,25 +39,33 @@ export interface ExtractResult {
  * text; parsing, VAT checks and flags are deterministic.
  */
 export async function extractReceipt(options: ExtractOptions): Promise<ExtractResult> {
-  const raw = options.generate
-    ? RawExtractionSchema.parse(await options.generate(options))
-    : (
-        await generateText({
-          model: options.model ?? DEFAULT_MODEL,
-          system: SYSTEM_PROMPT,
-          output: Output.object({ schema: RawExtractionSchema, name: "receipt" }),
-          abortSignal: options.abortSignal,
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: "Extract the fields from this document." },
-                { type: "image", image: options.image, mediaType: options.mediaType },
-              ],
-            },
-          ],
-        })
-      ).output;
+  if (options.generate) {
+    const raw = RawExtractionSchema.parse(await options.generate(options));
+    return { raw, receipt: normalizeExtraction(raw, options) };
+  }
 
-  return { raw, receipt: normalizeExtraction(raw, options) };
+  const result = await generateText({
+    model: options.model ?? DEFAULT_MODEL,
+    system: SYSTEM_PROMPT,
+    output: Output.object({ schema: RawExtractionSchema, name: "receipt" }),
+    abortSignal: options.abortSignal,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Extract the fields from this document." },
+          { type: "image", image: options.image, mediaType: options.mediaType },
+        ],
+      },
+    ],
+  });
+
+  return {
+    raw: result.output,
+    receipt: normalizeExtraction(result.output, options),
+    usage: {
+      inputTokens: result.usage?.inputTokens,
+      outputTokens: result.usage?.outputTokens,
+    },
+  };
 }
