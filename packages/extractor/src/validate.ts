@@ -1,3 +1,4 @@
+import { isDiscountLabel } from "./discount.js";
 import type { Flag, Receipt } from "./schema.js";
 
 export interface ValidateOptions {
@@ -145,12 +146,14 @@ export function validateReceipt(
   }
 
   r.lineItems.forEach((item, i) => {
-    if (item.amount !== null && item.amount < 0) {
+    // A minus on a line named "discount" / "ส่วนลด" is expected. Only an unlabelled
+    // negative amount is suspicious (the sign may have been misread).
+    if (item.amount !== null && item.amount < 0 && !isDiscountLabel(item.description)) {
       flags.push({
         path: `lineItems.${i}.amount`,
         code: "negative_amount",
         severity: "warning",
-        message: "Negative amount (discount or misread?).",
+        message: "Negative amount, but the item name does not say it is a discount.",
       });
     }
     if (item.quantity !== null && item.unitPrice !== null && item.amount !== null) {

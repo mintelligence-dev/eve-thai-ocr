@@ -11,3 +11,4 @@ export {
   type ExtractResult,
 } from "./extract.js";
 export * from "./score.js";
+export { isDiscountLabel } from "./discount.js";
