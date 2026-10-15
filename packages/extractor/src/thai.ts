@@ -143,6 +143,8 @@ export function parseTime(text: string): string | null {
 export function parseAmountToSatang(text: string): number | null {
   let s = thaiDigitsToArabic(text)
     .replace(/฿|บาท|baht|thb/gi, "")
+    // POS receipts print unit prices as "@100.00".
+    .replace(/^@/, "")
     .replace(/\s+/g, "")
     .replace(/^\+/, "");
   const negative = /^-|^\(.*\)$/.test(s);

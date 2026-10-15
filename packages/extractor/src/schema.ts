@@ -55,6 +55,7 @@ export const FlagSchema = z.object({
     "vat_mismatch",
     "negative_amount",
     "not_a_receipt",
+    "addon_split",
   ]),
   severity: z.enum(["error", "warning"]),
   /** English text, for logs and API consumers. */

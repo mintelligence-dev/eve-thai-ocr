@@ -150,6 +150,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     items_total_mismatch: "ยอดรวมของรายการได้ {sum} ไม่ตรงกับยอดรวมหรือยอดก่อน VAT อาจมีรายการตกหล่น",
     vat_mismatch: "VAT {vat} ไม่ใช่ {rate}% ของยอดรวม ตรวจ VAT หรือยอดรวมอีกครั้ง",
     negative_amount: "จำนวนเงินติดลบ อาจเป็นส่วนลด หรืออ่านผิด",
+    addon_split: "ยอดที่พิมพ์ในรายการนี้ ({printed}) รวมของเพิ่มด้านล่างไว้แล้ว ระบบแยกเป็น {base} บวกราคาของเพิ่ม เพื่อไม่ให้นับซ้ำ ตรวจกับรูปต้นฉบับด้วย",
     not_a_receipt: "ระบบไม่แน่ใจว่าเอกสารนี้เป็นใบเสร็จหรือสลิปโอนเงิน ถ้าใช่ ให้เลือกประเภทเอกสารให้ถูกต้อง ถ้าไม่ใช่ ข้อมูลด้านล่างอาจเป็นข้อมูลที่ไม่มีอยู่จริง",
   },
   en: {
@@ -170,6 +171,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     items_total_mismatch: "The items add up to {sum}, which doesn't match the total or subtotal. An item may be missing.",
     vat_mismatch: "VAT {vat} is not {rate}% of the total. Check the VAT or the total.",
     negative_amount: "Negative amount. This may be a discount, or it may be misread.",
+    addon_split: "The amount printed on this item ({printed}) already includes the add-on below it. It is shown as {base} plus the add-on price so nothing is counted twice. Please check it against the original.",
     not_a_receipt: "We aren't sure this is a receipt or transfer slip. If it is, set the document type. If not, the data below may be made up.",
   },
 };
@@ -202,6 +204,7 @@ export function flagText(f: Flag, lang: Lang): string {
     case "vat_mismatch": return tpl(t.vat_mismatch!, p);
     case "negative_amount": return t.negative_amount!;
     case "not_a_receipt": return t.not_a_receipt!;
+    case "addon_split": return tpl(t.addon_split!, p);
     default: return f.message;
   }
 }

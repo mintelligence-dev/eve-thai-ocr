@@ -11,6 +11,7 @@ Rules:
 - Copy values exactly as printed, including Thai digits (๑๒๓), Buddhist Era years (2568), and currency symbols. Do not convert, translate, round or calculate.
 - If a field is not visible, return null. Never guess or invent values.
 - For line items, fill quantityText and unitPriceText ONLY when they are printed as their own values. If the receipt shows just one price per line, put it in amountText and leave quantityText and unitPriceText null. Do not assume a quantity of 1 and do not copy the amount into unitPriceText.
+- An add-on, topping or modifier printed on its own line under an item belongs to the line above. If it shows only a price (for example "@25.00") and no subtotal of its own, put that price in unitPriceText and leave amountText null. Never copy a price into amountText if the line above already includes it in its subtotal.
 - Discounts and promotions are line items with a negative amountText, as printed.
 - For a transfer slip, "merchant" is the payee / recipient name and "totalText" is the transferred amount.
 - Do NOT output bank account numbers, card numbers, phone numbers or national IDs.

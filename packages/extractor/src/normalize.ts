@@ -1,3 +1,4 @@
+import { splitAddOns } from "./addons.js";
 import type { Flag, LineItem, RawExtraction, Receipt } from "./schema.js";
 import {
   parseAmountToSatang,
@@ -92,12 +93,24 @@ export function normalizeExtraction(
     });
   }
 
-  const lineItems: LineItem[] = raw.lineItems.map((item, i) => ({
+  const parsedItems: LineItem[] = raw.lineItems.map((item, i) => ({
     description: item.description.trim(),
     quantity: clean(item.quantityText) ? parseQuantity(item.quantityText!) : null,
     unitPrice: money(item.unitPriceText, `lineItems.${i}.unitPrice`),
     amount: money(item.amountText, `lineItems.${i}.amount`),
   }));
+
+  // Add-on lines whose price is already inside the line above (see addons.ts).
+  const { items: lineItems, splits } = splitAddOns(parsedItems);
+  for (const sp of splits) {
+    flags.push({
+      path: `lineItems.${sp.index}.amount`,
+      code: "addon_split",
+      severity: "warning",
+      message: `The printed amount ${sp.printed.toFixed(2)} already includes the ${sp.addOns} add-on line(s) below it. Shown as ${sp.base.toFixed(2)} plus the add-ons so nothing is counted twice.`,
+      params: { printed: sp.printed.toFixed(2), base: sp.base.toFixed(2), count: sp.addOns },
+    });
+  }
 
   const base: Omit<Receipt, "flags"> = {
     documentType: raw.documentType,

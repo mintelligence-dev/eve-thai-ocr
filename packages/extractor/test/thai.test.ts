@@ -77,6 +77,8 @@ describe("parseAmountToSatang", () => {
     ["1,234,567.89", 123456789],
     ["-50.00", -5000],
     ["(50.00)", -5000],
+    ["@100.00", 10000],
+    ["@ ๒๕.๐๐", 2500],
   ])("parses %s", (input, expected) => expect(parseAmountToSatang(input)).toBe(expected));
 
   it.each(["", "abc", "1?4.4l", "12.345", "฿"])("rejects %j", (input) => {
