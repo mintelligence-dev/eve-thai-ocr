@@ -9,6 +9,8 @@ describe("dictionaries", () => {
     expect(Object.keys(T.th).sort()).toEqual(Object.keys(T.en).sort());
     expect(Object.keys(T.th.sample).sort()).toEqual(Object.keys(T.en.sample).sort());
     expect(Object.keys(T.th.docTypes).sort()).toEqual(Object.keys(T.en.docTypes).sort());
+    expect(Object.keys(T.th.themes).sort()).toEqual(Object.keys(T.en.themes).sort());
+    expect(Object.keys(T.th.against).sort()).toEqual(Object.keys(T.en.against).sort());
   });
   it("has a label for every sample", () => {
     for (const s of SAMPLES) for (const l of LANGS) expect(T[l].sample[s.id]).toBeTruthy();

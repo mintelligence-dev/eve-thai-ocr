@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeExtraction, revalidate } from "../src/normalize.js";
+import { itemsReconcile } from "../src/validate.js";
 import * as fx from "./fixtures/index.js";
 
 const today = new Date("2025-10-14T00:00:00Z");
@@ -196,5 +197,30 @@ describe("normalizeExtraction", () => {
     const r = normalizeExtraction(fx.futureDateReceipt, { today });
     const fixed = revalidate({ ...r, date: "2025-05-12" }, { today });
     expect(fixed.flags).toEqual([]);
+  });
+});
+
+describe("itemsReconcile", () => {
+  const items = (...amounts: (number | null)[]) =>
+    amounts.map((amount) => ({ description: "x", quantity: null, unitPrice: null, amount }));
+
+  it("matches the total, the subtotal, or the total minus VAT", () => {
+    expect(itemsReconcile({ lineItems: items(100, 25, -20), total: 105, subtotal: null, vat: null })).toEqual({
+      sum: 105, target: 105, against: "total", diff: 0,
+    });
+    expect(itemsReconcile({ lineItems: items(100), total: 107, subtotal: 100, vat: 7 })?.against).toBe("subtotal");
+    expect(itemsReconcile({ lineItems: items(98.13), total: 105, subtotal: null, vat: 6.87 })?.against).toBe("beforeVat");
+  });
+
+  it("reports the gap when nothing matches", () => {
+    expect(itemsReconcile({ lineItems: items(125, 25, -20), total: 105, subtotal: null, vat: null })).toEqual({
+      sum: 130, target: 105, against: null, diff: 25,
+    });
+  });
+
+  it("counts an item without an amount as zero, and returns null with nothing to compare", () => {
+    expect(itemsReconcile({ lineItems: items(100, null), total: 105, subtotal: null, vat: null })?.sum).toBe(100);
+    expect(itemsReconcile({ lineItems: [], total: 105, subtotal: null, vat: null })).toBeNull();
+    expect(itemsReconcile({ lineItems: items(5), total: null, subtotal: null, vat: null })).toBeNull();
   });
 });

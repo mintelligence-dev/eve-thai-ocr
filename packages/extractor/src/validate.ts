@@ -13,6 +13,45 @@ const toSatang = (baht: number) => Math.round(baht * 100);
 /** Tolerance of 1 baht to absorb per-line rounding on printed receipts. */
 const TOLERANCE = 100;
 
+export type ReconciledWith = "total" | "subtotal" | "beforeVat";
+
+export interface Reconciliation {
+  /** Sum of the line item amounts (an item without an amount counts as 0), in baht. */
+  sum: number;
+  /** The figure the sum is compared with: the matching one, else the total (or subtotal). */
+  target: number;
+  /** Which printed figure the sum matches, or null if none does. */
+  against: ReconciledWith | null;
+  /** sum - target, in baht. */
+  diff: number;
+}
+
+/**
+ * Do the line items add up to a printed figure? A receipt can legitimately
+ * add up to the total, the subtotal, or the total minus VAT, so all three are
+ * accepted (to within 1 baht, which absorbs per-line rounding). Returns null
+ * when there is nothing to compare.
+ */
+export function itemsReconcile(
+  r: Pick<Receipt, "lineItems" | "total" | "subtotal" | "vat">,
+): Reconciliation | null {
+  if (r.lineItems.length === 0) return null;
+  const sum = r.lineItems.reduce((acc, l) => acc + (l.amount === null ? 0 : toSatang(l.amount)), 0);
+  const options: [ReconciledWith, number | null][] = [
+    ["total", r.total],
+    ["subtotal", r.subtotal],
+    ["beforeVat", r.total !== null && r.vat !== null ? r.total - r.vat : null],
+  ];
+  for (const [against, value] of options) {
+    if (value !== null && Math.abs(toSatang(value) - sum) <= TOLERANCE) {
+      return { sum: sum / 100, target: value, against, diff: (sum - toSatang(value)) / 100 };
+    }
+  }
+  const target = r.total ?? r.subtotal;
+  if (target === null) return null;
+  return { sum: sum / 100, target, against: null, diff: (sum - toSatang(target)) / 100 };
+}
+
 /**
  * Cross-field checks on a normalised receipt. Produces flags for the review
  * screen; never changes values. The checks are heuristics: a flag means "a
@@ -128,21 +167,15 @@ export function validateReceipt(
     }
   });
 
-  const amounts = r.lineItems.map((l) => l.amount);
-  if (r.total !== null && amounts.length > 0 && amounts.every((a) => a !== null)) {
-    const sum = amounts.reduce<number>((acc, a) => acc + toSatang(a as number), 0);
-    const candidates = [r.total, r.subtotal, r.total !== null && r.vat !== null ? r.total - r.vat : null]
-      .filter((v): v is number => v !== null)
-      .map(toSatang);
-    if (!candidates.some((c) => Math.abs(c - sum) <= TOLERANCE)) {
-      flags.push({
-        path: "lineItems",
-        code: "items_total_mismatch",
-        severity: "warning",
-        message: `Line items add up to ${(sum / 100).toFixed(2)}, which matches neither the total nor the subtotal.`,
-        params: { sum: (sum / 100).toFixed(2) },
-      });
-    }
+  const recon = itemsReconcile(r);
+  if (recon && r.total !== null && r.lineItems.every((l) => l.amount !== null) && recon.against === null) {
+    flags.push({
+      path: "lineItems",
+      code: "items_total_mismatch",
+      severity: "warning",
+      message: `Line items add up to ${recon.sum.toFixed(2)}, which matches neither the total nor the subtotal.`,
+      params: { sum: recon.sum.toFixed(2) },
+    });
   }
 
   if (r.vat !== null && r.total !== null) {

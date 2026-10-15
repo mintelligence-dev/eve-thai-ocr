@@ -59,4 +59,24 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
       uncertainFields: ["lineItems.1.amount"],
     },
   },
+  {
+    id: "addon-discount",
+    label: "ชาไข่มุก (ท็อปปิ้ง + ส่วนลด)",
+    raw: {
+      documentType: "receipt",
+      merchant: "Demo Tea Shop",
+      dateText: "2025-10-03",
+      timeText: "16:13",
+      currency: null,
+      subtotalText: null,
+      vatText: null,
+      totalText: "105.00",
+      lineItems: [
+        { description: "(M) Iced milk tea", quantityText: "1", unitPriceText: "@100.00", amountText: "125.00" },
+        { description: "Extra pearls", quantityText: null, unitPriceText: "@25.00", amountText: null },
+        { description: "Member discount 20.-", quantityText: null, unitPriceText: null, amountText: "-20.00" },
+      ],
+      uncertainFields: [],
+    },
+  },
 ];

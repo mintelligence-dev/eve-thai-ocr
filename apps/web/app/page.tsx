@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   SAMPLES,
+  itemsReconcile,
   normalizeExtraction,
   revalidate,
   toCSV,
@@ -15,6 +16,9 @@ import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type Lan
 
 const MAX_BYTES = 4 * 1024 * 1024;
 const LANG_KEY = "trr-lang";
+const THEME_KEY = "trr-theme";
+type Theme = "auto" | "light" | "dark";
+const THEMES: Theme[] = ["auto", "light", "dark"];
 const LANG_NAMES: Record<Lang, string> = { th: "ไทย", en: "English" };
 
 function download(name: string, mime: string, text: string) {
@@ -30,6 +34,7 @@ const num = (v: string): number | null => (v === "" ? null : Number(v));
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>("th");
+  const [theme, setTheme] = useState<Theme>("auto");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
@@ -52,6 +57,30 @@ export default function Home() {
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
+
+  // Deep link to a built-in sample, e.g. /?sample=needs-review (handy for demos).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("sample");
+    const sample = SAMPLES.find((s) => s.id === id);
+    if (sample) setReceipt(normalizeExtraction(sample.raw));
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === "light" || saved === "dark") setTheme(saved);
+    } catch {}
+  }, []);
+
+  function chooseTheme(next: Theme) {
+    setTheme(next);
+    if (next === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.dataset.theme = next;
+    try {
+      if (next === "auto") localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, next);
+    } catch {}
+  }
 
   function chooseLang(l: Lang) {
     setLang(l);
@@ -77,6 +106,7 @@ export default function Home() {
     () => (receipt ? { json: toJSON(receipt), csv: toCSV(receipt).replace(/^\uFEFF/, "") } : null),
     [receipt],
   );
+  const recon = useMemo(() => (receipt ? itemsReconcile(receipt) : null), [receipt]);
   const hasErrors = receipt?.flags.some((f) => f.severity === "error") ?? false;
 
   function choose(f: File | undefined) {
@@ -132,12 +162,21 @@ export default function Home() {
     <main>
       <div className="top">
         <h1>{t.title}</h1>
-        <div className="lang" role="group" aria-label={t.langLabel}>
-          {LANGS.map((l) => (
-            <button key={l} className={l === lang ? "on" : "ghost"} aria-pressed={l === lang} onClick={() => chooseLang(l)}>
-              {LANG_NAMES[l]}
-            </button>
-          ))}
+        <div className="controls">
+          <div className="lang" role="group" aria-label={t.langLabel}>
+            {LANGS.map((l) => (
+              <button key={l} className={l === lang ? "on" : "ghost"} aria-pressed={l === lang} onClick={() => chooseLang(l)}>
+                {LANG_NAMES[l]}
+              </button>
+            ))}
+          </div>
+          <div className="theme" role="group" aria-label={t.themeLabel}>
+            {THEMES.map((k) => (
+              <button key={k} className={k === theme ? "on" : "ghost"} aria-pressed={k === theme} onClick={() => chooseTheme(k)}>
+                {t.themes[k]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <p className="lede">{t.tagline}</p>
@@ -254,36 +293,50 @@ export default function Home() {
 
           <h3>{t.items}</h3>
           {hint("lineItems")}
-          <div className="scroll">
-            <table className="items">
-              <thead>
-                <tr>
-                  <th className="c-name">{t.colName}</th>
-                  <th className="c-qty">{t.colQty}</th>
-                  <th className="c-unit">{t.colUnit}</th>
-                  <th className="c-amount">{t.colAmount}</th>
-                  <th className="c-del" />
-                </tr>
-              </thead>
-              <tbody>
-                {receipt.lineItems.map((it, i) => (
-                  <tr key={i}>
-                    <td className="c-name" data-label={t.colName}>
+          <div className="items" role="table" aria-label={t.items}>
+            <div className="item-head" role="row">
+              <span role="columnheader">{t.colName}</span>
+              <span role="columnheader">{t.colQty}</span>
+              <span role="columnheader">{t.colUnit}</span>
+              <span role="columnheader">{t.colAmount}</span>
+              <span />
+            </div>
+            {receipt.lineItems.map((it, i) => {
+              const rowFlags = receipt.flags.filter((f) => f.path.startsWith(`lineItems.${i}.`));
+              const level = rowFlags.some((f) => f.severity === "error") ? "bad" : rowFlags.length ? "warn" : "";
+              return (
+                <div key={i} className={`item ${level}`} role="row">
+                  <div className="item-fields">
+                    <div className="c-name" role="cell" data-label={t.colName}>
                       {/* A textarea wraps long names instead of cutting them off. */}
                       <textarea rows={1} className={cls(`lineItems.${i}.description`)} value={it.description} aria-label={`${t.colName} ${i + 1}`} onChange={(e) => editItem(i, { description: e.target.value.replace(/\n/g, " ") })} />
-                    </td>
-                    <td className="c-qty" data-label={t.colQty}><input type="number" step="any" className={cls(`lineItems.${i}.quantity`)} value={it.quantity ?? ""} aria-label={`${t.colQty} ${i + 1}`} onChange={(e) => editItem(i, { quantity: num(e.target.value) })} /></td>
-                    <td className="c-unit" data-label={t.colUnit}><input type="number" step="0.01" className={cls(`lineItems.${i}.unitPrice`)} value={it.unitPrice ?? ""} aria-label={`${t.colUnit} ${i + 1}`} onChange={(e) => editItem(i, { unitPrice: num(e.target.value) })} /></td>
-                    <td className="c-amount" data-label={t.colAmount}>
-                      <input type="number" step="0.01" className={cls(`lineItems.${i}.amount`)} value={it.amount ?? ""} aria-label={`${t.colAmount} ${i + 1}`} onChange={(e) => editItem(i, { amount: num(e.target.value) })} />
-                      {hint(`lineItems.${i}.amount`)}
-                    </td>
-                    <td className="c-del"><button className="ghost" aria-label={tpl(t.removeItem, { n: i + 1 })} onClick={() => edit({ lineItems: receipt.lineItems.filter((_, k) => k !== i) })}>✕</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="c-qty" role="cell" data-label={t.colQty}><input type="number" step="any" className={cls(`lineItems.${i}.quantity`)} value={it.quantity ?? ""} aria-label={`${t.colQty} ${i + 1}`} onChange={(e) => editItem(i, { quantity: num(e.target.value) })} /></div>
+                    <div className="c-unit" role="cell" data-label={t.colUnit}><input type="number" step="0.01" className={cls(`lineItems.${i}.unitPrice`)} value={it.unitPrice ?? ""} aria-label={`${t.colUnit} ${i + 1}`} onChange={(e) => editItem(i, { unitPrice: num(e.target.value) })} /></div>
+                    <div className="c-amount" role="cell" data-label={t.colAmount}><input type="number" step="0.01" className={cls(`lineItems.${i}.amount`)} value={it.amount ?? ""} aria-label={`${t.colAmount} ${i + 1}`} onChange={(e) => editItem(i, { amount: num(e.target.value) })} /></div>
+                    <div className="c-del" role="cell"><button className="ghost" aria-label={tpl(t.removeItem, { n: i + 1 })} onClick={() => edit({ lineItems: receipt.lineItems.filter((_, k) => k !== i) })}>✕</button></div>
+                  </div>
+                  {rowFlags.length > 0 && (
+                    <ul className="item-msgs">
+                      {rowFlags.map((f, k) => (
+                        <li key={k} className={f.severity}>{flagText(f, lang)}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
           </div>
+          {recon && (
+            <div className={`sum ${recon.against ? "ok" : "warn"}`} role="status">
+              <span>
+                {recon.against
+                  ? tpl(t.sumOk, { sum: recon.sum.toFixed(2), against: t.against[recon.against], target: recon.target.toFixed(2) })
+                  : tpl(t.sumBad, { sum: recon.sum.toFixed(2), target: recon.target.toFixed(2), diff: Math.abs(recon.diff).toFixed(2) })}
+              </span>
+              <span className="sum-tag">{recon.against ? t.sumTagOk : t.sumTagBad}</span>
+            </div>
+          )}
           <button className="ghost" onClick={() => edit({ lineItems: [...receipt.lineItems, { description: "", quantity: null, unitPrice: null, amount: null }] })}>
             {t.addItem}
           </button>
