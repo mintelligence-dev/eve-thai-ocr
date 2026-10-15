@@ -26,6 +26,17 @@ export function validateReceipt(
   const today = options.today ?? new Date();
   const vatRate = options.vatRate ?? 0.07;
 
+  // The model could not recognise a receipt or slip. Anything extracted from
+  // such an image may be invented, so a person must confirm the type first.
+  if (r.documentType === "unknown") {
+    flags.push({
+      path: "documentType",
+      code: "not_a_receipt",
+      severity: "error",
+      message: "This does not look like a receipt or transfer slip. Any data below may be wrong.",
+    });
+  }
+
   if (r.total === null) {
     flags.push({
       path: "total",

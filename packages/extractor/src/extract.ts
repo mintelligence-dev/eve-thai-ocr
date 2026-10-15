@@ -7,6 +7,7 @@ export const DEFAULT_MODEL = "google/gemini-2.5-flash";
 
 export const SYSTEM_PROMPT = `You read printed Thai receipts and bank transfer slips and return structured data.
 Rules:
+- First decide what the image shows. Only a printed receipt, tax invoice or bank transfer slip counts. If the image is blank, unreadable, or anything else, set documentType to "unknown", every text field to null and lineItems to []. Never write plausible-looking values for text you cannot actually see.
 - Copy values exactly as printed, including Thai digits (๑๒๓), Buddhist Era years (2568), and currency symbols. Do not convert, translate, round or calculate.
 - If a field is not visible, return null. Never guess or invent values.
 - For line items, fill quantityText and unitPriceText ONLY when they are printed as their own values. If the receipt shows just one price per line, put it in amountText and leave quantityText and unitPriceText null. Do not assume a quantity of 1 and do not copy the amount into unitPriceText.
@@ -54,7 +55,7 @@ export async function extractReceipt(options: ExtractOptions): Promise<ExtractRe
         role: "user",
         content: [
           { type: "text", text: "Extract the fields from this document." },
-          { type: "image", image: options.image, mediaType: options.mediaType },
+          { type: "file", data: options.image, mediaType: options.mediaType ?? "image/*" },
         ],
       },
     ],

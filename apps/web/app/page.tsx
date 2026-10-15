@@ -210,11 +210,12 @@ export default function Home() {
           <div className="grid">
             <label>
               {t.type}
-              <select value={receipt.documentType} onChange={(e) => edit({ documentType: e.target.value as Receipt["documentType"] })}>
+              <select className={cls("documentType")} value={receipt.documentType} onChange={(e) => edit({ documentType: e.target.value as Receipt["documentType"] })}>
                 {(Object.keys(t.docTypes) as (keyof typeof t.docTypes)[]).map((k) => (
                   <option key={k} value={k}>{t.docTypes[k]}</option>
                 ))}
               </select>
+              {hint("documentType")}
             </label>
             <label>
               {t.merchant}

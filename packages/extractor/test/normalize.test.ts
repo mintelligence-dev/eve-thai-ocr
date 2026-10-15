@@ -78,6 +78,13 @@ describe("normalizeExtraction", () => {
     expect(r.currency).toBe("THB");
   });
 
+  it("blocks an unrecognised document until the type is confirmed", () => {
+    const r = normalizeExtraction({ ...fx.thaiDigitsReceipt, documentType: "unknown" }, { today });
+    expect(r.flags.map((f) => [f.path, f.code, f.severity])).toEqual([["documentType", "not_a_receipt", "error"]]);
+    // Choosing a type on the review screen clears it.
+    expect(revalidate({ ...r, documentType: "receipt" }, { today }).flags).toEqual([]);
+  });
+
   it("flags a VAT amount that is not 7%", () => {
     const r = normalizeExtraction(
       { ...fx.thaiDigitsReceipt, vatText: "50.00" },
