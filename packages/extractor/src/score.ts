@@ -13,6 +13,8 @@ export interface Expected {
   lineItems?: { description?: string; amount: number }[];
   /** The document prints only one price per line, so quantity/unit price must stay null. */
   noQuantityOrUnitPrice?: boolean;
+  /** Not a receipt (blank, noise, other document): nothing may be extracted. */
+  empty?: boolean;
 }
 
 export interface Check {
@@ -114,6 +116,12 @@ export function scoreReceipt(receipt: Receipt, expected: Expected): Score {
   if (expected.noQuantityOrUnitPrice) {
     const invented = receipt.lineItems.filter((i) => i.quantity !== null || i.unitPrice !== null).length;
     add("noInventedQtyPrice", invented === 0, 0, invented);
+  }
+
+  if (expected.empty) {
+    const found = [receipt.merchant, receipt.total, receipt.subtotal, receipt.vat].filter((v) => v !== null).length
+      + receipt.lineItems.length;
+    add("noFabrication", found === 0, 0, found);
   }
 
   const passed = checks.filter((c) => c.pass).length;

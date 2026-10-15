@@ -64,4 +64,11 @@ describe("scoreReceipt", () => {
     });
     expect(s.descriptionSimilarity).toBe(1);
   });
+
+  it("fails noFabrication when anything is extracted from a non-receipt", () => {
+    const s = scoreReceipt(receipt, { empty: true });
+    expect(s.checks).toEqual([{ field: "noFabrication", pass: false, expected: 0, actual: 6 }]);
+    const none = normalizeExtraction(fx.emptyReceipt, { today });
+    expect(scoreReceipt(none, { empty: true }).accuracy).toBe(1);
+  });
 });

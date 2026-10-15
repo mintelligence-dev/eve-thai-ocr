@@ -2,6 +2,7 @@
 // Compare vision models on your own receipts through Vercel AI Gateway.
 //   pnpm bench                          default models, 2 runs each
 //   pnpm bench -- --models a/b,c/d --runs 3
+//   pnpm bench -- --only thai,notes    only cases whose name contains one of these
 //   pnpm bench -- --dry-run             show the plan and estimated cost only
 //
 // Cases: bench/private/<name>.(jpg|png|webp) + <name>.expected.json
@@ -24,30 +25,32 @@ const DEFAULT_MODELS = [
   "google/gemini-2.5-flash-lite",
   "openai/gpt-4o-mini",
   "openai/gpt-4.1-mini",
-  "anthropic/claude-haiku-5.5",
   "mistral/mistral-small",
 ];
 const models = (opt("models") ?? DEFAULT_MODELS.join(",")).split(",").map((s) => s.trim()).filter(Boolean);
 const runs = Number(opt("runs", 2));
-const casesDir = path.resolve(opt("cases", path.join(root, "private")));
+// bench/cases = synthetic documents kept in the repo; bench/private = yours (git-ignored).
+const casesDirs = (opt("cases") ? [path.resolve(opt("cases"))] : [path.join(root, "cases"), path.join(root, "private")]);
 const concurrency = Number(opt("concurrency", 3));
 
 const MIME = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
-const cases = fs.existsSync(casesDir)
-  ? fs.readdirSync(casesDir)
-      .filter((f) => MIME[path.extname(f).toLowerCase()])
-      .map((f) => {
-        const base = f.slice(0, -path.extname(f).length);
-        const expectedPath = path.join(casesDir, `${base}.expected.json`);
-        return fs.existsSync(expectedPath)
-          ? { name: base, file: path.join(casesDir, f), mediaType: MIME[path.extname(f).toLowerCase()], expected: JSON.parse(fs.readFileSync(expectedPath, "utf8")) }
-          : null;
-      })
-      .filter(Boolean)
-  : [];
+const only = (opt("only") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+const allCases = casesDirs.filter((d) => fs.existsSync(d)).flatMap((casesDir) =>
+  fs.readdirSync(casesDir)
+    .filter((f) => MIME[path.extname(f).toLowerCase()])
+    .map((f) => {
+      const base = f.slice(0, -path.extname(f).length);
+      const expectedPath = path.join(casesDir, `${base}.expected.json`);
+      return fs.existsSync(expectedPath)
+        ? { name: base, file: path.join(casesDir, f), mediaType: MIME[path.extname(f).toLowerCase()], expected: JSON.parse(fs.readFileSync(expectedPath, "utf8")) }
+        : null;
+    })
+    .filter(Boolean),
+);
+const cases = only.length ? allCases.filter((c) => only.some((o) => c.name.includes(o))) : allCases;
 
 if (cases.length === 0) {
-  console.error(`No cases in ${casesDir}. Add <name>.jpg and <name>.expected.json (see bench/README.md).`);
+  console.error(`No cases in ${casesDirs.join(", ")}. Add <name>.jpg and <name>.expected.json (see bench/README.md).`);
   process.exit(1);
 }
 
@@ -117,19 +120,24 @@ const rows = models.map((model) => {
     secs: avg(ok.map((r) => r.ms / 1000)),
     cost: avg(ok.map((r) => r.cost).filter((v) => v != null)),
     flags: avg(ok.map((r) => r.flags)),
+    fab: (() => {
+      const neg = ok.filter((r) => r.score.checks.some((c) => c.field === "noFabrication"));
+      return neg.length ? `${neg.filter((r) => r.score.checks.find((c) => c.field === "noFabrication" && !c.pass)).length}/${neg.length}` : "n/a";
+    })(),
     err: [...new Set(rs.filter((r) => !r.ok).map((r) => r.error))].join(", "),
   };
 }).sort((a, b) => (b.acc ?? -1) - (a.acc ?? -1) || (a.cost ?? 9) - (b.cost ?? 9));
 
-console.log("\nmodel".padEnd(34) + "ok".padEnd(6) + "accuracy".padEnd(10) + "perfect".padEnd(9) + "desc-sim".padEnd(10) + "secs".padEnd(7) + "US¢/receipt".padEnd(13) + "flags");
+console.log("\nmodel".padEnd(34) + "ok".padEnd(6) + "accuracy".padEnd(10) + "perfect".padEnd(9) + "desc-sim".padEnd(10) + "secs".padEnd(7) + "US¢/receipt".padEnd(13) + "flags".padEnd(7) + "invented");
 for (const r of rows) {
   console.log(
     r.model.padEnd(33) + " " + r.ok.padEnd(6) + fmt(r.acc, (v) => `${Math.round(v * 100)}%`).padEnd(10) +
       `${r.perfect}`.padEnd(9) + fmt(r.desc, (v) => `${Math.round(v * 100)}%`).padEnd(10) + fmt(r.secs, (v) => v.toFixed(1)).padEnd(7) +
-      fmt(r.cost, (v) => (v * 100).toFixed(2)).padEnd(13) + fmt(r.flags, (v) => v.toFixed(1)) + (r.err ? `   errors: ${r.err}` : ""),
+      fmt(r.cost, (v) => (v * 100).toFixed(2)).padEnd(13) + fmt(r.flags, (v) => v.toFixed(1)).padEnd(7) + r.fab + (r.err ? `   errors: ${r.err}` : ""),
   );
 }
-console.log("\naccuracy = share of field checks passed (merchant, totals, item count/amounts, no invented qty/price).");
+console.log("\ninvented = runs on non-receipt images where the model still returned a merchant, amounts or items (lower is better).");
+console.log("accuracy = share of field checks passed (merchant, totals, item count/amounts, no invented qty/price).");
 console.log("desc-sim = how closely item names match the printed text. Cost uses Gateway list prices and reported token counts.");
 
 const outDir = path.join(root, "results");

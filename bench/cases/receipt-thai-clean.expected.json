@@ -1,0 +1,23 @@
+{
+  "merchant": "ข้าวมันไก่ตัวอย่าง",
+  "date": "2025-05-12",
+  "subtotal": [
+    172.9
+  ],
+  "vat": 12.1,
+  "total": 185,
+  "lineItems": [
+    {
+      "description": "ข้าวมันไก่ต้ม",
+      "amount": 120
+    },
+    {
+      "description": "ต้มจืดเต้าหู้",
+      "amount": 45
+    },
+    {
+      "description": "น้ำเปล่า",
+      "amount": 20
+    }
+  ]
+}
