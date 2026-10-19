@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasTooManyDecimals,
   parseAmountToSatang,
   parseQuantity,
   parseThaiDate,
@@ -103,5 +104,15 @@ describe("parseQuantity", () => {
     expect(parseQuantity("๒")).toBe(2);
     expect(parseQuantity("1.5 kg")).toBe(1.5);
     expect(parseQuantity("-")).toBeNull();
+  });
+});
+
+describe("hasTooManyDecimals", () => {
+  it.each(["5.555", "5.555 บาท", "฿๕.๕๕๕", "-0.125", "12.3456"])("is true for %j", (text) => {
+    expect(hasTooManyDecimals(text)).toBe(true);
+    expect(parseAmountToSatang(text)).toBeNull();
+  });
+  it.each(["5.55", "5.5", "1,234.50", "1.234.567", "1.234,50", "abc", "48.75 N"])("is false for %j", (text) => {
+    expect(hasTooManyDecimals(text)).toBe(false);
   });
 });

@@ -141,7 +141,24 @@ export function parseTime(text: string): string | null {
  * "1.234,50" style. Returns null when no number is present.
  */
 export function parseAmountToSatang(text: string): number | null {
-  let s = thaiDigitsToArabic(text)
+  let s = cleanAmountText(text);
+  const negative = /^-|^\(.*\)$/.test(s);
+  s = s.replace(/[-()]/g, "");
+  if (!/^[\d.,]+$/.test(s) || !/\d/.test(s)) return null;
+  return parseCleanAmount(s, negative);
+}
+
+/**
+ * True for an amount written with more than two decimal places, such as
+ * "5.555 บาท". Baht have only satang (two decimals), so this is not a valid
+ * amount, and it is ambiguous (5.55? 5.56? 5,555?) so it is never guessed.
+ */
+export function hasTooManyDecimals(text: string): boolean {
+  return /^[-(]?\d+\.\d{3,}\)?$/.test(cleanAmountText(text));
+}
+
+function cleanAmountText(text: string): string {
+  return thaiDigitsToArabic(text)
     .replace(/฿|บาท|baht|bht|thb/gi, "")
     // POS receipts print unit prices as "@100.00".
     .replace(/^@/, "")
@@ -151,10 +168,9 @@ export function parseAmountToSatang(text: string): number | null {
     .replace(/(\d)\s*[A-Za-z*]$/, "$1")
     .replace(/\s+/g, "")
     .replace(/^\+/, "");
-  const negative = /^-|^\(.*\)$/.test(s);
-  s = s.replace(/[-()]/g, "");
-  if (!/^[\d.,]+$/.test(s) || !/\d/.test(s)) return null;
+}
 
+function parseCleanAmount(s: string, negative: boolean): number | null {
   const lastDot = s.lastIndexOf(".");
   const lastComma = s.lastIndexOf(",");
   let intPart: string;

@@ -26,7 +26,10 @@ describe("flagText", () => {
       const text = flagText(f, l);
       expect(text, `${f.code} ${l}`).not.toMatch(/[{}]|undefined/);
       expect(text.length).toBeGreaterThan(5);
-      for (const v of Object.values(f.params ?? {})) expect(text, `${f.code} ${l}`).toContain(String(v));
+      // `reason` only selects which sentence to use; every other value must appear in it.
+      for (const [k, v] of Object.entries(f.params ?? {})) {
+        if (k !== "reason") expect(text, `${f.code} ${l}`).toContain(String(v));
+      }
     }
   });
 
@@ -35,6 +38,13 @@ describe("flagText", () => {
       const text = flagText({ path: "total", code, severity: "warning", message: "fallback" }, l);
       expect(text).not.toBe("fallback");
     }
+  });
+
+  it("explains too many decimals in both languages", () => {
+    const f = { path: "fee", code: "unparseable", severity: "error", message: "", params: { text: "5.555 บาท", reason: "decimals" } } as const;
+    expect(flagText(f, "en")).toContain("more than two decimal places");
+    expect(flagText(f, "th")).toContain("ทศนิยมเกิน 2 ตำแหน่ง");
+    expect(flagText(f, "th")).toContain("5.555 บาท");
   });
 
   it("puts the numbers into the sentence", () => {

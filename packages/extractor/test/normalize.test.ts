@@ -79,6 +79,14 @@ describe("normalizeExtraction", () => {
     expect([r.payer, r.reference, r.fee]).toEqual([null, null, null]);
   });
 
+  it("explains an amount with more than two decimals instead of guessing", () => {
+    const r = normalizeExtraction({ ...fx.transferSlip, feeText: "5.555 บาท" }, { today });
+    const flag = r.flags.find((f) => f.path === "fee");
+    expect(r.fee).toBeNull();
+    expect(flag).toMatchObject({ code: "unparseable", severity: "error", params: { text: "5.555 บาท", reason: "decimals" } });
+    expect(flag!.message).toContain("more than two decimal places");
+  });
+
   it("flags an unreadable fee", () => {
     const r = normalizeExtraction({ ...fx.transferSlip, feeText: "O.O?" }, { today });
     expect(codes(r)).toContain("fee:unparseable");

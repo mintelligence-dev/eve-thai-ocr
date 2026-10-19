@@ -2,6 +2,7 @@ import { splitAddOns } from "./addons.js";
 import { assumeSingleUnits } from "./assume.js";
 import type { Flag, LineItem, RawExtraction, Receipt } from "./schema.js";
 import {
+  hasTooManyDecimals,
   parseAmountToSatang,
   parseQuantity,
   parseThaiDate,
@@ -33,12 +34,15 @@ export function normalizeExtraction(
     if (t === null) return null;
     const satang = parseAmountToSatang(t);
     if (satang === null) {
+      const decimals = hasTooManyDecimals(t);
       flags.push({
         path,
         code: "unparseable",
         severity: "error",
-        message: `Could not read "${t}" as an amount.`,
-        params: { text: t },
+        message: decimals
+          ? `"${t}" has more than two decimal places, which is not a valid baht amount.`
+          : `Could not read "${t}" as an amount.`,
+        params: decimals ? { text: t, reason: "decimals" } : { text: t },
       });
       return null;
     }

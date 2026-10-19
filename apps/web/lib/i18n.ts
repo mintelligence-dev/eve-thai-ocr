@@ -174,6 +174,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     missing_item: "รายการนี้ไม่มีจำนวนเงิน",
     missing_other: "ไม่พบข้อมูลในช่องนี้",
     unparseable: "อ่าน “{text}” เป็น{kind}ไม่ได้",
+    unparseable_decimals: "“{text}” มีทศนิยมเกิน 2 ตำแหน่ง ซึ่งไม่ใช่จำนวนเงินบาทที่ถูกต้อง ระบบไม่เดาให้ ตรวจกับรูปต้นฉบับแล้วกรอกเอง",
     uncertain_items: "AI ไม่มั่นใจข้อมูลในรายการสินค้า {count} จุด ควรตรวจกับรูปต้นฉบับ",
     uncertain: "AI ไม่มั่นใจข้อมูลในช่องนี้",
     unsupported_currency: "สกุลเงินเป็น {currency} ไม่ใช่ THB และระบบไม่ได้แปลงค่าเงินให้",
@@ -195,6 +196,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     missing_item: "This item has no amount.",
     missing_other: "This field is empty.",
     unparseable: "Couldn't read “{text}” as {kind}.",
+    unparseable_decimals: "“{text}” has more than two decimal places, which isn't a valid baht amount. It isn't guessed. Check the original and type the right value.",
     uncertain_items: "The AI wasn't sure about {count} item fields. Check the items against the original.",
     uncertain: "The AI wasn't sure about this field.",
     unsupported_currency: "The currency is {currency}, not THB. Amounts are not converted.",
@@ -225,6 +227,7 @@ export function flagText(f: Flag, lang: Lang): string {
       return t.missing_other!;
     case "unparseable": {
       const kind = KIND[lang][leaf === "date" || leaf === "time" ? leaf : "amount"]!;
+      if (p?.reason === "decimals") return tpl(t.unparseable_decimals!, p);
       return tpl(t.unparseable!, { ...p, kind });
     }
     case "model_uncertain":
