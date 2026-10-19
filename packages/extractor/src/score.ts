@@ -5,6 +5,10 @@ type Num = number | number[] | null;
 /** Ground truth for one document. Fields left out are not scored. */
 export interface Expected {
   merchant?: string;
+  /** Sender on a transfer slip. */
+  payer?: string;
+  /** Reference number, or a list of acceptable ones (letters and digits only are compared). */
+  reference?: string | string[];
   date?: string | null;
   /** A number, a list of acceptable numbers, or null (must not be filled in). */
   subtotal?: Num;
@@ -75,6 +79,15 @@ export function scoreReceipt(receipt: Receipt, expected: Expected): Score {
     const e = norm(expected.merchant);
     const a = norm(receipt.merchant ?? "");
     add("merchant", a !== "" && (a.includes(e) || e.includes(a)), expected.merchant, receipt.merchant);
+  }
+  if (expected.payer !== undefined) {
+    const e = norm(expected.payer);
+    const a = norm(receipt.payer ?? "");
+    add("payer", a !== "" && (a.includes(e) || e.includes(a)), expected.payer, receipt.payer);
+  }
+  if (expected.reference !== undefined) {
+    const wanted = (Array.isArray(expected.reference) ? expected.reference : [expected.reference]).map(norm);
+    add("reference", wanted.includes(norm(receipt.reference ?? "")), expected.reference, receipt.reference);
   }
   if (expected.date !== undefined) add("date", receipt.date === expected.date, expected.date, receipt.date);
   for (const k of ["subtotal", "vat", "total"] as const) {

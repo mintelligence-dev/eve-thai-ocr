@@ -48,6 +48,42 @@ describe("normalizeExtraction", () => {
     expect(codes(r)).toEqual(["date:two_digit_year"]);
   });
 
+  it("reads the payer, reference and fee of a transfer slip", () => {
+    const r = normalizeExtraction(fx.transferSlip, { today });
+    expect(r).toMatchObject({
+      merchant: "นางสาว ตัวอย่าง ทดสอบ",
+      payer: "นายสมมติ ตัวอย่าง",
+      reference: "202509030941" + "0001",
+      fee: 0,
+    });
+  });
+
+  it("drops line items the model invented for a transfer slip", () => {
+    const r = normalizeExtraction(
+      {
+        ...fx.transferSlip,
+        lineItems: [
+          { description: "นายสมมติ", quantityText: null, unitPriceText: null, amountText: "2,500.00" },
+          { description: "ค่าธรรมเนียม", quantityText: null, unitPriceText: null, amountText: "0.00" },
+        ],
+      },
+      { today },
+    );
+    expect(r.lineItems).toEqual([]);
+    expect(codes(r)).not.toContain("lineItems:items_total_mismatch");
+  });
+
+  it("keeps the line items of a receipt, and leaves payer, reference and fee empty", () => {
+    const r = normalizeExtraction(fx.thaiDigitsReceipt, { today });
+    expect(r.lineItems).toHaveLength(2);
+    expect([r.payer, r.reference, r.fee]).toEqual([null, null, null]);
+  });
+
+  it("flags an unreadable fee", () => {
+    const r = normalizeExtraction({ ...fx.transferSlip, feeText: "O.O?" }, { today });
+    expect(codes(r)).toContain("fee:unparseable");
+  });
+
   it("flags line items that do not add up", () => {
     expect(codes(normalizeExtraction(fx.itemsMismatchReceipt, { today }))).toEqual([
       "lineItems:items_total_mismatch",

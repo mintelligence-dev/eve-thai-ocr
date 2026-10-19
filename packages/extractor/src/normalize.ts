@@ -96,7 +96,9 @@ export function normalizeExtraction(
     });
   }
 
-  const parsedItems: LineItem[] = raw.lineItems.map((item, i) => ({
+  // A transfer slip has no line items; anything the model listed is a misread
+  // of the slip's own fields (From, To, fee...), so it is dropped.
+  const parsedItems: LineItem[] = (raw.documentType === "transfer_slip" ? [] : raw.lineItems).map((item, i) => ({
     description: item.description.trim(),
     quantity: clean(item.quantityText) ? parseQuantity(item.quantityText!) : null,
     unitPrice: money(item.unitPriceText, `lineItems.${i}.unitPrice`),
@@ -119,6 +121,9 @@ export function normalizeExtraction(
   const base: Omit<Receipt, "flags"> = {
     documentType: raw.documentType,
     merchant: clean(raw.merchant),
+    payer: clean(raw.payer),
+    reference: clean(raw.referenceText)?.replace(/\s+/g, "") ?? null,
+    fee: money(raw.feeText, "fee"),
     date,
     time,
     currency,

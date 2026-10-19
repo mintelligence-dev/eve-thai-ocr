@@ -13,7 +13,16 @@ export const RawExtractionSchema = z.object({
   merchant: z
     .string()
     .nullable()
-    .describe("Shop name for a receipt, or the payee/recipient name for a transfer slip."),
+    .describe("Shop name for a receipt, or the payee / recipient (To) name for a transfer slip."),
+  payer: z
+    .string()
+    .nullable()
+    .describe("Sender (From) name on a transfer slip. Null on receipts or when no name is shown."),
+  referenceText: z
+    .string()
+    .nullable()
+    .describe("Transaction reference number printed on a transfer slip. Never an account number."),
+  feeText: z.string().nullable().describe("Transfer fee as printed, on a transfer slip."),
   dateText: z.string().nullable().describe("Date exactly as printed."),
   timeText: z.string().nullable().describe("Time exactly as printed."),
   currency: z
@@ -34,7 +43,7 @@ export const RawExtractionSchema = z.object({
   uncertainFields: z
     .array(z.string())
     .describe(
-      "Names of fields printed but not read confidently: merchant, date, time, subtotal, vat, total, or lineItems.<index>.<description|quantity|unitPrice|amount>.",
+      "Names of fields printed but not read confidently: merchant, payer, date, time, subtotal, vat, total, fee, reference, or lineItems.<index>.<description|quantity|unitPrice|amount>.",
     ),
 });
 export type RawExtraction = z.infer<typeof RawExtractionSchema>;
@@ -83,7 +92,14 @@ export type LineItem = z.infer<typeof LineItemSchema>;
 /** Normalised, editable result shown on the review screen and exported. */
 export const ReceiptSchema = z.object({
   documentType: z.enum(["receipt", "transfer_slip", "unknown"]),
+  /** Shop, or the payee (recipient) on a transfer slip. */
   merchant: z.string().nullable(),
+  /** Sender on a transfer slip. */
+  payer: z.string().nullable(),
+  /** Transaction reference number on a transfer slip. */
+  reference: z.string().nullable(),
+  /** Transfer fee in baht, on a transfer slip. */
+  fee: z.number().nullable(),
   /** ISO date (Gregorian), e.g. 2025-05-12. */
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
   /** HH:mm, 24h. */

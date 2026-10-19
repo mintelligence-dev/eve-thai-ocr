@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Apply a saved theme before first paint. Fixed string, no user input. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("trr-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`,
+            __html: `try{var t=localStorage.getItem("trr-theme");if(t==="dark")document.documentElement.dataset.theme=t}catch(e){}`,
           }}
         />
       </head>

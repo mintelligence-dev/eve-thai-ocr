@@ -1,19 +1,11 @@
-/* Light is the base. Dark applies when the OS prefers it (unless the user picked
-   Light) or when the user picked Dark. data-theme is set by the switch and by a
-   tiny script in layout.tsx so there is no flash on load. */
+/* Light is the default. Dark applies only when the user picks it with the theme
+   switch (data-theme="dark", also set early by a script in layout.tsx so there is
+   no flash on load). The OS setting is not followed. */
 :root {
   color-scheme: light;
   --bg: #fafaf9; --fg: #1c1917; --muted: #57534e; --card: #fff; --line: #d6d3d1;
   --accent: #0f766e; --warn: #b45309; --warn-bg: #fffbeb; --bad: #b91c1c; --bad-bg: #fef2f2;
   --ok: #166534; --ok-bg: #f0fdf4;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #1c1917; --fg: #fafaf9; --muted: #a8a29e; --card: #292524; --line: #44403c;
-    --accent: #2dd4bf; --warn: #fbbf24; --warn-bg: #3a2c0b; --bad: #f87171; --bad-bg: #3b1515;
-    --ok: #4ade80; --ok-bg: #12301c;
-  }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -113,3 +105,5 @@ textarea { width: 100%; resize: none; min-height: 2.6em; field-sizing: content; 
 
 /* Values filled in because the receipt printed only a price (1 x amount). */
 .item input.assumed { font-style: italic; color: var(--muted); }
+
+button.small { padding: 4px 10px; font-size: 13px; margin-top: 12px; }

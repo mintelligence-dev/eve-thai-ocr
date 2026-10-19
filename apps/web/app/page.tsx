@@ -17,8 +17,8 @@ import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type Lan
 const MAX_BYTES = 4 * 1024 * 1024;
 const LANG_KEY = "trr-lang";
 const THEME_KEY = "trr-theme";
-type Theme = "auto" | "light" | "dark";
-const THEMES: Theme[] = ["auto", "light", "dark"];
+type Theme = "light" | "dark";
+const THEMES: Theme[] = ["light", "dark"];
 const LANG_NAMES: Record<Lang, string> = { th: "ไทย", en: "English" };
 
 function download(name: string, mime: string, text: string) {
@@ -34,7 +34,7 @@ const num = (v: string): number | null => (v === "" ? null : Number(v));
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>("th");
-  const [theme, setTheme] = useState<Theme>("auto");
+  const [theme, setTheme] = useState<Theme>("light");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
@@ -42,6 +42,8 @@ export default function Home() {
   // Keep the cause, not the text, so a language switch re-renders the message.
   const [error, setError] = useState<{ code?: string; retryAfterSec?: number; detail?: string } | null>(null);
   const [reviewed, setReviewed] = useState(false);
+  // Show the fields that do not apply to the current document type.
+  const [showHidden, setShowHidden] = useState(false);
   // Model that read the current document; null for the built-in samples.
   const [model, setModel] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,17 +70,16 @@ export default function Home() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(THEME_KEY);
-      if (saved === "light" || saved === "dark") setTheme(saved);
+      if (saved === "dark") setTheme("dark");
     } catch {}
   }, []);
 
   function chooseTheme(next: Theme) {
     setTheme(next);
-    if (next === "auto") document.documentElement.removeAttribute("data-theme");
-    else document.documentElement.dataset.theme = next;
+    if (next === "dark") document.documentElement.dataset.theme = "dark";
+    else document.documentElement.removeAttribute("data-theme");
     try {
-      if (next === "auto") localStorage.removeItem(THEME_KEY);
-      else localStorage.setItem(THEME_KEY, next);
+      localStorage.setItem(THEME_KEY, next);
     } catch {}
   }
 
@@ -252,45 +253,87 @@ export default function Home() {
             <p className="ok">{t.allClear}</p>
           )}
 
-          <div className="grid">
-            <label>
-              {t.type}
-              <select className={cls("documentType")} value={receipt.documentType} onChange={(e) => edit({ documentType: e.target.value as Receipt["documentType"] })}>
-                {(Object.keys(t.docTypes) as (keyof typeof t.docTypes)[]).map((k) => (
-                  <option key={k} value={k}>{t.docTypes[k]}</option>
-                ))}
-              </select>
-              {hint("documentType")}
-            </label>
-            <label>
-              {t.merchant}
-              <input className={cls("merchant")} value={receipt.merchant ?? ""} onChange={(e) => edit({ merchant: e.target.value || null })} />
-              {hint("merchant")}
-            </label>
-            <label>
-              {t.date}
-              <input type="date" className={cls("date")} value={receipt.date ?? ""} onChange={(e) => edit({ date: e.target.value || null })} />
-              {hint("date")}
-            </label>
-            <label>
-              {t.time}
-              <input type="time" className={cls("time")} value={receipt.time ?? ""} onChange={(e) => edit({ time: e.target.value || null })} />
-              {hint("time")}
-            </label>
-            <label>
-              {t.currency}
-              <input className={cls("currency")} value={receipt.currency} onChange={(e) => edit({ currency: e.target.value.toUpperCase() })} />
-              {hint("currency")}
-            </label>
-            {(["subtotal", "vat", "total"] as const).map((k) => (
-              <label key={k}>
-                {t[k]}
-                <input type="number" step="0.01" className={cls(k)} value={receipt[k] ?? ""} onChange={(e) => edit({ [k]: num(e.target.value) })} />
-                {hint(k)}
-              </label>
-            ))}
-          </div>
-
+          {(() => {
+            const isSlip = receipt.documentType === "transfer_slip";
+            // A field that does not apply to this kind of document is hidden, unless it
+            // holds a value (never hide data silently) or the user asks to see it.
+            const hasReceiptData = receipt.subtotal !== null || receipt.vat !== null || receipt.lineItems.length > 0;
+            const hasSlipData = receipt.payer !== null || receipt.reference !== null || receipt.fee !== null;
+            const showReceiptParts = !isSlip || hasReceiptData || showHidden;
+            const showSlipParts = isSlip || hasSlipData || showHidden;
+            return (
+              <>
+                <div className="grid">
+                  <label>
+                    {t.type}
+                    <select className={cls("documentType")} value={receipt.documentType} onChange={(e) => edit({ documentType: e.target.value as Receipt["documentType"] })}>
+                      {(Object.keys(t.docTypes) as (keyof typeof t.docTypes)[]).map((k) => (
+                        <option key={k} value={k}>{t.docTypes[k]}</option>
+                      ))}
+                    </select>
+                    {hint("documentType")}
+                  </label>
+                  <label>
+                    {isSlip ? t.payee : t.merchant}
+                    <input className={cls("merchant")} value={receipt.merchant ?? ""} onChange={(e) => edit({ merchant: e.target.value || null })} />
+                    {hint("merchant")}
+                  </label>
+                  {showSlipParts && (
+                    <label>
+                      {t.payer}
+                      <input className={cls("payer")} value={receipt.payer ?? ""} onChange={(e) => edit({ payer: e.target.value || null })} />
+                      {hint("payer")}
+                    </label>
+                  )}
+                  <label>
+                    {t.date}
+                    <input type="date" className={cls("date")} value={receipt.date ?? ""} onChange={(e) => edit({ date: e.target.value || null })} />
+                    {hint("date")}
+                  </label>
+                  <label>
+                    {t.time}
+                    <input type="time" className={cls("time")} value={receipt.time ?? ""} onChange={(e) => edit({ time: e.target.value || null })} />
+                    {hint("time")}
+                  </label>
+                  <label>
+                    {t.currency}
+                    <input className={cls("currency")} value={receipt.currency} onChange={(e) => edit({ currency: e.target.value.toUpperCase() })} />
+                    {hint("currency")}
+                  </label>
+                  {showReceiptParts && (["subtotal", "vat"] as const).map((k) => (
+                    <label key={k}>
+                      {t[k]}
+                      <input type="number" step="0.01" className={cls(k)} value={receipt[k] ?? ""} onChange={(e) => edit({ [k]: num(e.target.value) })} />
+                      {hint(k)}
+                    </label>
+                  ))}
+                  <label>
+                    {isSlip ? t.amountTransferred : t.total}
+                    <input type="number" step="0.01" className={cls("total")} value={receipt.total ?? ""} onChange={(e) => edit({ total: num(e.target.value) })} />
+                    {hint("total")}
+                  </label>
+                  {showSlipParts && (
+                    <>
+                      <label>
+                        {t.fee}
+                        <input type="number" step="0.01" className={cls("fee")} value={receipt.fee ?? ""} onChange={(e) => edit({ fee: num(e.target.value) })} />
+                        {hint("fee")}
+                      </label>
+                      <label>
+                        {t.reference}
+                        <input className={cls("reference")} value={receipt.reference ?? ""} onChange={(e) => edit({ reference: e.target.value || null })} />
+                        {hint("reference")}
+                      </label>
+                    </>
+                  )}
+                </div>
+                {isSlip && (
+                  <button className="ghost small" onClick={() => setShowHidden((v) => !v)} aria-expanded={showHidden}>
+                    {showHidden ? t.hideUnrelated : t.showHidden}
+                  </button>
+                )}
+                {showReceiptParts && (
+                  <>
           <h3>{t.items}</h3>
           {hint("lineItems")}
           <div className="items" role="table" aria-label={t.items}>
@@ -341,6 +384,12 @@ export default function Home() {
           <button className="ghost" onClick={() => edit({ lineItems: [...receipt.lineItems, { description: "", quantity: null, unitPrice: null, amount: null }] })}>
             {t.addItem}
           </button>
+
+                  </>
+                )}
+              </>
+            );
+          })()}
 
           <div className="export">
             <label className="check">

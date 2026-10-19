@@ -21,6 +21,13 @@ describe("export", () => {
     expect(lines[1]).toContain("ลาเต้เย็น,2,65,130");
   });
 
+  it("exports the payer, reference and fee of a slip", () => {
+    const csv = toCSV(normalizeExtraction(fx.transferSlip, { today }));
+    const [header, row] = csv.replace("\uFEFF", "").trim().split("\r\n");
+    expect(header).toContain("total,payer,reference,fee,item_description");
+    expect(row).toContain("2500,นายสมมติ ตัวอย่าง,202509030941" + "0001,0,");
+  });
+
   it("keeps totals for a slip with no line items", () => {
     const lines = toCSV(normalizeExtraction(fx.transferSlip, { today })).trim().split("\r\n");
     expect(lines).toHaveLength(2);

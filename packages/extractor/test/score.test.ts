@@ -65,6 +65,14 @@ describe("scoreReceipt", () => {
     expect(s.descriptionSimilarity).toBe(1);
   });
 
+  it("scores payer and reference, ignoring spaces and case", () => {
+    const slip = normalizeExtraction(fx.transferSlip, { today });
+    const ok = scoreReceipt(slip, { payer: "สมมติ", reference: ["x", "2025 0903 0941 0001"] });
+    expect(ok.accuracy).toBe(1);
+    const bad = scoreReceipt(slip, { payer: "คนอื่น", reference: "999" });
+    expect(bad.checks.map((c) => c.pass)).toEqual([false, false]);
+  });
+
   it("fails noFabrication when anything is extracted from a non-receipt", () => {
     const s = scoreReceipt(receipt, { empty: true });
     expect(s.checks).toEqual([{ field: "noFabrication", pass: false, expected: 0, actual: 6 }]);

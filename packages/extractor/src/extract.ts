@@ -15,7 +15,8 @@ Rules:
 - Some receipts print "quantity * unit price / unit" (for example "2 * 41.00 / ชิ้น") on its own line directly BELOW an item. That line belongs to the item above it, not to the next item.
 - Copy a price without the tax-class letter that may follow it (N, P, T, V...) only if you can; if unsure, copy it as printed.
 - Discounts and promotions are line items with a negative amountText, as printed.
-- For a transfer slip, "merchant" is the payee / recipient name and "totalText" is the transferred amount.
+- For a transfer slip: "merchant" is the recipient (To / ไปยัง / ผู้รับ), "payer" is the sender (From / จาก / ผู้โอน), "totalText" is the amount transferred, "feeText" is the fee, "referenceText" is the transaction reference number (if two numbers are printed, use the one labelled transaction reference, เลขที่รายการ or รหัสอ้างอิง), and lineItems must be []. On a receipt, payer, referenceText and feeText are null.
+- If part of a value is hidden, covered, blurred or cut off (for example a white box over some digits), return null for that field and list it in "uncertainFields". Never return only the visible part of a number or name.
 - Do NOT output bank account numbers, card numbers, phone numbers or national IDs.
 - List every field you could not read confidently in "uncertainFields", using these names: merchant, date, time, subtotal, vat, total, lineItems.<index>.description / quantity / unitPrice / amount (index starts at 0). Do not list a field that is simply not printed.
 - You only extract text. You do not judge whether the document is genuine.`;

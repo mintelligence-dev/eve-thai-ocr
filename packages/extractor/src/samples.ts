@@ -11,6 +11,9 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     raw: {
       documentType: "receipt",
       merchant: "ร้านกาแฟตัวอย่าง (Sample Coffee)",
+      payer: null,
+      referenceText: null,
+      feeText: null,
       dateText: "๑๒/๐๕/๒๕๖๘",
       timeText: "๑๔.๓๕ น.",
       currency: null,
@@ -30,6 +33,9 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     raw: {
       documentType: "transfer_slip",
       merchant: "นางสาว ตัวอย่าง ทดสอบ",
+      payer: "นายสมมติ ตัวอย่าง",
+      referenceText: "202510030001234567",
+      feeText: "0.00",
       dateText: "3 ก.ย. 68",
       timeText: "09:41",
       currency: null,
@@ -46,6 +52,9 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     raw: {
       documentType: "receipt",
       merchant: "Demo Mart สาขาทดสอบ",
+      payer: null,
+      referenceText: null,
+      feeText: null,
       dateText: "5 Jan 2658",
       timeText: null,
       currency: null,
@@ -65,6 +74,9 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     raw: {
       documentType: "receipt",
       merchant: "Demo Tea Shop",
+      payer: null,
+      referenceText: null,
+      feeText: null,
       dateText: "2025-10-03",
       timeText: "16:13",
       currency: null,
