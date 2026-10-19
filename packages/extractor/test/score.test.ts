@@ -65,6 +65,13 @@ describe("scoreReceipt", () => {
     expect(s.descriptionSimilarity).toBe(1);
   });
 
+  it("expects no reference when none is printed", () => {
+    const slip = normalizeExtraction(fx.transferSlip, { today });
+    expect(scoreReceipt(slip, { reference: null }).checks[0]).toMatchObject({ field: "reference", pass: false });
+    const none = normalizeExtraction(fx.thaiDigitsReceipt, { today });
+    expect(scoreReceipt(none, { reference: null }).accuracy).toBe(1);
+  });
+
   it("scores payer and reference, ignoring spaces and case", () => {
     const slip = normalizeExtraction(fx.transferSlip, { today });
     const ok = scoreReceipt(slip, { payer: "สมมติ", reference: ["x", "2025 0903 0941 0001"] });

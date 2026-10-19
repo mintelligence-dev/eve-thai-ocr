@@ -294,3 +294,25 @@ describe("itemsReconcile", () => {
     expect(itemsReconcile({ lineItems: items(5), total: null, subtotal: null, vat: null })).toBeNull();
   });
 });
+
+describe("the reference number", () => {
+  const ref = (referenceText: string | null, referenceLabel: string | null) =>
+    normalizeExtraction({ ...fx.thaiDigitsReceipt, referenceText, referenceLabel }, { today }).reference;
+
+  it("keeps a labelled receipt number, with spaces removed", () => {
+    expect(ref("063 - 175270", "Rcpt")).toBe("063-175270");
+    expect(ref("20261003114", "Receipt No:")).toBe("20261003114");
+    expect(ref("123", null)).toBe("123");
+  });
+
+  it("drops a number the label says is a POS, permit, terminal, queue or cashier id", () => {
+    for (const label of ["POS", "POS PERMIT", "Terminal ID", "Queue No", "Cashier", "รหัสเครื่อง", "คิวที่"]) {
+      expect(ref("E03027000202234", label), label).toBeNull();
+    }
+  });
+
+  it("does not mistake a longer word for a machine id", () => {
+    expect(ref("D-1", "Deposit ref")).toBe("D-1");
+    expect(ref("T-9", "Transaction ref")).toBe("T-9");
+  });
+});

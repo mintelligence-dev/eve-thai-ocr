@@ -7,3 +7,4 @@ export { toJSON, toCSV } from "./export.js";
 export { SAMPLES } from "./samples.js";
 export * from "./score.js";
 export { isDiscountLabel } from "./discount.js";
+export { isValidThaiTaxId, taxIdDigits } from "./taxid.js";

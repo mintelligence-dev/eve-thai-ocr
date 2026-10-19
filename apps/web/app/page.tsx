@@ -12,9 +12,9 @@ import {
   type LineItem,
   type Receipt,
 } from "@thai-receipt-reader/extractor/core";
+import { ImageError, MIN_SIDE_WARN, prepareImage } from "@/lib/image";
 import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type Lang } from "@/lib/i18n";
 
-const MAX_BYTES = 4 * 1024 * 1024;
 const LANG_KEY = "trr-lang";
 const THEME_KEY = "trr-theme";
 type Theme = "light" | "dark";
@@ -47,6 +47,9 @@ export default function Home() {
   // Model that read the current document; null for the built-in samples.
   const [model, setModel] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [notice, setNotice] = useState<{ w: number; h: number } | null>(null);
   const t = T[lang];
 
   // Start from the saved choice, else the browser's language. Storage can be
@@ -110,14 +113,26 @@ export default function Home() {
   const recon = useMemo(() => (receipt ? itemsReconcile(receipt) : null), [receipt]);
   const hasErrors = receipt?.flags.some((f) => f.severity === "error") ?? false;
 
-  function choose(f: File | undefined) {
+  async function choose(f: File | undefined) {
     setError(null);
+    setNotice(null);
     setReceipt(null);
     setReviewed(false);
     if (!f) return setFile(null);
-    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) return setError({ code: "bad_type" });
-    if (f.size > MAX_BYTES) return setError({ code: "too_large" });
-    setFile(f);
+    setPreparing(true);
+    try {
+      // Fix orientation, shrink and re-encode on the device before anything is uploaded.
+      const prepared = await prepareImage(f);
+      setFile(prepared.file);
+      if (Math.min(prepared.width, prepared.height) < MIN_SIDE_WARN) {
+        setNotice({ w: prepared.width, h: prepared.height });
+      }
+    } catch (e) {
+      setFile(null);
+      setError({ code: e instanceof ImageError ? e.code : "decode_failed" });
+    } finally {
+      setPreparing(false);
+    }
   }
 
   async function extract() {
@@ -199,18 +214,47 @@ export default function Home() {
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/*"
             hidden
-            onChange={(e) => choose(e.target.files?.[0])}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = ""; // so choosing the same file again still fires
+              choose(f);
+            }}
           />
-          {preview ? (
+          {preparing ? (
+            <span>{t.preparing}</span>
+          ) : preview ? (
             <img src={preview} alt={t.preview} />
           ) : (
             <span>{t.drop}<br /><small>{t.dropHint}</small></span>
           )}
         </div>
+        {notice && <p className="notice warning">{tpl(t.lowRes, { w: notice.w, h: notice.h })}</p>}
         <div className="row">
-          <button onClick={extract} disabled={!file || busy}>{busy ? t.reading : t.extract}</button>
+          <button onClick={extract} disabled={!file || busy || preparing}>{busy ? t.reading : t.extract}</button>
+          {/* capture="environment" opens the rear camera on phones. Shown on touch devices only. */}
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              choose(f);
+            }}
+          />
+          <button className="ghost camera-btn" onClick={() => cameraRef.current?.click()}>{t.camera}</button>
+        </div>
+        <div className="tips">
+          <b>{t.tipsTitle}</b>
+          <ul>
+            <li>{t.tip1}</li>
+            <li>{t.tip2}</li>
+            <li>{t.tip3}</li>
+          </ul>
         </div>
         <div className="row">
           <span className="or">{t.samplesLead}</span>
@@ -221,6 +265,7 @@ export default function Home() {
               onClick={() => {
                 setFile(null);
                 setError(null);
+                setNotice(null);
                 setReviewed(false);
                 setModel(null);
                 setReceipt(normalizeExtraction(s.raw));
@@ -257,8 +302,8 @@ export default function Home() {
             const isSlip = receipt.documentType === "transfer_slip";
             // A field that does not apply to this kind of document is hidden, unless it
             // holds a value (never hide data silently) or the user asks to see it.
-            const hasReceiptData = receipt.subtotal !== null || receipt.vat !== null || receipt.lineItems.length > 0;
-            const hasSlipData = receipt.payer !== null || receipt.reference !== null || receipt.fee !== null;
+            const hasReceiptData = receipt.subtotal !== null || receipt.vat !== null || receipt.taxId !== null || receipt.lineItems.length > 0;
+            const hasSlipData = receipt.payer !== null || receipt.fee !== null;
             const showReceiptParts = !isSlip || hasReceiptData || showHidden;
             const showSlipParts = isSlip || hasSlipData || showHidden;
             return (
@@ -278,6 +323,13 @@ export default function Home() {
                     <input className={cls("merchant")} value={receipt.merchant ?? ""} onChange={(e) => edit({ merchant: e.target.value || null })} />
                     {hint("merchant")}
                   </label>
+                  {showReceiptParts && (
+                    <label>
+                      {t.taxId}
+                      <input className={cls("taxId")} inputMode="numeric" value={receipt.taxId ?? ""} onChange={(e) => edit({ taxId: e.target.value.replace(/\D/g, "") || null })} />
+                      {hint("taxId")}
+                    </label>
+                  )}
                   {showSlipParts && (
                     <label>
                       {t.payer}
@@ -313,19 +365,17 @@ export default function Home() {
                     {hint("total")}
                   </label>
                   {showSlipParts && (
-                    <>
-                      <label>
-                        {t.fee}
-                        <input type="number" step="0.01" className={cls("fee")} value={receipt.fee ?? ""} onChange={(e) => edit({ fee: num(e.target.value) })} />
-                        {hint("fee")}
-                      </label>
-                      <label>
-                        {t.reference}
-                        <input className={cls("reference")} value={receipt.reference ?? ""} onChange={(e) => edit({ reference: e.target.value || null })} />
-                        {hint("reference")}
-                      </label>
-                    </>
+                    <label>
+                      {t.fee}
+                      <input type="number" step="0.01" className={cls("fee")} value={receipt.fee ?? ""} onChange={(e) => edit({ fee: num(e.target.value) })} />
+                      {hint("fee")}
+                    </label>
                   )}
+                  <label>
+                    {isSlip ? t.reference : t.receiptNumber}
+                    <input className={cls("reference")} value={receipt.reference ?? ""} onChange={(e) => edit({ reference: e.target.value || null })} />
+                    {hint("reference")}
+                  </label>
                 </div>
                 {isSlip && (
                   <button className="ghost small" onClick={() => setShowHidden((v) => !v)} aria-expanded={showHidden}>

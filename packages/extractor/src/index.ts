@@ -13,3 +13,4 @@ export {
 } from "./extract.js";
 export * from "./score.js";
 export { isDiscountLabel } from "./discount.js";
+export { isValidThaiTaxId, taxIdDigits } from "./taxid.js";

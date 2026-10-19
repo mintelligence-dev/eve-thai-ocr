@@ -7,8 +7,10 @@ export interface Expected {
   merchant?: string;
   /** Sender on a transfer slip. */
   payer?: string;
+  /** The shop's tax ID (digits). */
+  taxId?: string;
   /** Reference number, or a list of acceptable ones (letters and digits only are compared). */
-  reference?: string | string[];
+  reference?: string | string[] | null;
   date?: string | null;
   /** A number, a list of acceptable numbers, or null (must not be filled in). */
   subtotal?: Num;
@@ -85,7 +87,13 @@ export function scoreReceipt(receipt: Receipt, expected: Expected): Score {
     const a = norm(receipt.payer ?? "");
     add("payer", a !== "" && (a.includes(e) || e.includes(a)), expected.payer, receipt.payer);
   }
-  if (expected.reference !== undefined) {
+  if (expected.taxId !== undefined) {
+    add("taxId", (receipt.taxId ?? "") === expected.taxId.replace(/\D/g, ""), expected.taxId, receipt.taxId);
+  }
+  if (expected.reference === null) {
+    // No number is printed: the model must not make one up (or pick a POS / machine number).
+    add("reference", receipt.reference === null, null, receipt.reference);
+  } else if (expected.reference !== undefined) {
     const wanted = (Array.isArray(expected.reference) ? expected.reference : [expected.reference]).map(norm);
     add("reference", wanted.includes(norm(receipt.reference ?? "")), expected.reference, receipt.reference);
   }

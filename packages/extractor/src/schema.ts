@@ -21,7 +21,19 @@ export const RawExtractionSchema = z.object({
   referenceText: z
     .string()
     .nullable()
-    .describe("Transaction reference number printed on a transfer slip. Never an account number."),
+    .describe(
+      "Transaction reference number on a transfer slip, or the receipt / invoice number on a receipt. Never an account number.",
+    ),
+  referenceLabel: z
+    .string()
+    .nullable()
+    .describe(
+      "The label printed right next to the number in referenceText, copied as printed (e.g. 'Rcpt No.', 'Transaction reference', 'เลขที่รายการ'). Null if it has no label.",
+    ),
+  taxIdText: z
+    .string()
+    .nullable()
+    .describe("The shop's tax ID as printed on a receipt or tax invoice (TAX ID, เลขประจำตัวผู้เสียภาษี). Null if absent."),
   feeText: z.string().nullable().describe("Transfer fee as printed, on a transfer slip."),
   dateText: z.string().nullable().describe("Date exactly as printed."),
   timeText: z.string().nullable().describe("Time exactly as printed."),
@@ -43,7 +55,7 @@ export const RawExtractionSchema = z.object({
   uncertainFields: z
     .array(z.string())
     .describe(
-      "Names of fields printed but not read confidently: merchant, payer, date, time, subtotal, vat, total, fee, reference, or lineItems.<index>.<description|quantity|unitPrice|amount>.",
+      "Names of fields printed but not read confidently: merchant, payer, date, time, subtotal, vat, total, fee, reference, taxId, or lineItems.<index>.<description|quantity|unitPrice|amount>.",
     ),
 });
 export type RawExtraction = z.infer<typeof RawExtractionSchema>;
@@ -65,6 +77,7 @@ export const FlagSchema = z.object({
     "negative_amount",
     "not_a_receipt",
     "addon_split",
+    "invalid_tax_id",
   ]),
   severity: z.enum(["error", "warning"]),
   /** English text, for logs and API consumers. */
@@ -96,8 +109,10 @@ export const ReceiptSchema = z.object({
   merchant: z.string().nullable(),
   /** Sender on a transfer slip. */
   payer: z.string().nullable(),
-  /** Transaction reference number on a transfer slip. */
+  /** Transaction reference on a transfer slip, or the receipt / invoice number. */
   reference: z.string().nullable(),
+  /** The shop's tax ID, digits only. */
+  taxId: z.string().nullable(),
   /** Transfer fee in baht, on a transfer slip. */
   fee: z.number().nullable(),
   /** ISO date (Gregorian), e.g. 2025-05-12. */

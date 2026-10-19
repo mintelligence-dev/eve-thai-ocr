@@ -12,7 +12,14 @@ export const T = {
     tagline: "อ่านใบเสร็จและสลิปโอนเงินภาษาไทยให้เป็นข้อมูลที่แก้ไขได้ แล้วส่งออกเป็น JSON หรือ CSV",
     notice: "แอปนี้อ่านข้อมูลจากรูปเท่านั้น ไม่ตรวจว่าใบเสร็จหรือสลิปเป็นของจริง และไม่เก็บรูปที่อัปโหลดไว้",
     drop: "ลากรูปมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์",
-    dropHint: "รองรับ JPEG, PNG, WebP ขนาดไม่เกิน 4 MB",
+    dropHint: "ใช้รูปจากมือถือได้เลย (JPEG, PNG, WebP, HEIC) ระบบย่อรูปให้อัตโนมัติบนเครื่องคุณก่อนอัปโหลด",
+    camera: "ถ่ายรูป",
+    preparing: "กำลังเตรียมรูป…",
+    lowRes: "รูปค่อนข้างเล็ก ({w}×{h} พิกเซล) ตัวหนังสือเล็กอาจอ่านไม่ออก ลองถ่ายให้ใกล้ขึ้น",
+    tipsTitle: "ถ่ายให้อ่านแม่น",
+    tip1: "วางใบเสร็จบนพื้นเรียบ ถ่ายตรงจากด้านบน ไม่เอียง",
+    tip2: "แสงสว่างพอ ไม่มีเงาหรือแสงสะท้อนบังตัวหนังสือ",
+    tip3: "ให้เห็นทั้งใบ ตั้งแต่ชื่อร้านถึงยอดรวม และถ่ายให้ใกล้พอที่ตัวหนังสือชัด",
     preview: "ตัวอย่างรูปที่เลือก",
     extract: "อ่านข้อมูล",
     reading: "กำลังอ่าน…",
@@ -36,7 +43,9 @@ export const T = {
     amountTransferred: "จำนวนเงินที่โอน",
     fee: "ค่าธรรมเนียม",
     reference: "เลขที่รายการอ้างอิง",
-    showHidden: "แสดงช่องที่ซ่อน (ยอดก่อน VAT, VAT, รายการสินค้า)",
+    receiptNumber: "เลขที่ใบเสร็จ",
+    taxId: "เลขประจำตัวผู้เสียภาษี",
+    showHidden: "แสดงช่องที่ซ่อน (เลขผู้เสียภาษี, ยอดก่อน VAT, VAT, รายการสินค้า)",
     hideUnrelated: "ซ่อนช่องที่ไม่เกี่ยวข้อง",
     date: "วันที่ (ค.ศ.)",
     time: "เวลา",
@@ -76,7 +85,14 @@ export const T = {
     tagline: "Turn Thai receipts and transfer slips into editable data, then export it as JSON or CSV.",
     notice: "This app only reads what is printed. It does not check whether a receipt or slip is genuine, and it does not keep your image.",
     drop: "Drop an image here, or click to choose a file",
-    dropHint: "JPEG, PNG or WebP, up to 4 MB",
+    dropHint: "Phone photos are fine (JPEG, PNG, WebP, HEIC). They are resized automatically on your device before upload.",
+    camera: "Take photo",
+    preparing: "Preparing the image…",
+    lowRes: "This image is small ({w}×{h} px), so small print may be unreadable. Try a closer photo.",
+    tipsTitle: "For a clear read",
+    tip1: "Lay the receipt flat and shoot straight down, not at an angle.",
+    tip2: "Use enough light, with no shadows or glare over the text.",
+    tip3: "Show the whole receipt, from the shop name to the total, close enough that the text is sharp.",
     preview: "Preview of the selected image",
     extract: "Read data",
     reading: "Reading…",
@@ -100,7 +116,9 @@ export const T = {
     amountTransferred: "Amount transferred",
     fee: "Fee",
     reference: "Reference number",
-    showHidden: "Show hidden fields (subtotal, VAT, items)",
+    receiptNumber: "Receipt number",
+    taxId: "Tax ID",
+    showHidden: "Show hidden fields (tax ID, subtotal, VAT, items)",
     hideUnrelated: "Hide fields that don't apply",
     date: "Date (Gregorian)",
     time: "Time",
@@ -142,12 +160,12 @@ export const tpl = fill;
 
 const FIELD: Record<Lang, Record<string, string>> = {
   th: {
-    documentType: "ประเภทเอกสาร", merchant: "ชื่อร้าน / ผู้รับเงิน", payer: "ผู้โอน", reference: "เลขที่อ้างอิง", fee: "ค่าธรรมเนียม", date: "วันที่", time: "เวลา", currency: "สกุลเงิน",
+    documentType: "ประเภทเอกสาร", merchant: "ชื่อร้าน / ผู้รับเงิน", payer: "ผู้โอน", reference: "เลขที่อ้างอิง", taxId: "เลขผู้เสียภาษี", fee: "ค่าธรรมเนียม", date: "วันที่", time: "เวลา", currency: "สกุลเงิน",
     subtotal: "ยอดก่อน VAT", vat: "VAT", total: "ยอดรวม", lineItems: "รายการสินค้า",
     description: "ชื่อรายการ", quantity: "จำนวน", unitPrice: "ราคาต่อหน่วย", amount: "จำนวนเงิน",
   },
   en: {
-    documentType: "Document type", merchant: "Shop / payee", payer: "Payer", reference: "Reference", fee: "Fee", date: "Date", time: "Time", currency: "Currency",
+    documentType: "Document type", merchant: "Shop / payee", payer: "Payer", reference: "Reference", taxId: "Tax ID", fee: "Fee", date: "Date", time: "Time", currency: "Currency",
     subtotal: "Subtotal", vat: "VAT", total: "Total", lineItems: "Items",
     description: "Item name", quantity: "Quantity", unitPrice: "Unit price", amount: "Amount",
   },
@@ -186,6 +204,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     vat_mismatch: "VAT {vat} ไม่ใช่ {rate}% ของยอดรวม ตรวจ VAT หรือยอดรวมอีกครั้ง",
     negative_amount: "จำนวนเงินติดลบ แต่ชื่อรายการไม่ได้บอกว่าเป็นส่วนลด เครื่องหมายลบอาจอ่านผิด",
     addon_split: "ยอดที่พิมพ์ในรายการนี้ ({printed}) รวมของเพิ่มด้านล่างไว้แล้ว ระบบแยกเป็น {base} บวกราคาของเพิ่ม เพื่อไม่ให้นับซ้ำ ตรวจกับรูปต้นฉบับด้วย",
+    invalid_tax_id: "เลขผู้เสียภาษี {text} ไม่ถูกต้อง (หลักตรวจสุดท้ายไม่ตรง) อาจอ่านตัวเลขผิด ตรวจกับรูปต้นฉบับ",
     not_a_receipt: "ระบบไม่แน่ใจว่าเอกสารนี้เป็นใบเสร็จหรือสลิปโอนเงิน ถ้าใช่ ให้เลือกประเภทเอกสารให้ถูกต้อง ถ้าไม่ใช่ ข้อมูลด้านล่างอาจเป็นข้อมูลที่ไม่มีอยู่จริง",
   },
   en: {
@@ -208,6 +227,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     vat_mismatch: "VAT {vat} is not {rate}% of the total. Check the VAT or the total.",
     negative_amount: "Negative amount, but the item name doesn't say it's a discount. The minus sign may be misread.",
     addon_split: "The amount printed on this item ({printed}) already includes the add-on below it. It is shown as {base} plus the add-on price so nothing is counted twice. Please check it against the original.",
+    invalid_tax_id: "Tax ID {text} is not valid (its check digit does not match), so a digit may have been misread. Check it against the original.",
     not_a_receipt: "We aren't sure this is a receipt or transfer slip. If it is, set the document type. If not, the data below may be made up.",
   },
 };
@@ -242,6 +262,7 @@ export function flagText(f: Flag, lang: Lang): string {
     case "negative_amount": return t.negative_amount!;
     case "not_a_receipt": return t.not_a_receipt!;
     case "addon_split": return tpl(t.addon_split!, p);
+    case "invalid_tax_id": return tpl(t.invalid_tax_id!, p);
     default: return f.message;
   }
 }
@@ -249,9 +270,10 @@ export function flagText(f: Flag, lang: Lang): string {
 const API: Record<Lang, Record<string, string>> = {
   th: {
     missing_image: "ยังไม่ได้เลือกรูป",
-    bad_type: "รองรับเฉพาะไฟล์ JPEG, PNG หรือ WebP",
+    bad_type: "รองรับเฉพาะไฟล์รูปภาพ (JPEG, PNG, WebP)",
     empty_file: "ไฟล์ว่างเปล่า",
-    too_large: "ไฟล์ใหญ่เกิน 4 MB",
+    too_large: "รูปใหญ่เกินไป แม้ย่อแล้วก็ยังเกิน 4 MB ลองถ่ายใหม่หรือครอปให้เหลือเฉพาะใบเสร็จ",
+    decode_failed: "เปิดรูปนี้ไม่ได้ ลองบันทึกเป็น JPEG หรือ PNG แล้วอัปโหลดใหม่",
     rate_limited: "คุณใช้งานบ่อยเกินไป ลองใหม่ในอีก {minutes} นาที",
     daily_limit: "เดโมนี้ถึงโควตารายวันแล้ว ลองใหม่ในอีก {minutes} นาที",
     extract_failed: "อ่านข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง",
@@ -261,7 +283,8 @@ const API: Record<Lang, Record<string, string>> = {
     missing_image: "Please choose an image first.",
     bad_type: "Only JPEG, PNG or WebP files are supported.",
     empty_file: "The file is empty.",
-    too_large: "The file is larger than 4 MB.",
+    too_large: "The image is still over 4 MB even after resizing. Try a new photo, or crop it to just the receipt.",
+    decode_failed: "This image can't be opened. Save it as JPEG or PNG and try again.",
     rate_limited: "You're going a bit fast. Try again in {minutes} min.",
     daily_limit: "The demo has reached its daily limit. Try again in {minutes} min.",
     extract_failed: "Couldn't read the document. Please try again.",

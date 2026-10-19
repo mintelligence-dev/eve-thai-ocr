@@ -1,5 +1,6 @@
 import { splitAddOns } from "./addons.js";
 import { assumeSingleUnits } from "./assume.js";
+import { isValidThaiTaxId, taxIdDigits } from "./taxid.js";
 import type { Flag, LineItem, RawExtraction, Receipt } from "./schema.js";
 import {
   hasTooManyDecimals,
@@ -10,6 +11,13 @@ import {
 } from "./thai.js";
 import { MAX_INDIVIDUAL_FLAGS, validateReceipt, type ValidateOptions } from "./validate.js";
 
+/**
+ * A number labelled as a POS, machine, permit, terminal, queue or cashier id is
+ * not a receipt number, whatever the model made of it. English words are matched
+ * whole ("deposit" must not match "pos"); Thai terms as substrings.
+ */
+const NOT_A_REFERENCE = /\b(pos|permit|terminal|machine|cashier|queue|tid|mid)\b|เครื่อง|แคชเชียร์|พนักงาน|คิว/i;
+
 const clean = (s: string | null | undefined) => {
   const t = s?.trim();
   return t ? t : null;
@@ -18,6 +26,12 @@ const clean = (s: string | null | undefined) => {
 /** Models sometimes echo the raw schema names ("dateText"); map them to field paths. */
 const uncertainPath = (field: string) =>
   field.trim().replace(/Text(?=\.|$)/g, "");
+
+function referenceFrom(raw: RawExtraction): string | null {
+  const text = clean(raw.referenceText)?.replace(/\s+/g, "") ?? null;
+  const label = clean(raw.referenceLabel);
+  return text && !(label && NOT_A_REFERENCE.test(label)) ? text : null;
+}
 
 /**
  * Turn the model's raw text fields into typed values and attach review flags.
@@ -122,12 +136,26 @@ export function normalizeExtraction(
     });
   }
 
+  // A misread digit nearly always breaks the check digit, so a bad ID is flagged.
+  const taxIdText = clean(raw.taxIdText);
+  const taxId = taxIdText ? taxIdDigits(taxIdText) || null : null;
+  if (taxId && !isValidThaiTaxId(taxId)) {
+    flags.push({
+      path: "taxId",
+      code: "invalid_tax_id",
+      severity: "warning",
+      message: `Tax ID "${taxId}" is not a valid 13-digit Thai tax ID (the check digit does not match). It may have been misread.`,
+      params: { text: taxId },
+    });
+  }
+
   const base: Omit<Receipt, "flags"> = {
     documentType: raw.documentType,
     merchant: clean(raw.merchant),
     payer: clean(raw.payer),
-    reference: clean(raw.referenceText)?.replace(/\s+/g, "") ?? null,
+    reference: referenceFrom(raw),
     fee: money(raw.feeText, "fee"),
+    taxId: taxId,
     date,
     time,
     currency,

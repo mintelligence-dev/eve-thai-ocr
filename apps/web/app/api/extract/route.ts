@@ -1,4 +1,5 @@
 import { DEFAULT_MODEL, extractReceipt } from "@thai-receipt-reader/extractor";
+import { sniffImageType } from "@/lib/image-type";
 import { clientKey, perVisitor, wholeSite } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -6,7 +7,6 @@ export const maxDuration = 60;
 
 // Vercel rejects request bodies above 4.5 MB, so stay under that.
 const MAX_BYTES = 4 * 1024 * 1024;
-const TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /** Operator-facing hints keyed by AI SDK / Gateway error class name. */
 const REASONS: Record<string, string> = {
@@ -60,15 +60,19 @@ export async function POST(request: Request) {
 
   const file = form.get("image");
   if (!(file instanceof File)) return error("missing_image", "Missing 'image' file.", 400);
-  if (!TYPES.has(file.type)) return error("bad_type", "Only JPEG, PNG or WebP images are supported.", 415);
   if (file.size === 0) return error("empty_file", "The file is empty.", 400);
   if (file.size > MAX_BYTES) return error("too_large", "Image is larger than 4 MB.", 413);
+
+  // Trust the file's first bytes, not its name or the type the sender claims.
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const type = sniffImageType(bytes);
+  if (!type) return error("bad_type", "Only JPEG, PNG or WebP images are supported.", 415);
 
   const model = process.env.RECEIPT_MODEL || DEFAULT_MODEL;
   try {
     const { receipt } = await extractReceipt({
-      image: new Uint8Array(await file.arrayBuffer()),
-      mediaType: file.type,
+      image: bytes,
+      mediaType: type,
       model,
       abortSignal: request.signal,
     });
