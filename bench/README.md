@@ -54,3 +54,7 @@ publish.
 
 Each call sends your image to that model's provider via AI Gateway and spends
 credit (a few cents for the default list). Your Gateway budget still applies.
+
+## Experiments
+
+- [`experiments/`](experiments/README.md): does straightening or enhancing the photo before reading help? (Short answer: not enough yet to add a library; faded paper is the one clear gain.)
