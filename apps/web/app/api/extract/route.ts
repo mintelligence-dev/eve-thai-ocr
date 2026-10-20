@@ -1,5 +1,5 @@
-import { DEFAULT_MODEL, extractReceipt } from "@thai-receipt-reader/extractor";
-import { classifyError } from "@/lib/errors";
+import { DEFAULT_MODEL, extractReceipt, extractReceiptStream } from "@thai-receipt-reader/extractor";
+import { describeFailure } from "@/lib/errors";
 import { sniffImageType } from "@/lib/image-type";
 import { clientKey, perVisitor, wholeSite } from "@/lib/rate-limit";
 
@@ -8,15 +8,8 @@ export const maxDuration = 60;
 
 // Vercel rejects request bodies above 4.5 MB, so stay under that.
 const MAX_BYTES = 4 * 1024 * 1024;
-
-/** Operator-facing hints keyed by AI SDK / Gateway error class name. */
-const REASONS: Record<string, string> = {
-  GatewayAuthenticationError: "AI Gateway rejected the API key. Check AI_GATEWAY_API_KEY and redeploy.",
-  GatewayModelNotFoundError: "Model not found in AI Gateway. Check RECEIPT_MODEL.",
-  GatewayRateLimitError: "AI Gateway rate limit or spending cap reached.",
-  AI_NoObjectGeneratedError: "The model did not return data in the expected format. Try again or use another model.",
-  AI_TypeValidationError: "The model returned data that failed validation. Try again or use another model.",
-};
+/** Partial results are sent at most this often; the model emits one per token. */
+const PARTIAL_EVERY_MS = 150;
 
 /**
  * Errors carry an English `error` for API consumers and a stable `code` (plus
@@ -70,6 +63,39 @@ export async function POST(request: Request) {
   if (!type) return error("bad_type", "Only JPEG, PNG or WebP images are supported.", 415);
 
   const model = process.env.RECEIPT_MODEL || DEFAULT_MODEL;
+
+  // ?stream=1: send what the model has read so far as it goes (one JSON object per
+  // line), then the final result. The web page uses this so something moves on
+  // screen within a couple of seconds instead of after the whole answer.
+  if (new URL(request.url).searchParams.has("stream")) {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const send = (event: object) => controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+        let lastPartial = 0;
+        try {
+          for await (const event of extractReceiptStream({ image: bytes, mediaType: type, model, abortSignal: request.signal })) {
+            if (event.type === "final") {
+              send({ type: "final", receipt: event.result.receipt, model });
+            } else if (Date.now() - lastPartial >= PARTIAL_EVERY_MS) {
+              lastPartial = Date.now();
+              send({ type: "partial", raw: event.raw });
+            }
+          }
+        } catch (e) {
+          const f = describeFailure(e);
+          if (f.log) console.error(f.log);
+          send({ type: "error", code: f.code, error: f.message, retryAfterSec: f.retryAfterSec, detail: f.detail });
+        } finally {
+          controller.close();
+        }
+      },
+    });
+    return new Response(body, {
+      headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" },
+    });
+  }
+
   try {
     const { receipt } = await extractReceipt({
       image: bytes,
@@ -80,21 +106,11 @@ export async function POST(request: Request) {
     // `model` is returned so the UI can show which model read the document.
     return Response.json({ receipt, model }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
-    // Not a failure of the document: unsupported (handwriting) or a busy service.
-    const known = classifyError(e);
-    if (known.code === "handwritten") return error(known.code, known.message, known.status);
-    if (known.code === "busy") {
-      console.error("extract busy: upstream rate limit");
-      return error(known.code, known.message, known.status, { retryAfterSec: known.retryAfterSec }, { "Retry-After": String(known.retryAfterSec) });
-    }
-    // The client gets the error class and HTTP status only. The (truncated)
-    // gateway message goes to server logs, visible to the project owner.
-    const name = e instanceof Error ? e.name : "unknown";
-    const status = (e as { statusCode?: number } | null)?.statusCode;
-    console.error("extract failed:", name, status ?? "", e instanceof Error ? e.message.slice(0, 300) : "");
-    const reason = REASONS[name] ?? "Extraction failed. Check the model configuration and try again.";
-    return error("extract_failed", "Extraction failed.", 502, {
-      detail: `${reason} (${name}${status ? `, HTTP ${status}` : ""})`,
-    });
+    const f = describeFailure(e);
+    if (f.log) console.error(f.log);
+    const extra: Record<string, unknown> = {};
+    if (f.retryAfterSec) extra.retryAfterSec = f.retryAfterSec;
+    if (f.detail) extra.detail = f.detail;
+    return error(f.code, f.message, f.status, extra, f.retryAfterSec ? { "Retry-After": String(f.retryAfterSec) } : {});
   }
 }

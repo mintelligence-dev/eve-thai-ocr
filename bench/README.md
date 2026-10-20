@@ -10,6 +10,7 @@ pnpm bench -- --models google/gemini-2.5-flash,openai/gpt-4.1-mini --runs 3
 pnpm bench -- --only slip,tops                # only cases whose name contains one of these
 pnpm bench -- --cases bench/cases             # only the synthetic cases in the repo
 pnpm bench -- --concurrency 2                 # fewer parallel calls (the free AI Gateway tier rate-limits)
+pnpm bench -- --thinking 0                    # Gemini thinking budget in tokens (0 = off); default is the library's 1024
 ```
 
 ## Cases

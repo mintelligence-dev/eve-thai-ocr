@@ -1,6 +1,6 @@
 import { HandwritingNotSupportedError } from "@thai-receipt-reader/extractor";
 import { describe, expect, it } from "vitest";
-import { classifyError } from "./errors";
+import { classifyError, describeFailure } from "./errors";
 
 describe("classifyError", () => {
   it("reports handwriting as unsupported, not as a failure", () => {
@@ -22,3 +22,28 @@ describe("classifyError", () => {
     expect(classifyError(null).code).toBe("extract_failed");
   });
 });
+
+describe("describeFailure", () => {
+  it("gives the owner a detail and a log line for a failed extraction, never the document", () => {
+    const e = Object.assign(new Error("secret text from the document ".repeat(30)), { name: "GatewayAuthenticationError", statusCode: 403 });
+    const f = describeFailure(e);
+    expect(f.code).toBe("extract_failed");
+    expect(f.detail).toContain("AI Gateway rejected the API key");
+    expect(f.detail).toContain("GatewayAuthenticationError, HTTP 403");
+    expect(f.log!.length).toBeLessThan(400); // the message is truncated
+  });
+
+  it("logs a busy service briefly and has no detail", () => {
+    const f = describeFailure(Object.assign(new Error("x"), { statusCode: 429 }));
+    expect(f).toMatchObject({ code: "busy", status: 503, retryAfterSec: 15 });
+    expect(f.detail).toBeUndefined();
+    expect(f.log).toMatch(/busy/);
+  });
+
+  it("has nothing to log for handwriting", () => {
+    const f = describeFailure(new HandwritingNotSupportedError());
+    expect(f).toMatchObject({ code: "handwritten", status: 422 });
+    expect(f.log).toBeUndefined();
+  });
+});
+

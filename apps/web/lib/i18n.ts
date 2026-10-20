@@ -23,6 +23,10 @@ export const T = {
     preview: "ตัวอย่างรูปที่เลือก",
     extract: "อ่านข้อมูล",
     reading: "กำลังอ่าน…",
+    liveTitle: "กำลังอ่านเอกสาร…",
+    liveNote: "นี่คือสิ่งที่อ่านได้ตอนนี้ ตามที่พิมพ์ในรูป ยังไม่ผ่านการตรวจ จึงแก้ไขและส่งออกยังไม่ได้ จะเปิดให้ตรวจทานเมื่ออ่านเสร็จ",
+    liveWaiting: "กำลังส่งรูปให้โมเดลอ่าน…",
+    liveElapsed: "ผ่านไป {n} วินาที (ปกติใช้ราว 10–15 วินาที)",
     samplesLead: "ยังไม่มีรูป? ลองตัวอย่างสมมติ (ไม่ต้องใช้ AI):",
     sample: {
       "thai-receipt": "ใบเสร็จร้านกาแฟ (เลขไทย, พ.ศ.)",
@@ -96,6 +100,10 @@ export const T = {
     preview: "Preview of the selected image",
     extract: "Read data",
     reading: "Reading…",
+    liveTitle: "Reading the document…",
+    liveNote: "This is what has been read so far, as printed. It has not been checked yet, so it can't be edited or exported. You can review it when reading is done.",
+    liveWaiting: "Sending the image to the model…",
+    liveElapsed: "{n} s elapsed (usually about 10–15 s)",
     samplesLead: "No image handy? Try a made-up sample (no AI used):",
     sample: {
       "thai-receipt": "Coffee shop receipt (Thai digits, Buddhist year)",

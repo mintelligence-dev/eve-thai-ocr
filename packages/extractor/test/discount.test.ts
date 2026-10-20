@@ -9,11 +9,12 @@ describe("isDiscountLabel", () => {
   it.each([
     "Member discount 20.-", "DISCOUNT", "Discounts", "Staff discount -10",
     "ส่วนลด", "AIS รับส่วนลด 20.- ทุก", "ลดราคา 10%", "คูปองส่วนลด",
+    "Promotion -50", "ORDER PROMOTIONS: Buy 2 save", "Member promotion", "โปรโมชัน", "โปรโมชั่นพิเศษ ลด 20",
   ])("recognises %j", (name) => expect(isDiscountLabel(name)).toBe(true));
 
   it.each([
     // Store jargon and loose words are not guessed at: they get a warning.
-    "BOGO", "B1G1 promo", "Buy 300B. get free G", "Promo code", "Coupon -10", "20% off", "แลกแต้ม", "โปรโมชั่นพิเศษ", "แถม",
+    "BOGO", "B1G1 promo", "Buy 300B. get free G", "Promo code", "Coupon -10", "20% off", "แลกแต้ม", "โปรโมชา", "แถม",
     "Coffee", "Offline mode cable", "Freestyle shampoo", "Iced milk tea", "ข้าวมันไก่ต้ม", "Adjustment", "",
   ])("does not match %j", (name) => expect(isDiscountLabel(name)).toBe(false));
 });
@@ -39,6 +40,11 @@ describe("negative amounts", () => {
 
   it("still warns when a negative amount has no discount label", () => {
     expect(withItem("Adjustment", "-20.00")).toContain("negative_amount");
+  });
+
+  it("treats a promotion like a discount", () => {
+    expect(withItem("Promotion", "-20.00")).not.toContain("negative_amount");
+    expect(withItem("โปรโมชั่น", "-20.00")).not.toContain("negative_amount");
   });
 
   it("does not guess from jargon such as BOGO", () => {

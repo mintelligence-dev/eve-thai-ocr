@@ -45,7 +45,7 @@ That is why the app cross-checks the numbers and asks you to confirm anything do
 | VAT | Checked against 7%. Receipts that mix VAT and VAT-exempt items are accepted when 1–3 items add up to the exempt part. |
 | Tax ID | 13 digits with the Thai check digit. A misread digit almost always breaks it. |
 | Dates | Not in the future, not over 10 years old; a two-digit year is shown with how it was read. |
-| Amounts | An amount with more than two decimals (`5.555`) is never guessed. A negative amount needs a name that says discount (`discount`, `ส่วนลด`, `ลดราคา`); other names, such as `BOGO`, are flagged. |
+| Amounts | An amount with more than two decimals (`5.555`) is never guessed. A negative amount needs a name that says discount or promotion (`discount`, `promotion`, `ส่วนลด`, `ลดราคา`, `โปรโมชั่น`, `โปรโมชัน`); other names, such as `BOGO`, are flagged. |
 | Model unsure | Fields the model said it could not read confidently, or values that were hidden or cut off. |
 | Not a receipt | Blank, unreadable or unrelated images must be confirmed before anything is exported. |
 | Assumed values | A line with only a price is shown as quantity 1 × price (faded italic, marked `assumed` in the JSON). Not done for discounts or unclear layouts. |
@@ -88,7 +88,9 @@ No key yet? On the page, press one of the synthetic samples (or open `/?sample=t
 | `RATE_LIMIT_PER_HOUR` | `10` | Requests per visitor IP per hour (best effort, see below). |
 | `RATE_LIMIT_PER_DAY` | `200` | Requests for the whole site per day. |
 
-With the default model, thinking is capped (1,024 tokens). Reading a receipt is transcription, so unlimited thinking only added time and cost: a 17-item receipt took ~40 s and ~2¢ uncapped, and ~9 s and ~0.5¢ capped, with no loss of accuracy.
+With the default model, thinking is capped (1,024 tokens). Reading a receipt is mostly transcription, so unlimited thinking only added time and cost: a 17-item receipt took ~40 s and ~2¢ uncapped, and ~9–13 s and ~0.5¢ capped, with no loss of accuracy. Turning thinking off completely halves the cost again but cost about 11 points of accuracy on our test set (98% → 87%), so it is not recommended (`pnpm bench -- --thinking 0` lets you test it).
+
+The page shows what the model has read as it goes (the API's `?stream=1` mode sends one JSON object per line). The model thinks for several seconds before it writes anything, so the first fields appear late (about 10 s of 13 s on a long receipt) and the total time is unchanged. A handwritten document is refused as soon as the model says so, without waiting for the rest.
 
 ### Use the package
 
@@ -202,7 +204,7 @@ Receipts and slips contain personal and financial data. Please read this before 
 | VAT | เทียบกับ 7% ใบเสร็จที่มีทั้งสินค้ามี VAT และไม่มี VAT ยอมรับได้ ถ้ามีสินค้า 1–3 ชิ้นรวมกันได้ส่วนที่ไม่มี VAT พอดี |
 | เลขผู้เสียภาษี | 13 หลักและหลักตรวจของไทย เลขที่อ่านผิดเกือบทุกครั้งจะไม่ผ่าน |
 | วันที่ | ไม่อยู่ในอนาคต ไม่เก่ากว่า 10 ปี ปีสองหลักจะบอกว่าอ่านเป็นปีอะไร |
-| จำนวนเงิน | จำนวนเงินที่มีทศนิยมเกิน 2 ตำแหน่ง (`5.555`) ไม่เดาให้ ยอดติดลบต้องมีชื่อที่บอกว่าเป็นส่วนลด (`discount`, `ส่วนลด`, `ลดราคา`) ชื่ออื่นอย่าง `BOGO` ติดธง |
+| จำนวนเงิน | จำนวนเงินที่มีทศนิยมเกิน 2 ตำแหน่ง (`5.555`) ไม่เดาให้ ยอดติดลบต้องมีชื่อที่บอกว่าเป็นส่วนลดหรือโปรโมชัน (`discount`, `promotion`, `ส่วนลด`, `ลดราคา`, `โปรโมชั่น`, `โปรโมชัน`) ชื่ออื่นอย่าง `BOGO` ติดธง |
 | โมเดลไม่มั่นใจ | ช่องที่โมเดลบอกว่าอ่านไม่ชัด หรือค่าที่ถูกปิด/ตัดขอบ |
 | ไม่ใช่ใบเสร็จ | รูปว่าง อ่านไม่ออก หรือไม่เกี่ยวข้อง ต้องยืนยันก่อนส่งออก |
 | ค่าที่สมมติ | บรรทัดที่มีแต่ราคา แสดงเป็นจำนวน 1 × ราคา (ตัวเอียงจาง และมี `assumed` ใน JSON) ไม่ทำกับส่วนลดหรือเลย์เอาต์ที่ไม่ชัด |
@@ -245,7 +247,9 @@ pnpm test                                      # รันเทสต์ทั�
 | `RATE_LIMIT_PER_HOUR` | `10` | จำนวนคำขอต่อ IP ผู้เยี่ยมชมต่อชั่วโมง (best effort ดูด้านล่าง) |
 | `RATE_LIMIT_PER_DAY` | `200` | จำนวนคำขอทั้งเว็บต่อวัน |
 
-โมเดลเริ่มต้นถูกจำกัดการ "คิด" ไว้ที่ 1,024 token เพราะการอ่านใบเสร็จคือการคัดลอก การคิดไม่จำกัดแค่เพิ่มเวลาและค่าใช้จ่าย: ใบ 17 รายการใช้ ~40 วินาที ~2 เซนต์ เมื่อไม่จำกัด และ ~9 วินาที ~0.5 เซนต์ เมื่อจำกัด โดยความแม่นยำไม่ลดลง
+โมเดลเริ่มต้นถูกจำกัดการ "คิด" ไว้ที่ 1,024 token เพราะการอ่านใบเสร็จส่วนใหญ่คือการคัดลอก การคิดไม่จำกัดแค่เพิ่มเวลาและค่าใช้จ่าย: ใบ 17 รายการใช้ ~40 วินาที ~2 เซนต์ เมื่อไม่จำกัด และ ~9–13 วินาที ~0.5 เซนต์ เมื่อจำกัด โดยความแม่นยำไม่ลดลง การปิดการคิดทั้งหมดถูกลงอีกครึ่งหนึ่ง แต่ความแม่นยำในชุดทดสอบของเราตกประมาณ 11 จุด (98% → 87%) จึงไม่แนะนำ (ลองได้ด้วย `pnpm bench -- --thinking 0`)
+
+หน้าเว็บแสดงสิ่งที่โมเดลอ่านได้ทีละส่วน (โหมด `?stream=1` ของ API ส่ง JSON หนึ่งอ็อบเจกต์ต่อหนึ่งบรรทัด) แต่โมเดลใช้เวลาคิดหลายวินาทีก่อนจะเริ่มเขียน ข้อมูลชุดแรกจึงโผล่ช้า (ราววินาทีที่ 10 จาก 13 ในใบยาว) และเวลารวมไม่เปลี่ยน เอกสารลายมือจะถูกปฏิเสธทันทีที่โมเดลบอก โดยไม่รอส่วนที่เหลือ
 
 ### ใช้แพ็กเกจ
 

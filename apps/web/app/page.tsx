@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { RawPartial } from "@thai-receipt-reader/extractor";
 import {
   SAMPLES,
   itemsReconcile,
@@ -13,7 +14,13 @@ import {
   type Receipt,
 } from "@thai-receipt-reader/extractor/core";
 import { ImageError, MIN_SIDE_WARN, prepareImage } from "@/lib/image";
-import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type Lang } from "@/lib/i18n";
+import { readNdjson } from "@/lib/ndjson";
+import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type Dict, type Lang } from "@/lib/i18n";
+
+type StreamEvent =
+  | { type: "partial"; raw: RawPartial }
+  | { type: "final"; receipt: Receipt; model: string }
+  | { type: "error"; code?: string; retryAfterSec?: number; detail?: string };
 
 const LANG_KEY = "trr-lang";
 const THEME_KEY = "trr-theme";
@@ -39,6 +46,8 @@ export default function Home() {
   const [preview, setPreview] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [busy, setBusy] = useState(false);
+  // What the model has read so far while it is still reading (raw text, unchecked).
+  const [live, setLive] = useState<RawPartial | null>(null);
   // Keep the cause, not the text, so a language switch re-renders the message.
   const [error, setError] = useState<{ code?: string; retryAfterSec?: number; detail?: string } | null>(null);
   const [reviewed, setReviewed] = useState(false);
@@ -140,18 +149,35 @@ export default function Home() {
     setBusy(true);
     setError(null);
     setReviewed(false);
+    setLive({});
     try {
       const body = new FormData();
       body.set("image", file);
-      const res = await fetch("/api/extract", { method: "POST", body });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) return setError(json);
-      setReceipt(json.receipt);
-      setModel(typeof json.model === "string" ? json.model : null);
+      const res = await fetch("/api/extract?stream=1", { method: "POST", body });
+      if (!res.ok || !res.body) {
+        // Refused before reading started (rate limit, bad file...): a plain JSON error.
+        return setError(await res.json().catch(() => ({})));
+      }
+      let finished = false;
+      for await (const event of readNdjson(res.body) as AsyncGenerator<StreamEvent>) {
+        if (event.type === "partial") {
+          setLive(event.raw);
+        } else if (event.type === "final") {
+          finished = true;
+          setReceipt(event.receipt);
+          setModel(event.model);
+        } else {
+          finished = true;
+          setError(event);
+        }
+      }
+      // The stream ended without a result (for example the server timed out).
+      if (!finished) setError({ code: "extract_failed" });
     } catch {
       setError({});
     } finally {
       setBusy(false);
+      setLive(null);
     }
   }
 
@@ -277,6 +303,8 @@ export default function Home() {
         </div>
         {error && <p role="alert" className="error">{apiErrorText(error, lang)}</p>}
       </section>
+
+      {busy && live && <LiveRead raw={live} t={t} />}
 
       {receipt && (
         <section className="card" aria-label={t.review}>
@@ -476,5 +504,61 @@ export default function Home() {
         </section>
       )}
     </main>
+  );
+}
+
+/** Read-only view of what the model has read so far: text as printed, nothing parsed or checked. */
+function LiveRead({ raw, t }: { raw: RawPartial; t: Dict }) {
+  // The model thinks for several seconds before it writes anything, so show that time is passing.
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const fields: [string, string | null | undefined][] = [
+    [t.type, raw.documentType ? t.docTypes[raw.documentType] : null],
+    [t.merchant, raw.merchant],
+    [t.taxId, raw.taxIdText],
+    [t.payer, raw.payer],
+    [t.date, raw.dateText],
+    [t.time, raw.timeText],
+    [t.receiptNumber, raw.referenceText],
+    [t.subtotal, raw.subtotalText],
+    [t.vat, raw.vatText],
+    [t.total, raw.totalText],
+    [t.fee, raw.feeText],
+  ];
+  const shown = fields.filter(([, v]) => v);
+  const items = (raw.lineItems ?? []).filter((i) => i?.description || i?.amountText);
+  return (
+    <section className="card live" aria-busy="true" aria-label={t.liveTitle}>
+      <h2>{t.liveTitle}</h2>
+      <p className="model">{t.liveNote}</p>
+      <p className="muted live-time" role="status">{tpl(t.liveElapsed, { n: seconds })}</p>
+      {shown.length === 0 && items.length === 0 ? (
+        <p className="muted">{t.liveWaiting}</p>
+      ) : (
+        <>
+          <dl className="live-fields">
+            {shown.map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          {items.length > 0 && (
+            <ul className="live-items">
+              {items.map((item, i) => (
+                <li key={i}>
+                  <span>{item?.description}</span>
+                  <span>{item?.amountText}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
   );
 }

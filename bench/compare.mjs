@@ -3,6 +3,7 @@
 //   pnpm bench                          default models, 2 runs each
 //   pnpm bench -- --models a/b,c/d --runs 3
 //   pnpm bench -- --only thai,notes    only cases whose name contains one of these
+//   pnpm bench -- --thinking 0          Gemini thinking budget in tokens (0 = off)
 //   pnpm bench -- --dry-run             show the plan and estimated cost only
 //
 // Cases: bench/private/<name>.(jpg|png|webp) + <name>.expected.json
@@ -32,6 +33,9 @@ const runs = Number(opt("runs", 2));
 // bench/cases = synthetic documents kept in the repo; bench/private = yours (git-ignored).
 const casesDirs = (opt("cases") ? [path.resolve(opt("cases"))] : [path.join(root, "cases"), path.join(root, "private")]);
 const concurrency = Number(opt("concurrency", 3));
+// --thinking N: cap Gemini's thinking at N tokens (0 = off) instead of the library default.
+const thinking = opt("thinking");
+const providerOptions = thinking === undefined ? undefined : { google: { thinkingConfig: { thinkingBudget: Number(thinking) } } };
 
 const MIME = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
 const only = (opt("only") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
@@ -83,7 +87,7 @@ async function runJob({ model, c, run }) {
   const image = new Uint8Array(fs.readFileSync(c.file));
   const t0 = Date.now();
   try {
-    const { receipt, usage } = await extractReceipt({ image, mediaType: c.mediaType, model, abortSignal: AbortSignal.timeout(120_000) });
+    const { receipt, usage } = await extractReceipt({ image, mediaType: c.mediaType, model, providerOptions, abortSignal: AbortSignal.timeout(120_000) });
     const score = scoreReceipt(receipt, c.expected);
     const p = prices[model];
     const cost = p && usage?.inputTokens != null && usage?.outputTokens != null ? usage.inputTokens * p.in + usage.outputTokens * p.out : null;

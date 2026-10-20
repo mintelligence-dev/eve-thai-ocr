@@ -116,3 +116,14 @@ button.small { padding: 4px 10px; font-size: 13px; margin-top: 12px; }
 .notice { margin: 8px 0 0; font-size: 14px; }
 
 .notice.warning { color: var(--warn); }
+
+/* What the model has read so far, while it is still reading. Read-only and visibly provisional. */
+.live { border-style: dashed; }
+.live-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; margin: 8px 0 0; }
+.live-fields dt { font-size: 13px; color: var(--muted); }
+.live-fields dd { margin: 0; overflow-wrap: anywhere; }
+.live-items { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 2px; font-size: 14px; }
+.live-items li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; border-top: 1px solid var(--line); }
+.live-items li span:first-child { overflow-wrap: anywhere; }
+.live-items li span:last-child { white-space: nowrap; color: var(--muted); }
+.live-time { font-size: 13px; margin: 0 0 8px; }

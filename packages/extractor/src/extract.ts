@@ -1,4 +1,4 @@
-import { generateText, Output, type LanguageModel } from "ai";
+import { generateText, Output, streamText, type LanguageModel } from "ai";
 import { normalizeExtraction } from "./normalize.js";
 import { RawExtractionSchema, type Receipt, type RawExtraction } from "./schema.js";
 import type { ValidateOptions } from "./validate.js";
@@ -57,6 +57,8 @@ export interface ExtractOptions extends ValidateOptions {
   model?: LanguageModel;
   /** Test seam: replace the model call. */
   generate?: (args: { image: ExtractOptions["image"]; mediaType?: string }) => Promise<RawExtraction>;
+  /** Test seam for `extractReceiptStream`: yields the growing partial output. */
+  generateStream?: (args: { image: ExtractOptions["image"]; mediaType?: string }) => AsyncIterable<RawPartial>;
   abortSignal?: AbortSignal;
   /** Retries after a failed model call, with growing pauses (2 s, 4 s, 8 s). Default 3. */
   maxRetries?: number;
@@ -71,6 +73,29 @@ export interface ExtractResult {
   usage?: { inputTokens?: number; outputTokens?: number };
 }
 
+/** The model call shared by `extractReceipt` and `extractReceiptStream`. */
+function modelCall(options: ExtractOptions) {
+  const model = options.model ?? DEFAULT_MODEL;
+  return {
+    model,
+    system: SYSTEM_PROMPT,
+    output: Output.object({ schema: RawExtractionSchema, name: "receipt" }),
+    // The AI SDK default is 2. Short bursts of 429 (rate limit) are common on a free
+    // AI Gateway account, and one more pause usually rides them out.
+    maxRetries: options.maxRetries ?? 3,
+    providerOptions: options.providerOptions ?? defaultProviderOptions(model),
+    messages: [
+      {
+        role: "user" as const,
+        content: [
+          { type: "text" as const, text: "Extract the fields from this document." },
+          { type: "file" as const, data: options.image, mediaType: options.mediaType ?? "image/*" },
+        ],
+      },
+    ],
+  };
+}
+
 /**
  * Extract and normalise a receipt from one image. The model only transcribes
  * text; parsing, VAT checks and flags are deterministic.
@@ -82,25 +107,7 @@ export async function extractReceipt(options: ExtractOptions): Promise<ExtractRe
     return { raw, receipt: normalizeExtraction(raw, options) };
   }
 
-  const result = await generateText({
-    model: options.model ?? DEFAULT_MODEL,
-    system: SYSTEM_PROMPT,
-    output: Output.object({ schema: RawExtractionSchema, name: "receipt" }),
-    abortSignal: options.abortSignal,
-    // The AI SDK default is 2. Short bursts of 429 (rate limit) are common on a free
-    // AI Gateway account, and one more pause usually rides them out.
-    maxRetries: options.maxRetries ?? 3,
-    providerOptions: options.providerOptions ?? defaultProviderOptions(options.model ?? DEFAULT_MODEL),
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: "Extract the fields from this document." },
-          { type: "file", data: options.image, mediaType: options.mediaType ?? "image/*" },
-        ],
-      },
-    ],
-  });
+  const result = await generateText({ ...modelCall(options), abortSignal: options.abortSignal });
 
   if (result.output.handwritten) throw new HandwritingNotSupportedError();
   return {
@@ -111,4 +118,68 @@ export async function extractReceipt(options: ExtractOptions): Promise<ExtractRe
       outputTokens: result.usage?.outputTokens,
     },
   };
+}
+
+type DeepPartial<T> = T extends (infer U)[] ? DeepPartial<U>[] : T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T;
+
+/** What the model has written so far: text exactly as printed, not yet parsed or checked. */
+export type RawPartial = DeepPartial<RawExtraction>;
+
+export type ExtractEvent =
+  | { type: "partial"; raw: RawPartial }
+  | { type: "final"; result: ExtractResult };
+
+/**
+ * Like `extractReceipt`, but yields what the model has read so far as it goes
+ * (`partial`, raw text only: no parsing, no flags, so nothing in it can be
+ * exported) and ends with the same result `extractReceipt` returns (`final`).
+ * A handwritten document is refused as soon as the model says so, without
+ * waiting for, or paying for, the rest of the answer.
+ */
+export async function* extractReceiptStream(options: ExtractOptions): AsyncGenerator<ExtractEvent> {
+  if (options.generateStream) {
+    let last: RawPartial = {};
+    for await (const partial of options.generateStream(options)) {
+      if (partial.handwritten === true) throw new HandwritingNotSupportedError();
+      last = partial;
+      yield { type: "partial", raw: partial };
+    }
+    const raw = RawExtractionSchema.parse(last);
+    if (raw.handwritten) throw new HandwritingNotSupportedError();
+    yield { type: "final", result: { raw, receipt: normalizeExtraction(raw, options) } };
+    return;
+  }
+
+  // Our own controller lets us stop the model call early, and still honours the caller's signal.
+  const controller = new AbortController();
+  options.abortSignal?.addEventListener("abort", () => controller.abort(), { once: true });
+  // streamText reports failures through a callback instead of throwing from the stream.
+  let failure: unknown;
+  const result = streamText({
+    ...modelCall(options),
+    abortSignal: controller.signal,
+    onError: ({ error }) => {
+      failure = error;
+    },
+  });
+
+  for await (const partial of result.partialOutputStream) {
+    if ((partial as RawPartial).handwritten === true) {
+      controller.abort();
+      throw new HandwritingNotSupportedError();
+    }
+    yield { type: "partial", raw: partial as RawPartial };
+  }
+  if (failure) throw failure;
+
+  const output = await result.output;
+  if (output.handwritten) throw new HandwritingNotSupportedError();
+  let usage: ExtractResult["usage"];
+  try {
+    const u = await result.usage;
+    usage = { inputTokens: u?.inputTokens, outputTokens: u?.outputTokens };
+  } catch {
+    usage = undefined;
+  }
+  yield { type: "final", result: { raw: output, receipt: normalizeExtraction(output, options), usage } };
 }

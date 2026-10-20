@@ -31,3 +31,36 @@ export function classifyError(e: unknown): Classified {
   }
   return { code: "extract_failed", status: 502, message: "Extraction failed." };
 }
+
+/** Operator-facing hints keyed by AI SDK / Gateway error class name. */
+const REASONS: Record<string, string> = {
+  GatewayAuthenticationError: "AI Gateway rejected the API key. Check AI_GATEWAY_API_KEY and redeploy.",
+  GatewayModelNotFoundError: "Model not found in AI Gateway. Check RECEIPT_MODEL.",
+  GatewayRateLimitError: "AI Gateway rate limit or spending cap reached.",
+  AI_NoObjectGeneratedError: "The model did not return data in the expected format. Try again or use another model.",
+  AI_TypeValidationError: "The model returned data that failed validation. Try again or use another model.",
+};
+
+export interface Failure extends Classified {
+  /** For the project owner: the error class, HTTP status and a hint. Safe to show. */
+  detail?: string;
+  /** A line for the server log (never contains the document). */
+  log?: string;
+}
+
+/** Everything the API needs to report a failure, in one place for both response modes. */
+export function describeFailure(e: unknown): Failure {
+  const known = classifyError(e);
+  if (known.code === "busy") return { ...known, log: "extract busy: upstream rate limit" };
+  if (known.code !== "extract_failed") return known;
+
+  const name = e instanceof Error ? e.name : "unknown";
+  const status = (e as { statusCode?: number } | null)?.statusCode;
+  const reason = REASONS[name] ?? "Extraction failed. Check the model configuration and try again.";
+  return {
+    ...known,
+    detail: `${reason} (${name}${status ? `, HTTP ${status}` : ""})`,
+    // The (truncated) gateway message goes to server logs, visible to the project owner.
+    log: `extract failed: ${name} ${status ?? ""} ${e instanceof Error ? e.message.slice(0, 300) : ""}`,
+  };
+}
