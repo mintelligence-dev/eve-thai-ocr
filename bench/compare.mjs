@@ -89,7 +89,12 @@ async function runJob({ model, c, run }) {
     const cost = p && usage?.inputTokens != null && usage?.outputTokens != null ? usage.inputTokens * p.in + usage.outputTokens * p.out : null;
     return { model, case: c.name, run, ok: true, ms: Date.now() - t0, score, usage, cost, flags: receipt.flags.length, receipt };
   } catch (e) {
-    return { model, case: c.name, run, ok: false, ms: Date.now() - t0, error: `${e?.name ?? "Error"}${e?.statusCode ? ` ${e.statusCode}` : ""}` };
+    // A handwritten test document is supposed to be refused; that is the right answer.
+    if (e?.name === "HandwritingNotSupportedError" && c.expected.handwritten === true) {
+      return { model, case: c.name, run, ok: true, ms: Date.now() - t0, flags: 0, cost: null,
+        score: { accuracy: 1, passed: 1, total: 1, descriptionSimilarity: null, checks: [{ field: "refusedHandwriting", pass: true }] } };
+    }
+    return { model, case: c.name, run, ok: false, ms: Date.now() - t0, error: `${e?.name ?? "Error"}${e?.statusCode ? ` ${e.statusCode}` : ""}${e?.lastError?.statusCode ? ` (last HTTP ${e.lastError.statusCode})` : ""}` };
   }
 }
 

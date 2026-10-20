@@ -10,6 +10,7 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     label: "ใบเสร็จร้านกาแฟ (เลขไทย / พ.ศ.)",
     raw: {
       documentType: "receipt",
+      handwritten: false,
       merchant: "ร้านกาแฟตัวอย่าง (Sample Coffee)",
       payer: null,
       referenceText: "RC-๐๐๑๒๓๔",
@@ -34,6 +35,7 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     label: "สลิปโอนเงิน (ปี 2 หลัก ต้องตรวจ)",
     raw: {
       documentType: "transfer_slip",
+      handwritten: false,
       merchant: "นางสาว ตัวอย่าง ทดสอบ",
       payer: "นายสมมติ ตัวอย่าง",
       referenceText: "202510030001234567",
@@ -55,6 +57,7 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     label: "ใบเสร็จที่มีปัญหา (ยอดไม่ตรง / อ่านไม่ออก)",
     raw: {
       documentType: "receipt",
+      handwritten: false,
       merchant: "Demo Mart สาขาทดสอบ",
       payer: null,
       referenceText: null,
@@ -79,6 +82,7 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     label: "ชาไข่มุก (ท็อปปิ้ง + ส่วนลด)",
     raw: {
       documentType: "receipt",
+      handwritten: false,
       merchant: "Demo Tea Shop",
       payer: null,
       referenceText: "T-0457",

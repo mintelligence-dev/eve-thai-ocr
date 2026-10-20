@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toCSV, toJSON } from "../src/export.js";
 import { normalizeExtraction } from "../src/normalize.js";
-import { DEFAULT_MODEL, defaultProviderOptions, extractReceipt } from "../src/extract.js";
+import { DEFAULT_MODEL, HandwritingNotSupportedError, defaultProviderOptions, extractReceipt } from "../src/extract.js";
 import { ReceiptSchema } from "../src/schema.js";
 import * as fx from "./fixtures/index.js";
 
@@ -59,6 +59,22 @@ describe("extractReceipt", () => {
         generate: async () => ({ merchant: "x" }) as never,
       }),
     ).rejects.toThrow();
+  });
+});
+
+describe("handwritten documents", () => {
+  it("are refused, and nothing the model read is returned", async () => {
+    const readSomething = { ...fx.thaiDigitsReceipt, handwritten: true };
+    await expect(
+      extractReceipt({ image: new Uint8Array(), generate: async () => readSomething }),
+    ).rejects.toBeInstanceOf(HandwritingNotSupportedError);
+  });
+
+  it("do not stop a printed document", async () => {
+    const { receipt } = await extractReceipt({
+      image: new Uint8Array(), today, generate: async () => ({ ...fx.thaiDigitsReceipt, handwritten: false }),
+    });
+    expect(receipt.total).toBe(174.41);
   });
 });
 

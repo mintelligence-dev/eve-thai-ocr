@@ -65,6 +65,12 @@ describe("scoreReceipt", () => {
     expect(s.descriptionSimilarity).toBe(1);
   });
 
+  it("scores the fee", () => {
+    const slip = normalizeExtraction(fx.transferSlip, { today });
+    expect(scoreReceipt(slip, { fee: 0 }).accuracy).toBe(1);
+    expect(scoreReceipt(slip, { fee: 5 }).accuracy).toBe(0);
+  });
+
   it("expects no reference when none is printed", () => {
     const slip = normalizeExtraction(fx.transferSlip, { today });
     expect(scoreReceipt(slip, { reference: null }).checks[0]).toMatchObject({ field: "reference", pass: false });

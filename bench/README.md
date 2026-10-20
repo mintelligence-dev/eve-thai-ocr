@@ -4,14 +4,18 @@ Runs the real extraction pipeline against several vision models through Vercel
 AI Gateway and scores each result against ground truth you provide.
 
 ```bash
-pnpm bench -- --dry-run     # plan + rough cost, no calls
-pnpm bench                  # run (needs AI_GATEWAY_API_KEY in apps/web/.env.local)
-pnpm bench -- --models google/gemini-2.5-flash,openai/gpt-4o-mini --runs 3
+pnpm bench -- --dry-run                       # plan + rough cost, no calls
+pnpm bench                                    # run (needs AI_GATEWAY_API_KEY in apps/web/.env.local)
+pnpm bench -- --models google/gemini-2.5-flash,openai/gpt-4.1-mini --runs 3
+pnpm bench -- --only slip,tops                # only cases whose name contains one of these
+pnpm bench -- --cases bench/cases             # only the synthetic cases in the repo
+pnpm bench -- --concurrency 2                 # fewer parallel calls (the free AI Gateway tier rate-limits)
 ```
 
 ## Cases
 
-Put each document in `bench/private/` (git-ignored, never commit real receipts):
+- `bench/cases/` holds **synthetic** documents kept in the repo (blank page, noise, a notes page that mentions money, a clean and a blurred Thai receipt). Regenerate them with `python3 bench/make-cases.py` (needs Pillow and a Thai font).
+- Put **your own** documents in `bench/private/` (git-ignored; never commit real receipts or slips):
 
 ```
 bench/private/shop1.jpg
@@ -20,13 +24,19 @@ bench/private/shop1.expected.json
 
 ```jsonc
 {
-  "merchant": "ORCHID PHARMACY",            // substring match, case/punctuation ignored
+  "merchant": "ORCHID PHARMACY",            // substring match, case/punctuation ignored (the shop, or the payee on a slip)
+  "payer": "SAMPLE PAYER",               // slips: the sender
+  "taxId": "5566778899006",        // the shop's tax ID (digits)
+  "reference": "20261003114",      // a string, a list of acceptable ones, or null = none is printed
   "date": null,                    // null = the model must NOT fill in a date
   "subtotal": [342, 319.6],        // number, list of acceptable numbers, or null
   "vat": 22.4,
   "total": 342,
+  "fee": 0,                        // slips
   "lineItems": [{ "description": "290389 #LDCeraBRIntenMask", "amount": 19 }],
-  "noQuantityOrUnitPrice": true    // receipt prints one price per line
+  "noQuantityOrUnitPrice": true,   // the model must not invent quantity / unit price (values the app fills in itself are marked "assumed" and ignored)
+  "empty": true,                   // not a receipt: nothing may be extracted
+  "handwritten": true              // handwritten: the document must be refused (counts as a pass)
 }
 ```
 
@@ -38,6 +48,8 @@ publish.
 - **accuracy**: share of field checks passed. **perfect**: runs with every check passed.
 - **desc-sim**: similarity of item names to the printed text (OCR quality).
 - **US¢/receipt**: reported tokens × Gateway list price.
+- **invented**: runs on non-receipt images where the model still returned a shop, amounts or items (lower is better).
+- A document that is wrongly refused as handwriting, or a call that fails, shows up as an error in the model's row.
 - Run each model several times: output varies between runs of the same model.
 
 Each call sends your image to that model's provider via AI Gateway and spends

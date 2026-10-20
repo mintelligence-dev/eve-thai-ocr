@@ -7,6 +7,7 @@ export const DEFAULT_MODEL = "google/gemini-2.5-flash";
 
 export const SYSTEM_PROMPT = `You read printed Thai receipts and bank transfer slips and return structured data.
 Rules:
+- Set "handwritten" to true only when the main content of the document (its amounts, items or date) is handwritten rather than printed or typed. A signature, a stamp or a short handwritten note on an otherwise printed document does not count. If handwritten is true, do not try to read it: return every other field as null, lineItems as [] and uncertainFields as [].
 - First decide what the image shows. Only a printed receipt, tax invoice or bank transfer slip counts. If the image is blank, unreadable, or anything else, set documentType to "unknown", every text field to null and lineItems to []. Never write plausible-looking values for text you cannot actually see.
 - Copy values exactly as printed, including Thai digits (๑๒๓), Buddhist Era years (2568), and currency symbols. Do not convert, translate, round or calculate.
 - If a field is not visible, return null. Never guess or invent values.
@@ -35,6 +36,19 @@ export function defaultProviderOptions(model: unknown): ExtractOptions["provider
     : undefined;
 }
 
+/**
+ * Thrown when the document is handwritten. Only printed receipts and transfer
+ * slips are supported: handwritten numbers are read unreliably (the same amount
+ * came back as 200,000, 2,000,000 and 2,009,000 on different runs) and nothing
+ * on screen would tell the user so. The values the model read are discarded.
+ */
+export class HandwritingNotSupportedError extends Error {
+  override name = "HandwritingNotSupportedError";
+  constructor() {
+    super("Handwritten documents are not supported. Use a printed receipt or transfer slip.");
+  }
+}
+
 export interface ExtractOptions extends ValidateOptions {
   /** Image bytes or a URL/data URL. Not retained by this library. */
   image: Uint8Array | ArrayBuffer | string | URL;
@@ -44,6 +58,8 @@ export interface ExtractOptions extends ValidateOptions {
   /** Test seam: replace the model call. */
   generate?: (args: { image: ExtractOptions["image"]; mediaType?: string }) => Promise<RawExtraction>;
   abortSignal?: AbortSignal;
+  /** Retries after a failed model call, with growing pauses (2 s, 4 s, 8 s). Default 3. */
+  maxRetries?: number;
   /** Provider-specific settings passed to the AI SDK, e.g. a reasoning budget. */
   providerOptions?: Parameters<typeof generateText>[0]["providerOptions"];
 }
@@ -62,6 +78,7 @@ export interface ExtractResult {
 export async function extractReceipt(options: ExtractOptions): Promise<ExtractResult> {
   if (options.generate) {
     const raw = RawExtractionSchema.parse(await options.generate(options));
+    if (raw.handwritten) throw new HandwritingNotSupportedError();
     return { raw, receipt: normalizeExtraction(raw, options) };
   }
 
@@ -70,6 +87,9 @@ export async function extractReceipt(options: ExtractOptions): Promise<ExtractRe
     system: SYSTEM_PROMPT,
     output: Output.object({ schema: RawExtractionSchema, name: "receipt" }),
     abortSignal: options.abortSignal,
+    // The AI SDK default is 2. Short bursts of 429 (rate limit) are common on a free
+    // AI Gateway account, and one more pause usually rides them out.
+    maxRetries: options.maxRetries ?? 3,
     providerOptions: options.providerOptions ?? defaultProviderOptions(options.model ?? DEFAULT_MODEL),
     messages: [
       {
@@ -82,6 +102,7 @@ export async function extractReceipt(options: ExtractOptions): Promise<ExtractRe
     ],
   });
 
+  if (result.output.handwritten) throw new HandwritingNotSupportedError();
   return {
     raw: result.output,
     receipt: normalizeExtraction(result.output, options),

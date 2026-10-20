@@ -277,6 +277,8 @@ const API: Record<Lang, Record<string, string>> = {
     rate_limited: "คุณใช้งานบ่อยเกินไป ลองใหม่ในอีก {minutes} นาที",
     daily_limit: "เดโมนี้ถึงโควตารายวันแล้ว ลองใหม่ในอีก {minutes} นาที",
     extract_failed: "อ่านข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง",
+    busy: "ตอนนี้มีคนใช้งานเยอะ ลองใหม่อีกครั้งในอีกสักครู่ (ประมาณ {seconds} วินาที)",
+    handwritten: "รูปนี้เขียนด้วยลายมือ ระบบรองรับเฉพาะใบเสร็จและสลิปโอนเงินแบบพิมพ์ เพราะอ่านลายมือไม่แม่น โดยเฉพาะตัวเลข กรุณาใช้เอกสารที่พิมพ์ออกมา",
     generic: "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง",
   },
   en: {
@@ -288,6 +290,8 @@ const API: Record<Lang, Record<string, string>> = {
     rate_limited: "You're going a bit fast. Try again in {minutes} min.",
     daily_limit: "The demo has reached its daily limit. Try again in {minutes} min.",
     extract_failed: "Couldn't read the document. Please try again.",
+    busy: "The service is busy right now. Please try again in a moment (about {seconds} s).",
+    handwritten: "This looks handwritten. Only printed receipts and transfer slips are supported, because handwriting, especially numbers, can't be read reliably. Please use a printed document.",
     generic: "Something went wrong. Please try again.",
   },
 };
@@ -301,7 +305,8 @@ export interface ApiError {
 /** Message for an /api/extract error response. `detail` is operator-facing (English). */
 export function apiErrorText(e: ApiError, lang: Lang): string {
   const minutes = e.retryAfterSec ? Math.max(1, Math.ceil(e.retryAfterSec / 60)) : 1;
-  const base = tpl(API[lang][e.code ?? ""] ?? API[lang].generic!, { minutes });
+  const seconds = e.retryAfterSec ?? 15;
+  const base = tpl(API[lang][e.code ?? ""] ?? API[lang].generic!, { minutes, seconds });
   return e.detail ? `${base} (${e.detail})` : base;
 }
 

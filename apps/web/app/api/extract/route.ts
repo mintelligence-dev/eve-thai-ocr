@@ -1,4 +1,5 @@
 import { DEFAULT_MODEL, extractReceipt } from "@thai-receipt-reader/extractor";
+import { classifyError } from "@/lib/errors";
 import { sniffImageType } from "@/lib/image-type";
 import { clientKey, perVisitor, wholeSite } from "@/lib/rate-limit";
 
@@ -79,6 +80,13 @@ export async function POST(request: Request) {
     // `model` is returned so the UI can show which model read the document.
     return Response.json({ receipt, model }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
+    // Not a failure of the document: unsupported (handwriting) or a busy service.
+    const known = classifyError(e);
+    if (known.code === "handwritten") return error(known.code, known.message, known.status);
+    if (known.code === "busy") {
+      console.error("extract busy: upstream rate limit");
+      return error(known.code, known.message, known.status, { retryAfterSec: known.retryAfterSec }, { "Retry-After": String(known.retryAfterSec) });
+    }
     // The client gets the error class and HTTP status only. The (truncated)
     // gateway message goes to server logs, visible to the project owner.
     const name = e instanceof Error ? e.name : "unknown";

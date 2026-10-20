@@ -14,6 +14,7 @@ const item = (
 
 const base: RawExtraction = {
   documentType: "receipt",
+  handwritten: false,
   merchant: null,
   payer: null,
   referenceText: null,

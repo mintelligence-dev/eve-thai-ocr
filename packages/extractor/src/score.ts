@@ -16,6 +16,7 @@ export interface Expected {
   subtotal?: Num;
   vat?: Num;
   total?: Num;
+  fee?: Num;
   lineItems?: { description?: string; amount: number }[];
   /** The document prints only one price per line, so quantity/unit price must stay null. */
   noQuantityOrUnitPrice?: boolean;
@@ -98,7 +99,7 @@ export function scoreReceipt(receipt: Receipt, expected: Expected): Score {
     add("reference", wanted.includes(norm(receipt.reference ?? "")), expected.reference, receipt.reference);
   }
   if (expected.date !== undefined) add("date", receipt.date === expected.date, expected.date, receipt.date);
-  for (const k of ["subtotal", "vat", "total"] as const) {
+  for (const k of ["subtotal", "vat", "total", "fee"] as const) {
     if (expected[k] !== undefined) add(k, numMatches(receipt[k], expected[k]!), expected[k], receipt[k]);
   }
 

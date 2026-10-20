@@ -67,6 +67,14 @@ describe("apiErrorText", () => {
     expect(apiErrorText({ code: "rate_limited", retryAfterSec: 3600 }, "en")).toContain("60 min");
     expect(apiErrorText({ code: "too_large" }, "th")).toContain("4 MB");
   });
+  it("says the service is busy and gives the wait", () => {
+    expect(apiErrorText({ code: "busy", retryAfterSec: 15 }, "en")).toContain("15 s");
+    expect(apiErrorText({ code: "busy", retryAfterSec: 15 }, "th")).toContain("15 วินาที");
+  });
+  it("explains why handwriting is refused, in both languages", () => {
+    expect(apiErrorText({ code: "handwritten" }, "en")).toContain("handwritten");
+    expect(apiErrorText({ code: "handwritten" }, "th")).toContain("ลายมือ");
+  });
   it("falls back for unknown codes and appends operator detail", () => {
     expect(apiErrorText({ code: "nope" }, "en")).toBe("Something went wrong. Please try again.");
     expect(apiErrorText({ code: "extract_failed", detail: "Check key" }, "en")).toMatch(/\(Check key\)$/);

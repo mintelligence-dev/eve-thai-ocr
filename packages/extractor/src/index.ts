@@ -7,6 +7,7 @@ export {
   extractReceipt,
   DEFAULT_MODEL,
   defaultProviderOptions,
+  HandwritingNotSupportedError,
   SYSTEM_PROMPT,
   type ExtractOptions,
   type ExtractResult,

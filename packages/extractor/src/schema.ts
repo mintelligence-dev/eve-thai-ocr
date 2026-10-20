@@ -10,6 +10,11 @@ export const RawExtractionSchema = z.object({
   documentType: z
     .enum(["receipt", "transfer_slip", "unknown"])
     .describe("Kind of document in the image."),
+  handwritten: z
+    .boolean()
+    .describe(
+      "True only when the main content (the amounts, items or date) is handwritten rather than printed or typed. A signature, stamp or short handwritten note on an otherwise printed document does not count.",
+    ),
   merchant: z
     .string()
     .nullable()
