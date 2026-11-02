@@ -307,7 +307,7 @@ export default function Home() {
             <span>{t.drop}<br /><small>{t.dropHint}</small></span>
           )}
         </div>
-        {photos.length > 1 && <p className="model">{t.orderHint}</p>}
+        {photos.length > 1 && <p className="hint">{t.orderHint}</p>}
         {notice && <p className="notice warning">{tpl(t.lowRes, { w: notice.w, h: notice.h })}</p>}
         <div className="row">
           <button onClick={extract} disabled={photos.length === 0 || busy || preparing}>{busy ? t.reading : t.extract}</button>
@@ -329,7 +329,7 @@ export default function Home() {
           />
           <button className="ghost camera-btn" disabled={busy || preparing || photos.length >= MAX_PHOTOS} onClick={() => cameraRef.current?.click()}>{t.camera}</button>
         </div>
-        {photos.length >= 1 && photos.length < MAX_PHOTOS && <p className="model">{t.longHint}</p>}
+        {photos.length >= 1 && photos.length < MAX_PHOTOS && <p className="hint">{t.longHint}</p>}
         <div className="tips">
           <b>{t.tipsTitle}</b>
           <ul>
