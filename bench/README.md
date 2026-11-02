@@ -16,6 +16,7 @@ pnpm bench -- --thinking 0                    # Gemini thinking budget in tokens
 ## Cases
 
 - `bench/cases/` holds **synthetic** documents kept in the repo (blank page, noise, a notes page that mentions money, a clean and a blurred Thai receipt). Regenerate them with `python3 bench/make-cases.py` (needs Pillow and a Thai font).
+- A long receipt photographed in several parts is one case: name the files `NAME.1.jpg`, `NAME.2.jpg`, ... (in order, top to bottom) with one `NAME.expected.json`. Two photos that must be refused as different documents use `{ "different": true }` (refusing is a pass, merging them is a failure). `long-receipt`, `different-shops` and `different-days` in `bench/cases/` are examples.
 - Put **your own** documents in `bench/private/` (git-ignored; never commit real receipts or slips):
 
 ```
@@ -37,7 +38,8 @@ bench/private/shop1.expected.json
   "lineItems": [{ "description": "290389 #LDCeraBRIntenMask", "amount": 19 }],
   "noQuantityOrUnitPrice": true,   // the model must not invent quantity / unit price (values the app fills in itself are marked "assumed" and ignored)
   "empty": true,                   // not a receipt: nothing may be extracted
-  "handwritten": true              // handwritten: the document must be refused (counts as a pass)
+  "handwritten": true,             // handwritten: the document must be refused (counts as a pass)
+  "different": true                // several photos that are NOT one document: they must be refused
 }
 ```
 

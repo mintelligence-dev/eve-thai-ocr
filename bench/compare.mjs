@@ -39,22 +39,30 @@ const providerOptions = thinking === undefined ? undefined : { google: { thinkin
 
 const MIME = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
 const only = (opt("only") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-const allCases = casesDirs.filter((d) => fs.existsSync(d)).flatMap((casesDir) =>
-  fs.readdirSync(casesDir)
-    .filter((f) => MIME[path.extname(f).toLowerCase()])
-    .map((f) => {
-      const base = f.slice(0, -path.extname(f).length);
-      const expectedPath = path.join(casesDir, `${base}.expected.json`);
-      return fs.existsSync(expectedPath)
-        ? { name: base, file: path.join(casesDir, f), mediaType: MIME[path.extname(f).toLowerCase()], expected: JSON.parse(fs.readFileSync(expectedPath, "utf8")) }
-        : null;
-    })
-    .filter(Boolean),
-);
+// A case is one document: NAME.ext, or NAME.1.ext NAME.2.ext ... for photos of one long
+// receipt (in order), plus NAME.expected.json.
+const allCases = casesDirs.filter((d) => fs.existsSync(d)).flatMap((casesDir) => {
+  const groups = new Map();
+  for (const f of fs.readdirSync(casesDir).sort()) {
+    const ext = path.extname(f).toLowerCase();
+    if (!MIME[ext]) continue;
+    const stem = f.slice(0, -ext.length);
+    const m = /^(.*)\.(\d+)$/.exec(stem);
+    const name = m ? m[1] : stem;
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push({ order: m ? Number(m[2]) : 0, file: path.join(casesDir, f), mediaType: MIME[ext] });
+  }
+  return [...groups].flatMap(([name, parts]) => {
+    const expectedPath = path.join(casesDir, `${name}.expected.json`);
+    if (!fs.existsSync(expectedPath)) return [];
+    parts.sort((x, y) => x.order - y.order);
+    return [{ name, parts, expected: JSON.parse(fs.readFileSync(expectedPath, "utf8")) }];
+  });
+});
 const cases = only.length ? allCases.filter((c) => only.some((o) => c.name.includes(o))) : allCases;
 
 if (cases.length === 0) {
-  console.error(`No cases in ${casesDirs.join(", ")}. Add <name>.jpg and <name>.expected.json (see bench/README.md).`);
+  console.error(`No cases in ${casesDirs.join(", ")}. Add <name>.jpg (or <name>.1.jpg, <name>.2.jpg for several photos of one receipt) and <name>.expected.json (see bench/README.md).`);
   process.exit(1);
 }
 
@@ -84,20 +92,25 @@ const jobs = [];
 for (const model of models) for (const c of cases) for (let run = 1; run <= runs; run++) jobs.push({ model, c, run });
 
 async function runJob({ model, c, run }) {
-  const image = new Uint8Array(fs.readFileSync(c.file));
+  const images = c.parts.map((p) => ({ image: new Uint8Array(fs.readFileSync(p.file)), mediaType: p.mediaType }));
   const t0 = Date.now();
   try {
-    const { receipt, usage } = await extractReceipt({ image, mediaType: c.mediaType, model, providerOptions, abortSignal: AbortSignal.timeout(120_000) });
+    const { receipt, usage } = await extractReceipt({ images, model, providerOptions, abortSignal: AbortSignal.timeout(120_000) });
+    // Two different documents must be refused; reading them as one is the wrong answer.
+    if (c.expected.different === true) {
+      return { model, case: c.name, run, ok: false, ms: Date.now() - t0, error: "MergedDifferentDocuments" };
+    }
     const score = scoreReceipt(receipt, c.expected);
     const p = prices[model];
     const cost = p && usage?.inputTokens != null && usage?.outputTokens != null ? usage.inputTokens * p.in + usage.outputTokens * p.out : null;
     return { model, case: c.name, run, ok: true, ms: Date.now() - t0, score, usage, cost, flags: receipt.flags.length, receipt };
   } catch (e) {
+    const refusal = (field) => ({ model, case: c.name, run, ok: true, ms: Date.now() - t0, flags: 0, cost: null,
+      score: { accuracy: 1, passed: 1, total: 1, descriptionSimilarity: null, checks: [{ field, pass: true }] } });
     // A handwritten test document is supposed to be refused; that is the right answer.
-    if (e?.name === "HandwritingNotSupportedError" && c.expected.handwritten === true) {
-      return { model, case: c.name, run, ok: true, ms: Date.now() - t0, flags: 0, cost: null,
-        score: { accuracy: 1, passed: 1, total: 1, descriptionSimilarity: null, checks: [{ field: "refusedHandwriting", pass: true }] } };
-    }
+    if (e?.name === "HandwritingNotSupportedError" && c.expected.handwritten === true) return refusal("refusedHandwriting");
+    // So are two different documents given as one.
+    if (e?.name === "DifferentDocumentsError" && c.expected.different === true) return refusal("refusedDifferentDocuments");
     return { model, case: c.name, run, ok: false, ms: Date.now() - t0, error: `${e?.name ?? "Error"}${e?.statusCode ? ` ${e.statusCode}` : ""}${e?.lastError?.statusCode ? ` (last HTTP ${e.lastError.statusCode})` : ""}` };
   }
 }

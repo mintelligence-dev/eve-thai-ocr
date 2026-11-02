@@ -10,5 +10,10 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "bench": "pnpm --filter @thai-receipt-reader/extractor build && node --env-file-if-exists=apps/web/.env.local bench/compare.mjs"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici@>=7.0.0 <7.30.1": "^7.30.1"
+    }
   }
 }

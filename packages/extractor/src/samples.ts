@@ -11,6 +11,8 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     raw: {
       documentType: "receipt",
       handwritten: false,
+      sameDocument: true,
+      imageFacts: [],
       merchant: "ร้านกาแฟตัวอย่าง (Sample Coffee)",
       payer: null,
       referenceText: "RC-๐๐๑๒๓๔",
@@ -36,6 +38,8 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     raw: {
       documentType: "transfer_slip",
       handwritten: false,
+      sameDocument: true,
+      imageFacts: [],
       merchant: "นางสาว ตัวอย่าง ทดสอบ",
       payer: "นายสมมติ ตัวอย่าง",
       referenceText: "202510030001234567",
@@ -58,6 +62,8 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     raw: {
       documentType: "receipt",
       handwritten: false,
+      sameDocument: true,
+      imageFacts: [],
       merchant: "Demo Mart สาขาทดสอบ",
       payer: null,
       referenceText: null,
@@ -83,6 +89,8 @@ export const SAMPLES: { id: string; label: string; raw: RawExtraction }[] = [
     raw: {
       documentType: "receipt",
       handwritten: false,
+      sameDocument: true,
+      imageFacts: [],
       merchant: "Demo Tea Shop",
       payer: null,
       referenceText: "T-0457",

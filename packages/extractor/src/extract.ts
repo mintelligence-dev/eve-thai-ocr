@@ -1,4 +1,5 @@
 import { generateText, Output, streamText, type LanguageModel } from "ai";
+import { findImageConflicts, type ImageConflict } from "./images.js";
 import { normalizeExtraction } from "./normalize.js";
 import { RawExtractionSchema, type Receipt, type RawExtraction } from "./schema.js";
 import type { ValidateOptions } from "./validate.js";
@@ -49,16 +50,54 @@ export class HandwritingNotSupportedError extends Error {
   }
 }
 
-export interface ExtractOptions extends ValidateOptions {
-  /** Image bytes or a URL/data URL. Not retained by this library. */
+/**
+ * Thrown when several images were given as parts of one document but they do
+ * not look like the same one: the model said so, or what each image shows
+ * (shop, tax ID, date, total) disagrees. Nothing is merged: a merged result of
+ * two different receipts would look plausible and be wrong.
+ */
+export class DifferentDocumentsError extends Error {
+  override name = "DifferentDocumentsError";
+  constructor(
+    readonly reason: "model" | "conflict",
+    readonly conflicts: ImageConflict[] = [],
+  ) {
+    super("These images do not look like parts of the same document.");
+  }
+}
+
+/** The most images that can be read as one document. */
+export const MAX_IMAGES = 4;
+
+export interface InputImage {
   image: Uint8Array | ArrayBuffer | string | URL;
   mediaType?: string;
+}
+
+/** Added to the system prompt when more than one image is given. */
+export const MULTI_IMAGE_PROMPT = `
+You are given several images, in order (Image 1, Image 2, ...). They should be consecutive parts of ONE long receipt or slip, top to bottom, and they may overlap: lines at the bottom of one image can appear again at the top of the next.
+- Return ONE merged result for the whole document. Write each printed line once: a line visible in two images because they overlap is one line. Do not drop lines. Do not merge lines that are genuinely repeated in the document (the same item bought twice is two lines): decide by position, using the overlap. If the images are out of order, still read the document from top to bottom.
+- Shop name, tax ID and date come from the first image that shows them. Totals, VAT and payment lines come from the image that shows them.
+- Set "sameDocument" to false if the images do not look like parts of one document: a different shop, a different date or time, a different receipt number, or lines that do not continue from one image to the next. A second photo of the same part is still one document.
+- Fill "imageFacts" with one entry per image, in order, with only what is printed in THAT image (null when it is not visible there). Do this before anything else. "totalText" is the final grand total, never a subtotal.
+- If sameDocument is false, do not read the document: return every other field as null, lineItems as [] and uncertainFields as [].`;
+
+export interface ExtractOptions extends ValidateOptions {
+  /** Image bytes or a URL/data URL. Not retained by this library. */
+  image?: Uint8Array | ArrayBuffer | string | URL;
+  mediaType?: string;
+  /**
+   * Several images of ONE long document, in order from top to bottom (up to
+   * MAX_IMAGES). They may overlap. Used instead of `image`.
+   */
+  images?: InputImage[];
   /** "provider/model" string routed through Vercel AI Gateway, or a model instance. */
   model?: LanguageModel;
   /** Test seam: replace the model call. */
-  generate?: (args: { image: ExtractOptions["image"]; mediaType?: string }) => Promise<RawExtraction>;
+  generate?: (args: ExtractOptions) => Promise<RawExtraction>;
   /** Test seam for `extractReceiptStream`: yields the growing partial output. */
-  generateStream?: (args: { image: ExtractOptions["image"]; mediaType?: string }) => AsyncIterable<RawPartial>;
+  generateStream?: (args: ExtractOptions) => AsyncIterable<RawPartial>;
   abortSignal?: AbortSignal;
   /** Retries after a failed model call, with growing pauses (2 s, 4 s, 8 s). Default 3. */
   maxRetries?: number;
@@ -69,16 +108,36 @@ export interface ExtractOptions extends ValidateOptions {
 export interface ExtractResult {
   receipt: Receipt;
   raw: RawExtraction;
+  /** How many images the result was read from. */
+  imageCount: number;
   /** Token usage reported by the model call. Absent when `generate` is used. */
   usage?: { inputTokens?: number; outputTokens?: number };
+}
+
+/** The images to read: `images` if given, else the single `image`. */
+export function inputImages(options: ExtractOptions): InputImage[] {
+  const list = options.images?.length ? options.images : options.image !== undefined ? [{ image: options.image, mediaType: options.mediaType }] : [];
+  if (list.length === 0) throw new Error("Give an image (`image`) or a list of images (`images`).");
+  if (list.length > MAX_IMAGES) throw new Error(`At most ${MAX_IMAGES} images can be read as one document.`);
+  return list;
+}
+
+/** Throw if the model or the per-image facts say these are not one document. */
+function assertSameDocument(raw: RawExtraction, imageCount: number, today?: Date) {
+  if (imageCount < 2) return;
+  if (raw.sameDocument === false) throw new DifferentDocumentsError("model");
+  const conflicts = findImageConflicts(raw.imageFacts, today);
+  if (conflicts.length > 0) throw new DifferentDocumentsError("conflict", conflicts);
 }
 
 /** The model call shared by `extractReceipt` and `extractReceiptStream`. */
 function modelCall(options: ExtractOptions) {
   const model = options.model ?? DEFAULT_MODEL;
+  const images = inputImages(options);
+  const many = images.length > 1;
   return {
     model,
-    system: SYSTEM_PROMPT,
+    system: many ? SYSTEM_PROMPT + MULTI_IMAGE_PROMPT : SYSTEM_PROMPT,
     output: Output.object({ schema: RawExtractionSchema, name: "receipt" }),
     // The AI SDK default is 2. Short bursts of 429 (rate limit) are common on a free
     // AI Gateway account, and one more pause usually rides them out.
@@ -87,10 +146,18 @@ function modelCall(options: ExtractOptions) {
     messages: [
       {
         role: "user" as const,
-        content: [
-          { type: "text" as const, text: "Extract the fields from this document." },
-          { type: "file" as const, data: options.image, mediaType: options.mediaType ?? "image/*" },
-        ],
+        content: many
+          ? [
+              { type: "text" as const, text: `Extract the fields from this document. It is given as ${images.length} images, in order.` },
+              ...images.flatMap((img, i) => [
+                { type: "text" as const, text: `Image ${i + 1} of ${images.length}:` },
+                { type: "file" as const, data: img.image, mediaType: img.mediaType ?? "image/*" },
+              ]),
+            ]
+          : [
+              { type: "text" as const, text: "Extract the fields from this document." },
+              { type: "file" as const, data: images[0]!.image, mediaType: images[0]!.mediaType ?? "image/*" },
+            ],
       },
     ],
   };
@@ -104,15 +171,20 @@ export async function extractReceipt(options: ExtractOptions): Promise<ExtractRe
   if (options.generate) {
     const raw = RawExtractionSchema.parse(await options.generate(options));
     if (raw.handwritten) throw new HandwritingNotSupportedError();
-    return { raw, receipt: normalizeExtraction(raw, options) };
+    const count = inputImages(options).length;
+    assertSameDocument(raw, count, options.today);
+    return { raw, receipt: normalizeExtraction(raw, { ...options, imageCount: count }), imageCount: count };
   }
 
   const result = await generateText({ ...modelCall(options), abortSignal: options.abortSignal });
 
   if (result.output.handwritten) throw new HandwritingNotSupportedError();
+  const count = inputImages(options).length;
+  assertSameDocument(result.output, count, options.today);
   return {
     raw: result.output,
-    receipt: normalizeExtraction(result.output, options),
+    receipt: normalizeExtraction(result.output, { ...options, imageCount: count }),
+    imageCount: count,
     usage: {
       inputTokens: result.usage?.inputTokens,
       outputTokens: result.usage?.outputTokens,
@@ -130,6 +202,30 @@ export type ExtractEvent =
   | { type: "final"; result: ExtractResult };
 
 /**
+ * While streaming: refuse as soon as the model says the images differ, or as soon as
+ * the per-image facts are complete (the next field, documentType, has started) and
+ * they disagree. Returns whether the facts have been checked. Facts that are still
+ * being written can be cut mid-word, so they are not compared until then.
+ */
+function earlyDocumentCheck(partial: RawPartial, count: number, alreadyChecked: boolean, today?: Date): boolean {
+  if (partial.sameDocument === false) throw new DifferentDocumentsError("model");
+  if (alreadyChecked || partial.documentType === undefined) return alreadyChecked;
+  const facts = (partial.imageFacts ?? []).filter((f): f is NonNullable<typeof f> => f != null);
+  const conflicts = findImageConflicts(
+    facts.map((f) => ({
+      merchant: f.merchant ?? null,
+      taxIdText: f.taxIdText ?? null,
+      referenceText: f.referenceText ?? null,
+      dateText: f.dateText ?? null,
+      totalText: f.totalText ?? null,
+    })),
+    today,
+  );
+  if (conflicts.length > 0) throw new DifferentDocumentsError("conflict", conflicts);
+  return true;
+}
+
+/**
  * Like `extractReceipt`, but yields what the model has read so far as it goes
  * (`partial`, raw text only: no parsing, no flags, so nothing in it can be
  * exported) and ends with the same result `extractReceipt` returns (`final`).
@@ -138,15 +234,19 @@ export type ExtractEvent =
  */
 export async function* extractReceiptStream(options: ExtractOptions): AsyncGenerator<ExtractEvent> {
   if (options.generateStream) {
+    const count = inputImages(options).length;
     let last: RawPartial = {};
+    let checked = false;
     for await (const partial of options.generateStream(options)) {
       if (partial.handwritten === true) throw new HandwritingNotSupportedError();
+      if (count > 1) checked = earlyDocumentCheck(partial, count, checked, options.today);
       last = partial;
       yield { type: "partial", raw: partial };
     }
     const raw = RawExtractionSchema.parse(last);
     if (raw.handwritten) throw new HandwritingNotSupportedError();
-    yield { type: "final", result: { raw, receipt: normalizeExtraction(raw, options) } };
+    assertSameDocument(raw, count, options.today);
+    yield { type: "final", result: { raw, receipt: normalizeExtraction(raw, { ...options, imageCount: count }), imageCount: count } };
     return;
   }
 
@@ -163,12 +263,18 @@ export async function* extractReceiptStream(options: ExtractOptions): AsyncGener
     },
   });
 
+  const count = inputImages(options).length;
+  let checked = false;
   for await (const partial of result.partialOutputStream) {
-    if ((partial as RawPartial).handwritten === true) {
-      controller.abort();
-      throw new HandwritingNotSupportedError();
+    const p = partial as RawPartial;
+    try {
+      if (p.handwritten === true) throw new HandwritingNotSupportedError();
+      if (count > 1) checked = earlyDocumentCheck(p, count, checked, options.today);
+    } catch (e) {
+      controller.abort(); // stop paying for an answer we are going to refuse
+      throw e;
     }
-    yield { type: "partial", raw: partial as RawPartial };
+    yield { type: "partial", raw: p };
   }
   if (failure) throw failure;
 
@@ -181,5 +287,6 @@ export async function* extractReceiptStream(options: ExtractOptions): AsyncGener
   } catch {
     usage = undefined;
   }
-  yield { type: "final", result: { raw: output, receipt: normalizeExtraction(output, options), usage } };
+  assertSameDocument(output, count, options.today);
+  yield { type: "final", result: { raw: output, receipt: normalizeExtraction(output, { ...options, imageCount: count }), imageCount: count, usage } };
 }

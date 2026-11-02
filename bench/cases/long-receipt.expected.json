@@ -1,0 +1,102 @@
+{
+  "merchant": "SAMPLE MART",
+  "date": "2026-11-03",
+  "taxId": "1234567890121",
+  "reference": "000451",
+  "total": 972.0,
+  "vat": 63.59,
+  "lineItems": [
+    {
+      "description": "Fresh milk 1L",
+      "amount": 38.0
+    },
+    {
+      "description": "Bread roll",
+      "amount": 12.0
+    },
+    {
+      "description": "Eggs (10)",
+      "amount": 59.0
+    },
+    {
+      "description": "Rice 5kg",
+      "amount": 158.0
+    },
+    {
+      "description": "Soy sauce",
+      "amount": 31.0
+    },
+    {
+      "description": "Instant noodles",
+      "amount": 6.0
+    },
+    {
+      "description": "Cooking oil 1L",
+      "amount": 72.0
+    },
+    {
+      "description": "Sugar 1kg",
+      "amount": 24.0
+    },
+    {
+      "description": "Salt",
+      "amount": 9.0
+    },
+    {
+      "description": "Tea bags",
+      "amount": 45.0
+    },
+    {
+      "description": "Coffee 3in1",
+      "amount": 89.0
+    },
+    {
+      "description": "Bread roll",
+      "amount": 12.0
+    },
+    {
+      "description": "Mineral water 600ml",
+      "amount": 7.0
+    },
+    {
+      "description": "Mineral water 600ml",
+      "amount": 7.0
+    },
+    {
+      "description": "Mineral water 600ml",
+      "amount": 7.0
+    },
+    {
+      "description": "Chips",
+      "amount": 20.0
+    },
+    {
+      "description": "Chocolate bar",
+      "amount": 25.0
+    },
+    {
+      "description": "Tissue pack",
+      "amount": 49.0
+    },
+    {
+      "description": "Dish soap",
+      "amount": 35.0
+    },
+    {
+      "description": "Shampoo",
+      "amount": 119.0
+    },
+    {
+      "description": "Toothpaste",
+      "amount": 54.0
+    },
+    {
+      "description": "Bananas",
+      "amount": 28.0
+    },
+    {
+      "description": "Apples (4)",
+      "amount": 66.0
+    }
+  ]
+}

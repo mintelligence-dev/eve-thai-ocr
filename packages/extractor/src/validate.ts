@@ -5,6 +5,8 @@ export interface ValidateOptions {
   today?: Date;
   /** VAT rate used for the consistency check. Thailand: 0.07. */
   vatRate?: number;
+  /** How many images the result was read from. More than one adds a "check the overlap" flag. */
+  imageCount?: number;
 }
 
 /** Above this many similar flags, report one summary flag instead. */

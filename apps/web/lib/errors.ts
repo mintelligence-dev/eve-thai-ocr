@@ -1,11 +1,13 @@
-import { HandwritingNotSupportedError } from "@thai-receipt-reader/extractor";
+import { DifferentDocumentsError, HandwritingNotSupportedError } from "@thai-receipt-reader/extractor";
 
 export interface Classified {
-  code: "handwritten" | "busy" | "extract_failed";
+  code: "handwritten" | "different_documents" | "busy" | "extract_failed";
   status: number;
   message: string;
   /** Seconds to suggest waiting, for "busy". */
   retryAfterSec?: number;
+  /** For "different_documents": which values disagreed (merchant, taxId, date, total). */
+  fields?: string[];
 }
 
 const statusOf = (e: unknown): number | undefined => {
@@ -24,6 +26,14 @@ export function classifyError(e: unknown): Classified {
       code: "handwritten",
       status: 422,
       message: "Handwritten documents are not supported. Use a printed receipt or transfer slip.",
+    };
+  }
+  if (e instanceof DifferentDocumentsError) {
+    return {
+      code: "different_documents",
+      status: 422,
+      message: "These images do not look like parts of the same document.",
+      fields: [...new Set(e.conflicts.map((c) => c.field))],
     };
   }
   if (statusOf(e) === 429 || (e instanceof Error && e.name === "GatewayRateLimitError")) {

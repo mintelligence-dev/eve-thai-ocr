@@ -136,6 +136,16 @@ export function normalizeExtraction(
     });
   }
 
+  if ((options.imageCount ?? 1) > 1) {
+    flags.push({
+      path: "lineItems",
+      code: "merged_images",
+      severity: "warning",
+      message: `Read from ${options.imageCount} images, top to bottom. Check the lines where the photos overlap: none should be missing or repeated.`,
+      params: { count: options.imageCount! },
+    });
+  }
+
   // A misread digit nearly always breaks the check digit, so a bad ID is flagged.
   const taxIdText = clean(raw.taxIdText);
   const taxId = taxIdText ? taxIdDigits(taxIdText) || null : null;

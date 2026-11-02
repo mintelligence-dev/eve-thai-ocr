@@ -15,6 +15,24 @@ export const RawExtractionSchema = z.object({
     .describe(
       "True only when the main content (the amounts, items or date) is handwritten rather than printed or typed. A signature, stamp or short handwritten note on an otherwise printed document does not count.",
     ),
+  sameDocument: z
+    .boolean()
+    .describe(
+      "With several images: true only if they are all parts of ONE document (one receipt or slip, possibly overlapping). False if they look like different documents. Always true for a single image.",
+    ),
+  imageFacts: z
+    .array(
+      z.object({
+        merchant: z.string().nullable(),
+        taxIdText: z.string().nullable(),
+        referenceText: z.string().nullable(),
+        dateText: z.string().nullable(),
+        totalText: z.string().nullable(),
+      }),
+    )
+    .describe(
+      "With several images: one entry per image, in order, with what is printed in THAT image only (null when not visible there). totalText is the final grand total, not a subtotal. Empty for a single image.",
+    ),
   merchant: z
     .string()
     .nullable()
@@ -83,6 +101,7 @@ export const FlagSchema = z.object({
     "not_a_receipt",
     "addon_split",
     "invalid_tax_id",
+    "merged_images",
   ]),
   severity: z.enum(["error", "warning"]),
   /** English text, for logs and API consumers. */

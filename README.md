@@ -11,6 +11,7 @@ Open-source AI tool that turns **printed** Thai receipts and bank transfer slips
 ### What it does
 
 - Upload a photo, or take one on your phone. Photos are resized on your device first (see [Privacy](#privacy-and-data)).
+- **A very long receipt can be photographed in up to 4 photos**, in order from top to bottom, overlapping by a few lines. They are read as one receipt, and the app **checks that they really are the same one**: photos that look like different receipts are refused with a message instead of being merged.
 - **Receipts and tax invoices:** shop name, shop tax ID, receipt number, date and time, subtotal, VAT, total and line items.
 - **Transfer slips:** payee, payer, amount, fee, reference number, date and time.
 - Reads Thai numerals (๑๒๓), Buddhist Era dates (`12/05/2568` → `2025-05-12`), Thai and English month names, two-digit years, `฿` / `บาท` / `BHT` / `THB`, and mixed Thai–English text.
@@ -23,7 +24,7 @@ Open-source AI tool that turns **printed** Thai receipts and bank transfer slips
 
 - **Extraction only.** It does not verify that a receipt or a payment slip is genuine.
 - **Printed documents only. Handwriting is refused**, not read badly: handwritten numbers came back differently on every run in our tests (the same amount as 200,000, 2,000,000 and 2,009,000), with nothing on screen to warn you.
-- One image per document. A receipt photographed in several parts is not supported yet.
+- Up to 4 photos of **one** document. Different receipts are never merged (see "How reliable is it?" for how well that is checked). There is no batch mode for many receipts yet.
 - No accounting-system integrations and no automatic sending anywhere.
 - It does not store your images (see [Privacy](#privacy-and-data)), and it has no accounts or history.
 
@@ -34,6 +35,8 @@ Honestly: good, not perfect, and it varies between runs of the same photo. On ou
 - **Thai numerals in small print** (for example `๑๘๕.๐๐` read as `145`).
 - Lines with several prices, long receipts, faded thermal paper, tilted or blurry photos.
 - Values that are partly covered or cut off.
+
+**Several photos of one receipt.** The model reads them together and also reports what each photo shows on its own (shop, tax ID, date, total); the code compares those, so photos of different receipts are refused even if the model thought they matched. On our small test set, 12 of 12 pairs of different receipts were refused (real and synthetic, including the same shop on another day), and a long synthetic receipt with three identical lines inside the overlap merged correctly 3 of 3 times. Real photos cut into two parts merged with the same quirks as single photos (for example a heading line counted as an item). What it cannot do: two photos that show none of the shop, tax ID, date or total (for example two middle sections) can only be caught by the model's own judgement and the totals check, so always read the merged result.
 
 That is why the app cross-checks the numbers and asks you to confirm anything doubtful. **Always compare against the original.** Before changing the model, run [`pnpm bench`](bench/README.md) on your own documents: models differ a lot (one made up a whole receipt from a blank image).
 
@@ -48,6 +51,7 @@ That is why the app cross-checks the numbers and asks you to confirm anything do
 | Amounts | An amount with more than two decimals (`5.555`) is never guessed. A negative amount needs a name that says discount or promotion (`discount`, `promotion`, `ส่วนลด`, `ลดราคา`, `โปรโมชั่น`, `โปรโมชัน`); other names, such as `BOGO`, are flagged. |
 | Model unsure | Fields the model said it could not read confidently, or values that were hidden or cut off. |
 | Not a receipt | Blank, unreadable or unrelated images must be confirmed before anything is exported. |
+| Several photos | Photos that look like different receipts are refused. A merged result always carries a yellow "check the lines where the photos meet" flag, and the items-vs-total bar still applies. |
 | Assumed values | A line with only a price is shown as quantity 1 × price (faded italic, marked `assumed` in the JSON). Not done for discounts or unclear layouts. |
 
 ### How it works
@@ -95,18 +99,21 @@ The page shows what the model has read as it goes (the API's `?stream=1` mode se
 ### Use the package
 
 ```ts
-import { extractReceipt, HandwritingNotSupportedError, toCSV } from "@thai-receipt-reader/extractor";
+import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@thai-receipt-reader/extractor";
 
 try {
   const { receipt, usage } = await extractReceipt({
     image: bytes,                     // Uint8Array of a JPEG, PNG or WebP
     mediaType: "image/jpeg",
     model: "google/gemini-2.5-flash", // any vision model on AI Gateway
+    // A long receipt in several photos, top to bottom (up to 4), instead of `image`:
+    // images: [{ image: top, mediaType: "image/jpeg" }, { image: bottom, mediaType: "image/jpeg" }],
   });
   receipt.flags;                      // what a person should check
   toCSV(receipt);
 } catch (e) {
   if (e instanceof HandwritingNotSupportedError) { /* ask for a printed document */ }
+  if (e instanceof DifferentDocumentsError) { /* the photos are not one receipt: e.conflicts says what differs */ }
 }
 ```
 
@@ -170,6 +177,7 @@ Receipts and slips contain personal and financial data. Please read this before 
 ### ทำอะไรได้
 
 - อัปโหลดรูป หรือถ่ายรูปจากมือถือ ระบบย่อรูปบนเครื่องคุณก่อน (ดู [ความเป็นส่วนตัว](#ความเป็นส่วนตัวและข้อมูล))
+- **ใบเสร็จที่ยาวมากถ่ายแยกได้สูงสุด 4 รูป** เรียงจากบนลงล่างและให้รูปซ้อนกันสองสามบรรทัด ระบบอ่านรวมเป็นใบเดียว และ **เช็กให้ว่าเป็นใบเดียวกันจริงไหม** ถ้ารูปดูเหมือนคนละใบ จะปฏิเสธพร้อมข้อความ ไม่รวมให้
 - **ใบเสร็จและใบกำกับภาษี:** ชื่อร้าน เลขประจำตัวผู้เสียภาษีของร้าน เลขที่ใบเสร็จ วันที่ เวลา ยอดก่อน VAT VAT ยอดรวม และรายการสินค้า
 - **สลิปโอนเงิน:** ผู้รับเงิน ผู้โอน จำนวนเงิน ค่าธรรมเนียม เลขอ้างอิง วันที่ เวลา
 - อ่านเลขไทย (๑๒๓) วันที่ พ.ศ. (`12/05/2568` → `2025-05-12`) ชื่อเดือนไทย/อังกฤษ ปีสองหลัก `฿` / `บาท` / `BHT` / `THB` และข้อความผสมไทย–อังกฤษ
@@ -182,7 +190,7 @@ Receipts and slips contain personal and financial data. Please read this before 
 
 - **ดึงข้อมูลเท่านั้น** ไม่ตรวจว่าใบเสร็จหรือสลิปเป็นของจริง
 - **รองรับเฉพาะเอกสารที่พิมพ์ ลายมือจะถูกปฏิเสธ** ไม่ใช่อ่านแบบไม่แม่น เพราะตัวเลขลายมืออ่านได้ไม่ตรงกันทุกรอบ (ยอดเดียวกันได้ทั้ง 200,000 / 2,000,000 / 2,009,000 ในการทดสอบ) โดยไม่มีอะไรบนจอเตือนคุณ
-- หนึ่งรูปต่อหนึ่งเอกสาร ใบเสร็จที่ถ่ายแยกหลายรูปยังไม่รองรับ
+- สูงสุด 4 รูปต่อ **หนึ่ง** เอกสาร ใบเสร็จคนละใบไม่ถูกรวมกัน (ดูหัวข้อ "เชื่อถือได้แค่ไหน" ว่าเช็กได้ดีแค่ไหน) ยังไม่มีโหมดอัปโหลดหลายใบพร้อมกัน
 - ไม่เชื่อมระบบบัญชี ไม่ส่งข้อมูลไปที่ไหนอัตโนมัติ
 - ไม่เก็บรูปของคุณ (ดู [ความเป็นส่วนตัว](#ความเป็นส่วนตัวและข้อมูล)) ไม่มีบัญชีผู้ใช้และไม่มีประวัติย้อนหลัง
 
@@ -193,6 +201,8 @@ Receipts and slips contain personal and financial data. Please read this before 
 - **เลขไทยตัวเล็ก** (เช่น `๑๘๕.๐๐` อ่านเป็น `145`)
 - บรรทัดที่มีหลายราคา ใบยาวมาก กระดาษความร้อนซีด รูปเอียงหรือเบลอ
 - ค่าที่ถูกปิดหรือถูกตัดขอบ
+
+**หลายรูปของใบเดียว** โมเดลอ่านรวมกัน และรายงานด้วยว่าแต่ละรูปแสดงอะไรโดยลำพัง (ร้าน เลขผู้เสียภาษี วันที่ ยอดรวม) แล้วโค้ดเทียบกัน รูปคนละใบจึงถูกปฏิเสธแม้โมเดลเห็นว่าตรงกัน ในชุดทดสอบเล็กๆ ของเรา คู่รูปคนละใบถูกปฏิเสธ 12 จาก 12 ครั้ง (ทั้งใบจริงและสังเคราะห์ รวมร้านเดียวกันคนละวัน) และใบยาวสังเคราะห์ที่มีบรรทัดเหมือนกัน 3 บรรทัดในรอยซ้อนถูกรวมถูกต้อง 3 จาก 3 ครั้ง ส่วนใบจริงที่ตัดเป็นสองท่อน รวมแล้วมีข้อสังเกตเดียวกับรูปเดียว (เช่น บรรทัดหัวข้อถูกนับเป็นรายการ) สิ่งที่ทำไม่ได้: สองรูปที่ไม่เห็นร้าน เลขผู้เสียภาษี วันที่ หรือยอดรวมเลย (เช่นท่อนกลางสองท่อน) จับได้แค่จากการตัดสินของโมเดลและการเช็กยอดรวม จึงควรอ่านผลที่รวมแล้วทุกครั้ง
 
 เพราะแบบนี้แอปจึงเทียบตัวเลขข้ามกันและให้คุณยืนยันจุดที่น่าสงสัย **เทียบกับต้นฉบับทุกครั้ง** ก่อนเปลี่ยนโมเดล ให้รัน [`pnpm bench`](bench/README.md) กับเอกสารของคุณเอง เพราะโมเดลต่างกันมาก (มีตัวที่แต่งใบเสร็จขึ้นมาทั้งใบจากรูปขาวเปล่า)
 
@@ -207,6 +217,7 @@ Receipts and slips contain personal and financial data. Please read this before 
 | จำนวนเงิน | จำนวนเงินที่มีทศนิยมเกิน 2 ตำแหน่ง (`5.555`) ไม่เดาให้ ยอดติดลบต้องมีชื่อที่บอกว่าเป็นส่วนลดหรือโปรโมชัน (`discount`, `promotion`, `ส่วนลด`, `ลดราคา`, `โปรโมชั่น`, `โปรโมชัน`) ชื่ออื่นอย่าง `BOGO` ติดธง |
 | โมเดลไม่มั่นใจ | ช่องที่โมเดลบอกว่าอ่านไม่ชัด หรือค่าที่ถูกปิด/ตัดขอบ |
 | ไม่ใช่ใบเสร็จ | รูปว่าง อ่านไม่ออก หรือไม่เกี่ยวข้อง ต้องยืนยันก่อนส่งออก |
+| หลายรูป | รูปที่ดูเหมือนคนละใบถูกปฏิเสธ ผลที่รวมแล้วมีธงเหลือง "ตรวจบรรทัดตรงรอยต่อของรูป" เสมอ และแถบเช็กยอดรวมยังทำงานอยู่ |
 | ค่าที่สมมติ | บรรทัดที่มีแต่ราคา แสดงเป็นจำนวน 1 × ราคา (ตัวเอียงจาง และมี `assumed` ใน JSON) ไม่ทำกับส่วนลดหรือเลย์เอาต์ที่ไม่ชัด |
 
 ### หลักการทำงาน
@@ -254,18 +265,21 @@ pnpm test                                      # รันเทสต์ทั�
 ### ใช้แพ็กเกจ
 
 ```ts
-import { extractReceipt, HandwritingNotSupportedError, toCSV } from "@thai-receipt-reader/extractor";
+import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@thai-receipt-reader/extractor";
 
 try {
   const { receipt, usage } = await extractReceipt({
     image: bytes,                     // Uint8Array ของไฟล์ JPEG, PNG หรือ WebP
     mediaType: "image/jpeg",
     model: "google/gemini-2.5-flash", // โมเดลวิชันใดๆ บน AI Gateway
+    // ใบยาวหลายรูป เรียงจากบนลงล่าง (สูงสุด 4) ใช้แทน `image`:
+    // images: [{ image: top, mediaType: "image/jpeg" }, { image: bottom, mediaType: "image/jpeg" }],
   });
   receipt.flags;                      // จุดที่ควรให้คนตรวจ
   toCSV(receipt);
 } catch (e) {
   if (e instanceof HandwritingNotSupportedError) { /* ขอเอกสารที่พิมพ์ออกมา */ }
+  if (e instanceof DifferentDocumentsError) { /* รูปไม่ใช่ใบเดียวกัน: e.conflicts บอกว่าต่างกันตรงไหน */ }
 }
 ```
 

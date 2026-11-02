@@ -13,9 +13,13 @@ import {
   type LineItem,
   type Receipt,
 } from "@thai-receipt-reader/extractor/core";
-import { ImageError, MIN_SIDE_WARN, prepareImage } from "@/lib/image";
+import { ImageError, MAX_UPLOAD_BYTES, MIN_SIDE_WARN, prepareImage } from "@/lib/image";
 import { readNdjson } from "@/lib/ndjson";
 import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type Dict, type Lang } from "@/lib/i18n";
+
+const MAX_PHOTOS = 4;
+let nextPhotoId = 1;
+interface Photo { id: number; file: File; url: string }
 
 type StreamEvent =
   | { type: "partial"; raw: RawPartial }
@@ -42,8 +46,9 @@ const num = (v: string): number | null => (v === "" ? null : Number(v));
 export default function Home() {
   const [lang, setLang] = useState<Lang>("th");
   const [theme, setTheme] = useState<Theme>("light");
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  // Photos of one document, in order from the top of the receipt to the bottom.
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const photosRef = useRef<Photo[]>([]);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [busy, setBusy] = useState(false);
   // What the model has read so far while it is still reading (raw text, unchecked).
@@ -100,13 +105,31 @@ export default function Home() {
     try { localStorage.setItem(LANG_KEY, l); } catch {}
   }
 
-  // Preview only: the object URL is revoked when the file changes or on unmount.
-  useEffect(() => {
-    if (!file) return setPreview(null);
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  // Preview URLs are revoked when a photo is removed, and on unmount.
+  useEffect(() => () => photosRef.current.forEach((p) => URL.revokeObjectURL(p.url)), []);
+  const setAllPhotos = (next: Photo[]) => {
+    photosRef.current = next;
+    setPhotos(next);
+  };
+  const clearPhotos = () => {
+    photosRef.current.forEach((p) => URL.revokeObjectURL(p.url));
+    setAllPhotos([]);
+  };
+  function removePhoto(id: number) {
+    const gone = photosRef.current.find((p) => p.id === id);
+    if (gone) URL.revokeObjectURL(gone.url);
+    setAllPhotos(photosRef.current.filter((p) => p.id !== id));
+    setError(null);
+    setNotice(null);
+  }
+  function movePhoto(id: number, dir: -1 | 1) {
+    const list = [...photosRef.current];
+    const i = list.findIndex((p) => p.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j]!, list[i]!];
+    setAllPhotos(list);
+  }
 
   const flagsByPath = useMemo(() => {
     const map = new Map<string, Flag[]>();
@@ -122,37 +145,48 @@ export default function Home() {
   const recon = useMemo(() => (receipt ? itemsReconcile(receipt) : null), [receipt]);
   const hasErrors = receipt?.flags.some((f) => f.severity === "error") ?? false;
 
-  async function choose(f: File | undefined) {
+  /** Add photos of the document, in the order given. Each is shrunk on the device first. */
+  async function addFiles(files: File[]) {
     setError(null);
     setNotice(null);
     setReceipt(null);
     setReviewed(false);
-    if (!f) return setFile(null);
+    if (files.length === 0) return;
     setPreparing(true);
     try {
-      // Fix orientation, shrink and re-encode on the device before anything is uploaded.
-      const prepared = await prepareImage(f);
-      setFile(prepared.file);
-      if (Math.min(prepared.width, prepared.height) < MIN_SIDE_WARN) {
-        setNotice({ w: prepared.width, h: prepared.height });
+      for (const f of files) {
+        if (photosRef.current.length >= MAX_PHOTOS) {
+          setError({ code: "too_many_images" });
+          break;
+        }
+        try {
+          // Fix orientation, shrink and re-encode on the device before anything is uploaded.
+          const prepared = await prepareImage(f);
+          const total = photosRef.current.reduce((sum, p) => sum + p.file.size, 0) + prepared.file.size;
+          if (total > MAX_UPLOAD_BYTES) {
+            setError({ code: "too_large" });
+            break;
+          }
+          setAllPhotos([...photosRef.current, { id: nextPhotoId++, file: prepared.file, url: URL.createObjectURL(prepared.file) }]);
+          if (Math.min(prepared.width, prepared.height) < MIN_SIDE_WARN) setNotice({ w: prepared.width, h: prepared.height });
+        } catch (e) {
+          setError({ code: e instanceof ImageError ? e.code : "decode_failed" });
+        }
       }
-    } catch (e) {
-      setFile(null);
-      setError({ code: e instanceof ImageError ? e.code : "decode_failed" });
     } finally {
       setPreparing(false);
     }
   }
 
   async function extract() {
-    if (!file) return;
+    if (photos.length === 0) return;
     setBusy(true);
     setError(null);
     setReviewed(false);
     setLive({});
     try {
       const body = new FormData();
-      body.set("image", file);
+      for (const p of photos) body.append("image", p.file); // in order, top to bottom
       const res = await fetch("/api/extract?stream=1", { method: "POST", body });
       if (!res.ok || !res.body) {
         // Refused before reading started (rate limit, bad file...): a plain JSON error.
@@ -227,38 +261,59 @@ export default function Home() {
       <section className="card">
         <div
           className="drop"
-          role="button"
-          tabIndex={0}
+          role={photos.length === 0 ? "button" : undefined}
+          tabIndex={photos.length === 0 ? 0 : undefined}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            choose(e.dataTransfer.files[0]);
+            addFiles(Array.from(e.dataTransfer.files));
           }}
-          onClick={() => inputRef.current?.click()}
-          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), inputRef.current?.click())}
+          onClick={() => photos.length === 0 && inputRef.current?.click()}
+          onKeyDown={(e) => photos.length === 0 && (e.key === "Enter" || e.key === " ") && (e.preventDefault(), inputRef.current?.click())}
         >
           <input
             ref={inputRef}
             type="file"
             accept="image/*"
+            multiple
             hidden
             onChange={(e) => {
-              const f = e.target.files?.[0];
+              const list = Array.from(e.target.files ?? []);
               e.target.value = ""; // so choosing the same file again still fires
-              choose(f);
+              addFiles(list);
             }}
           />
-          {preparing ? (
+          {preparing && photos.length === 0 ? (
             <span>{t.preparing}</span>
-          ) : preview ? (
-            <img src={preview} alt={t.preview} />
+          ) : photos.length > 0 ? (
+            <ul className={`thumbs ${photos.length > 1 ? "many" : ""}`}>
+              {photos.map((p, i) => (
+                <li key={p.id}>
+                  <img src={p.url} alt={`${t.preview} ${i + 1}`} />
+                  {photos.length > 1 && <span className="badge" aria-hidden="true">{i + 1}</span>}
+                  <div className="thumb-actions">
+                    {photos.length > 1 && (
+                      <>
+                        <button className="ghost small" disabled={i === 0 || busy} aria-label={tpl(t.movePhoto, { n: i + 1, dir: t.moveLeft })} onClick={() => movePhoto(p.id, -1)}>←</button>
+                        <button className="ghost small" disabled={i === photos.length - 1 || busy} aria-label={tpl(t.movePhoto, { n: i + 1, dir: t.moveRight })} onClick={() => movePhoto(p.id, 1)}>→</button>
+                      </>
+                    )}
+                    <button className="ghost small" disabled={busy} aria-label={tpl(t.removePhoto, { n: i + 1 })} onClick={() => removePhoto(p.id)}>✕</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           ) : (
             <span>{t.drop}<br /><small>{t.dropHint}</small></span>
           )}
         </div>
+        {photos.length > 1 && <p className="model">{t.orderHint}</p>}
         {notice && <p className="notice warning">{tpl(t.lowRes, { w: notice.w, h: notice.h })}</p>}
         <div className="row">
-          <button onClick={extract} disabled={!file || busy || preparing}>{busy ? t.reading : t.extract}</button>
+          <button onClick={extract} disabled={photos.length === 0 || busy || preparing}>{busy ? t.reading : t.extract}</button>
+          {photos.length > 0 && photos.length < MAX_PHOTOS && (
+            <button className="ghost" disabled={busy || preparing} onClick={() => inputRef.current?.click()}>{preparing ? t.preparing : t.addPhoto}</button>
+          )}
           {/* capture="environment" opens the rear camera on phones. Shown on touch devices only. */}
           <input
             ref={cameraRef}
@@ -269,11 +324,12 @@ export default function Home() {
             onChange={(e) => {
               const f = e.target.files?.[0];
               e.target.value = "";
-              choose(f);
+              addFiles(f ? [f] : []);
             }}
           />
-          <button className="ghost camera-btn" onClick={() => cameraRef.current?.click()}>{t.camera}</button>
+          <button className="ghost camera-btn" disabled={busy || preparing || photos.length >= MAX_PHOTOS} onClick={() => cameraRef.current?.click()}>{t.camera}</button>
         </div>
+        {photos.length >= 1 && photos.length < MAX_PHOTOS && <p className="model">{t.longHint}</p>}
         <div className="tips">
           <b>{t.tipsTitle}</b>
           <ul>
@@ -289,7 +345,7 @@ export default function Home() {
               key={s.id}
               className="ghost"
               onClick={() => {
-                setFile(null);
+                clearPhotos();
                 setError(null);
                 setNotice(null);
                 setReviewed(false);

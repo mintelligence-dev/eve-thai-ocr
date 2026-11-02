@@ -9,6 +9,9 @@ export {
   DEFAULT_MODEL,
   defaultProviderOptions,
   HandwritingNotSupportedError,
+  DifferentDocumentsError,
+  MAX_IMAGES,
+  type InputImage,
   SYSTEM_PROMPT,
   type ExtractEvent,
   type ExtractOptions,
@@ -18,3 +21,4 @@ export {
 export * from "./score.js";
 export { isDiscountLabel } from "./discount.js";
 export { isValidThaiTaxId, taxIdDigits } from "./taxid.js";
+export { findImageConflicts, type ImageConflict, type ImageFact } from "./images.js";

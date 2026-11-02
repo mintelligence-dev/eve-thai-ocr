@@ -14,6 +14,13 @@ export const T = {
     drop: "ลากรูปมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์",
     dropHint: "ใช้รูปจากมือถือได้เลย (JPEG, PNG, WebP, HEIC) ระบบย่อรูปให้อัตโนมัติบนเครื่องคุณก่อนอัปโหลด",
     camera: "ถ่ายรูป",
+    addPhoto: "+ เพิ่มรูปของใบเดียวกัน",
+    longHint: "ใบยาวมาก? ถ่ายแยกเป็นหลายรูปได้ (สูงสุด 4 รูป) ให้รูปถัดไปซ้อนกับท้ายรูปก่อนหน้า 2–3 บรรทัด และเรียงจากบนลงล่าง ระบบจะรวมเป็นใบเดียวและเช็กให้ว่าเป็นใบเดียวกันจริงไหม",
+    orderHint: "เรียงจากบนลงล่างของใบเสร็จ (ใช้ปุ่มลูกศรสลับลำดับ)",
+    movePhoto: "ย้ายรูปที่ {n} {dir}",
+    moveLeft: "ไปทางซ้าย",
+    moveRight: "ไปทางขวา",
+    removePhoto: "เอารูปที่ {n} ออก",
     preparing: "กำลังเตรียมรูป…",
     lowRes: "รูปค่อนข้างเล็ก ({w}×{h} พิกเซล) ตัวหนังสือเล็กอาจอ่านไม่ออก ลองถ่ายให้ใกล้ขึ้น",
     tipsTitle: "ถ่ายให้อ่านแม่น",
@@ -91,6 +98,13 @@ export const T = {
     drop: "Drop an image here, or click to choose a file",
     dropHint: "Phone photos are fine (JPEG, PNG, WebP, HEIC). They are resized automatically on your device before upload.",
     camera: "Take photo",
+    addPhoto: "+ Add another photo of the same receipt",
+    longHint: "A very long receipt? Take it in several photos (up to 4). Make each photo overlap the end of the previous one by 2–3 lines, in order from top to bottom. They are read as one receipt, and we check they really are the same one.",
+    orderHint: "In order from the top of the receipt to the bottom (use the arrows to reorder).",
+    movePhoto: "Move photo {n} {dir}",
+    moveLeft: "left",
+    moveRight: "right",
+    removePhoto: "Remove photo {n}",
     preparing: "Preparing the image…",
     lowRes: "This image is small ({w}×{h} px), so small print may be unreadable. Try a closer photo.",
     tipsTitle: "For a clear read",
@@ -213,6 +227,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     negative_amount: "จำนวนเงินติดลบ แต่ชื่อรายการไม่ได้บอกว่าเป็นส่วนลด เครื่องหมายลบอาจอ่านผิด",
     addon_split: "ยอดที่พิมพ์ในรายการนี้ ({printed}) รวมของเพิ่มด้านล่างไว้แล้ว ระบบแยกเป็น {base} บวกราคาของเพิ่ม เพื่อไม่ให้นับซ้ำ ตรวจกับรูปต้นฉบับด้วย",
     invalid_tax_id: "เลขผู้เสียภาษี {text} ไม่ถูกต้อง (หลักตรวจสุดท้ายไม่ตรง) อาจอ่านตัวเลขผิด ตรวจกับรูปต้นฉบับ",
+    merged_images: "อ่านจาก {count} รูปที่ต่อกันจากบนลงล่าง ตรวจบรรทัดตรงรอยต่อของรูป ไม่ควรมีบรรทัดตกหล่นหรือซ้ำ",
     not_a_receipt: "ระบบไม่แน่ใจว่าเอกสารนี้เป็นใบเสร็จหรือสลิปโอนเงิน ถ้าใช่ ให้เลือกประเภทเอกสารให้ถูกต้อง ถ้าไม่ใช่ ข้อมูลด้านล่างอาจเป็นข้อมูลที่ไม่มีอยู่จริง",
   },
   en: {
@@ -236,6 +251,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     negative_amount: "Negative amount, but the item name doesn't say it's a discount. The minus sign may be misread.",
     addon_split: "The amount printed on this item ({printed}) already includes the add-on below it. It is shown as {base} plus the add-on price so nothing is counted twice. Please check it against the original.",
     invalid_tax_id: "Tax ID {text} is not valid (its check digit does not match), so a digit may have been misread. Check it against the original.",
+    merged_images: "Read from {count} photos, top to bottom. Check the lines where the photos meet: none should be missing or repeated.",
     not_a_receipt: "We aren't sure this is a receipt or transfer slip. If it is, set the document type. If not, the data below may be made up.",
   },
 };
@@ -270,6 +286,7 @@ export function flagText(f: Flag, lang: Lang): string {
     case "negative_amount": return t.negative_amount!;
     case "not_a_receipt": return t.not_a_receipt!;
     case "addon_split": return tpl(t.addon_split!, p);
+    case "merged_images": return tpl(t.merged_images!, p);
     case "invalid_tax_id": return tpl(t.invalid_tax_id!, p);
     default: return f.message;
   }
@@ -286,6 +303,9 @@ const API: Record<Lang, Record<string, string>> = {
     daily_limit: "เดโมนี้ถึงโควตารายวันแล้ว ลองใหม่ในอีก {minutes} นาที",
     extract_failed: "อ่านข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง",
     busy: "ตอนนี้มีคนใช้งานเยอะ ลองใหม่อีกครั้งในอีกสักครู่ (ประมาณ {seconds} วินาที)",
+    too_many_images: "ใช้ได้สูงสุด 4 รูปต่อหนึ่งใบเสร็จ",
+    different_documents: "รูปเหล่านี้ดูเหมือนไม่ใช่ใบเสร็จใบเดียวกัน ระบบไม่ได้รวมให้ เอารูปที่ไม่เกี่ยวข้องออก หรืออัปโหลดแยกทีละใบ",
+    different_documents_fields: "รูปเหล่านี้ดูเหมือนไม่ใช่ใบเสร็จใบเดียวกัน ({fields} ไม่ตรงกัน) ระบบไม่ได้รวมให้ เอารูปที่ไม่เกี่ยวข้องออก หรืออัปโหลดแยกทีละใบ",
     handwritten: "รูปนี้เขียนด้วยลายมือ ระบบรองรับเฉพาะใบเสร็จและสลิปโอนเงินแบบพิมพ์ เพราะอ่านลายมือไม่แม่น โดยเฉพาะตัวเลข กรุณาใช้เอกสารที่พิมพ์ออกมา",
     generic: "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง",
   },
@@ -299,6 +319,9 @@ const API: Record<Lang, Record<string, string>> = {
     daily_limit: "The demo has reached its daily limit. Try again in {minutes} min.",
     extract_failed: "Couldn't read the document. Please try again.",
     busy: "The service is busy right now. Please try again in a moment (about {seconds} s).",
+    too_many_images: "At most 4 photos can be read as one receipt.",
+    different_documents: "These photos don't look like the same receipt, so they were not combined. Remove the one that doesn't belong, or upload them one at a time.",
+    different_documents_fields: "These photos don't look like the same receipt ({fields} differ), so they were not combined. Remove the one that doesn't belong, or upload them one at a time.",
     handwritten: "This looks handwritten. Only printed receipts and transfer slips are supported, because handwriting, especially numbers, can't be read reliably. Please use a printed document.",
     generic: "Something went wrong. Please try again.",
   },
@@ -308,13 +331,22 @@ export interface ApiError {
   code?: string;
   retryAfterSec?: number;
   detail?: string;
+  /** For different_documents: which values disagreed. */
+  fields?: string[];
 }
+
+const CONFLICT_FIELDS: Record<Lang, Record<string, string>> = {
+  th: { merchant: "ชื่อร้าน", taxId: "เลขผู้เสียภาษี", date: "วันที่", total: "ยอดรวม" },
+  en: { merchant: "shop", taxId: "tax ID", date: "date", total: "total" },
+};
 
 /** Message for an /api/extract error response. `detail` is operator-facing (English). */
 export function apiErrorText(e: ApiError, lang: Lang): string {
   const minutes = e.retryAfterSec ? Math.max(1, Math.ceil(e.retryAfterSec / 60)) : 1;
   const seconds = e.retryAfterSec ?? 15;
-  const base = tpl(API[lang][e.code ?? ""] ?? API[lang].generic!, { minutes, seconds });
+  const key = e.code === "different_documents" && e.fields?.length ? "different_documents_fields" : e.code ?? "";
+  const fields = (e.fields ?? []).map((f) => CONFLICT_FIELDS[lang][f] ?? f).join(lang === "th" ? ", " : ", ");
+  const base = tpl(API[lang][key] ?? API[lang].generic!, { minutes, seconds, fields });
   return e.detail ? `${base} (${e.detail})` : base;
 }
 

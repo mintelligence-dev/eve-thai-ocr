@@ -64,4 +64,46 @@ save(receipt(), "receipt-thai-clean.png"); expected("receipt-thai-clean.expected
 # 5. The same receipt, blurred and tilted like a bad phone photo.
 bad = receipt().rotate(4, expand=True, fillcolor="white").filter(ImageFilter.GaussianBlur(5))
 save(bad, "receipt-thai-blurred.png"); expected("receipt-thai-blurred.expected.json", truth)
+
+# 6. One long receipt photographed as two overlapping images. Three identical
+# "Mineral water" lines sit inside the overlap: a merge must keep all three (they are
+# really on the receipt) and still not repeat any line that appears in both photos.
+def long_receipt(shop, date, number, items, total_note=True):
+    f = font(22); fb = font(26)
+    lines = [(shop, fb), ("TAX ID 1234567890121", f), (f"Date {date}  10:21", f), (f"Receipt No: {number}", f), ("-" * 40, f)]
+    lines += [(f"{d:<30}{a:>9.2f}", f) for d, a in items]
+    total = sum(a for _, a in items)
+    vat = round(total * 7 / 107, 2)
+    lines += [("-" * 40, f), (f"{'TOTAL':<30}{total:>9.2f}", fb), (f"{'VAT 7% included':<30}{vat:>9.2f}", f), ("Thank you", f)]
+    img = Image.new("RGB", (620, 60 + 34 * len(lines)), "white"); d = ImageDraw.Draw(img); y = 30
+    for text, fnt in lines:
+        d.text((30, y), text, fill="black", font=fnt); y += 34
+    return img, total, vat
+
+items = [("Fresh milk 1L", 38.0), ("Bread roll", 12.0), ("Eggs (10)", 59.0), ("Rice 5kg", 158.0), ("Soy sauce", 31.0),
+         ("Instant noodles", 6.0), ("Cooking oil 1L", 72.0), ("Sugar 1kg", 24.0), ("Salt", 9.0), ("Tea bags", 45.0),
+         ("Coffee 3in1", 89.0), ("Bread roll", 12.0), ("Mineral water 600ml", 7.0), ("Mineral water 600ml", 7.0),
+         ("Mineral water 600ml", 7.0), ("Chips", 20.0), ("Chocolate bar", 25.0), ("Tissue pack", 49.0),
+         ("Dish soap", 35.0), ("Shampoo", 119.0), ("Toothpaste", 54.0), ("Bananas", 28.0), ("Apples (4)", 66.0)]
+long_img, total, vat = long_receipt("SAMPLE MART (Branch 2)", "03/11/2026", "000451", items)
+H = long_img.height
+cut1, cut2 = int(H * 0.60), int(H * 0.42)          # photo 1: top 60%; photo 2: from 42% down (an 18% overlap)
+long_img.crop((0, 0, 620, cut1)).save(os.path.join(OUT, "long-receipt.1.png"))
+long_img.crop((0, cut2, 620, H)).save(os.path.join(OUT, "long-receipt.2.png"))
+expected("long-receipt.expected.json", {
+    "merchant": "SAMPLE MART", "date": "2026-11-03", "taxId": "1234567890121", "reference": "000451",
+    "total": total, "vat": vat,
+    "lineItems": [{"description": d, "amount": a} for d, a in items],
+})
+
+# 7. Two DIFFERENT receipts. These must be refused, not merged.
+other_items = [("Pad kra pao", 60.0), ("Iced tea", 25.0), ("Fried egg", 10.0)]
+a_img, _, _ = long_receipt("RICE HOUSE", "12/05/2026", "000017", other_items)
+b_img, _, _ = long_receipt("NOODLE CORNER", "12/05/2026", "000902", [("Boat noodles", 50.0), ("Water", 10.0)])
+a_img.save(os.path.join(OUT, "different-shops.1.png")); b_img.save(os.path.join(OUT, "different-shops.2.png"))
+expected("different-shops.expected.json", {"different": True})
+# same shop, another day and another total
+c_img, _, _ = long_receipt("RICE HOUSE", "19/05/2026", "000041", [("Pad kra pao", 60.0), ("Pad kra pao", 60.0), ("Cola", 20.0)])
+a_img.save(os.path.join(OUT, "different-days.1.png")); c_img.save(os.path.join(OUT, "different-days.2.png"))
+expected("different-days.expected.json", {"different": True})
 print("wrote", sorted(os.listdir(OUT)))
