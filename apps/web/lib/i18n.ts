@@ -21,6 +21,10 @@ export const T = {
     slipCheckIntro: "สลิปธนาคารมี QR เล็กๆ ที่ใช้ถามธนาคารได้ว่ามีรายการโอนนี้จริงไหม และยอดกับวันที่ตรงกับที่อ่านได้หรือเปล่า รูปสลิปอย่างเดียวพิสูจน์ไม่ได้ว่าจริงหรือปลอม",
     slipNoService: "เดโมนี้ยังไม่ได้เปิดบริการตรวจกับธนาคาร (ผู้ติดตั้งต้องตั้งค่าบริการตรวจสลิปก่อน)",
     slipScanning: "กำลังหา QR ตรวจสลิปในรูป…",
+    slipQrMatches: "เลขอ้างอิงที่อ่านได้ตรงกับเลขใน QR บนสลิป (ตรวจในเครื่อง ไม่ได้พิสูจน์ว่าสลิปจริง)",
+    slipQrMismatch: "เลขอ้างอิงที่อ่านได้ ({printed}) ไม่ตรงกับเลขใน QR บนสลิป ({qr})",
+    useQrReference: "ใช้ค่าจาก QR",
+    slipNoQrLocal: "ไม่พบ QR บนสลิปในรูป จึงเทียบเลขอ้างอิงกับ QR ไม่ได้ ซึ่งไม่ได้แปลว่าสลิปปลอม",
     slipNoQr: "ไม่พบ QR ตรวจสลิปของธนาคารในรูป (เป็น QR เล็กๆ มักอยู่ท้ายสลิป ต้องเห็นชัดและไม่ถูกตัดออก) จึงตรวจกับธนาคารไม่ได้ ซึ่งไม่ได้แปลว่าสลิปปลอม",
     slipDisclosure: "เมื่อกดตรวจ ระบบจะส่งเฉพาะข้อความใน QR (รหัสธนาคารผู้โอนและเลขอ้างอิงรายการ) ผ่านเซิร์ฟเวอร์นี้ไปยังบริการตรวจสลิปของบุคคลที่สาม ({provider}) ไม่ส่งรูปสลิป",
     slipCheck: "ตรวจกับธนาคาร",
@@ -122,6 +126,10 @@ export const T = {
     slipCheckIntro: "A bank slip carries a small QR code that can ask the bank whether this transfer exists, and whether its amount and date match what was read. The slip image alone cannot prove it is real or fake.",
     slipNoService: "This demo has no bank-check service set up (whoever installs the app must configure a slip verification service first).",
     slipScanning: "Looking for the slip's QR code in the photo…",
+    slipQrMatches: "The reference read matches the one in the slip's QR code (checked on this device; it does not prove the slip is real).",
+    slipQrMismatch: "The reference read ({printed}) differs from the one in the slip's QR code ({qr})",
+    useQrReference: "Use the QR code's value",
+    slipNoQrLocal: "No QR code was found on the slip in the photo, so the reference can't be compared with it. That does not mean the slip is fake.",
     slipNoQr: "No bank slip QR code was found in the photo (it is a small QR code, usually near the end of the slip, and it must be sharp and not cropped), so the bank can't be asked. That does not mean the slip is fake.",
     slipDisclosure: "When you press the button, only the text inside the QR code (the sending bank's code and the transaction reference) is sent, through this server, to a third-party slip verification service ({provider}). The slip image is not sent.",
     slipCheck: "Check with the bank",
@@ -266,6 +274,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     slip_amount_mismatch: "ยอดในสลิปคือ {printed} แต่ธนาคารบันทึกรายการนี้ไว้ {bank} ตรวจตัวเลขกับรูปต้นฉบับ ถ้าอ่านถูกแล้ว สลิปอาจถูกแก้ไข ควรระวังก่อนใช้สลิปนี้",
     slip_date_mismatch: "วันที่ในสลิปคือ {printed} แต่ธนาคารบันทึกรายการนี้ไว้วันที่ {bank} ตรวจวันที่กับรูปต้นฉบับ ถ้าอ่านถูกแล้ว สลิปอาจถูกแก้ไข ควรระวังก่อนใช้สลิปนี้",
     slip_reference_mismatch: "เลขอ้างอิงในสลิป ({printed}) ไม่ตรงกับของธนาคาร ({bank}) ตรวจว่าอ่านเลขถูกหรือไม่ หรือสลิปแสดงเลขหลายชุด",
+    slip_qr_reference_mismatch: "เลขอ้างอิงในสลิป ({printed}) ไม่ตรงกับเลขใน QR บนสลิป ({qr}) ตรวจว่าอ่านเลขถูกหรือไม่ (ตัวอักษรหน้าตาคล้ายกัน เช่น I กับ l) หรือสลิปแสดงเลขหลายชุด เลขใน QR ไม่ได้พิสูจน์ว่าสลิปจริง",
     slip_not_found: "ธนาคารไม่พบรายการโอนตามเลขอ้างอิงนี้ สลิปอาจเป็นของปลอมหรือถูกแก้ไข หรือรายการเพิ่งโอน หรือเป็นธนาคารที่บริการนี้ตรวจไม่ได้ ผลนี้ยังสรุปไม่ได้ว่าจริงหรือปลอม",
     slip_pending: "ธนาคารยังยืนยันรายการนี้ไม่ได้ (รายการอาจเพิ่งโอน) ลองตรวจอีกครั้งในอีกสักครู่",
   },
@@ -295,6 +304,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     slip_amount_mismatch: "The slip shows {printed} but the bank's record of this transfer is {bank}. Check the number against the original. If it was read correctly, the slip may have been altered, so be careful before relying on it.",
     slip_date_mismatch: "The slip shows {printed} but the bank's record of this transfer is dated {bank}. Check the date against the original. If it was read correctly, the slip may have been altered, so be careful before relying on it.",
     slip_reference_mismatch: "The reference on the slip ({printed}) differs from the bank's ({bank}). Check it was read correctly, or whether the slip shows more than one number.",
+    slip_qr_reference_mismatch: "The reference on the slip ({printed}) differs from the one in the slip's QR code ({qr}). Check it was read correctly (letters that look alike, such as I and l), or whether the slip shows more than one number. The QR code does not prove the slip is real.",
     slip_not_found: "The bank has no transfer with this reference. The slip may be forged or altered, or the transfer is very recent, or it is from a bank this service can't check. This alone does not show whether the slip is real or fake.",
     slip_pending: "The bank can't confirm this transfer yet (it may be very recent). Try again in a few minutes.",
   },
@@ -335,6 +345,7 @@ export function flagText(f: Flag, lang: Lang): string {
     case "slip_amount_mismatch": return tpl(t.slip_amount_mismatch!, p);
     case "slip_date_mismatch": return tpl(t.slip_date_mismatch!, p);
     case "slip_reference_mismatch": return tpl(t.slip_reference_mismatch!, p);
+    case "slip_qr_reference_mismatch": return tpl(t.slip_qr_reference_mismatch!, p);
     case "slip_not_found": return t.slip_not_found!;
     case "slip_pending": return t.slip_pending!;
     default: return f.message;

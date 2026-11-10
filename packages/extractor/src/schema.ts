@@ -117,6 +117,7 @@ export const FlagSchema = z.object({
     "slip_amount_mismatch",
     "slip_date_mismatch",
     "slip_reference_mismatch",
+    "slip_qr_reference_mismatch",
   ]),
   severity: z.enum(["error", "warning"]),
   /** English text, for logs and API consumers. */
@@ -211,6 +212,12 @@ export const ReceiptSchema = z.object({
   vat: z.number().nullable(),
   total: z.number().nullable(),
   lineItems: z.array(LineItemSchema),
+  /**
+   * What the slip's own QR code says (the sending bank and the transaction reference), when
+   * the code was found in the photo. It is read on the device and needs no service; the
+   * reference on the slip is compared with it.
+   */
+  slipQr: z.object({ sendingBank: z.string(), transRef: z.string() }).optional(),
   /** The bank's answer, when a transfer slip was checked with the bank. */
   verification: VerificationSchema.optional(),
   flags: z.array(FlagSchema),

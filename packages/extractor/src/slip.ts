@@ -114,6 +114,37 @@ export function bangkokDay(iso: string): string | null {
   }).format(t);
 }
 
+/** The reference on the slip against the one in its QR code; null when there is no code or no reference to compare. */
+export function compareQrReference(r: Pick<Receipt, "slipQr" | "reference">): { qr: string; agrees: boolean } | null {
+  if (!r.slipQr || !r.reference) return null;
+  return { qr: r.slipQr.transRef, agrees: alnum(r.reference) === alnum(r.slipQr.transRef) };
+}
+
+/**
+ * The reference on the slip against the one in the slip's own QR code, which the bank
+ * prints from the same record. A reference the model misread (an `I` for an `l`, a
+ * dropped digit) disagrees with it, and so does a slip whose reference was changed
+ * but whose QR code was not. Only a warning: the QR code holds no amount or date, so
+ * agreement proves nothing about the slip, and a slip can show more than one number.
+ * Nothing is said when there is no QR code or no reference, or when the bank has
+ * answered (verificationFlags then compares with the bank's own reference).
+ */
+export function qrReferenceFlags(r: Pick<Receipt, "slipQr" | "reference" | "verification">): Flag[] {
+  const same = compareQrReference(r);
+  if (!same || same.agrees) return [];
+  if (r.verification?.status === "verified" && r.verification.bank) return [];
+  const printed = r.reference ?? "";
+  return [
+    {
+      path: "reference",
+      code: "slip_qr_reference_mismatch",
+      severity: "warning",
+      message: `The reference on the slip (${printed}) differs from the one in the slip's QR code (${same.qr}). Check it was read correctly.`,
+      params: { printed, qr: same.qr },
+    },
+  ];
+}
+
 /**
  * Flags from the bank's answer, for `validateReceipt`. When the bank has the
  * transfer, the amount and the date on the slip must equal the bank's figures:

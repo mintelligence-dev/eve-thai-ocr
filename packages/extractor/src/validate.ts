@@ -1,6 +1,6 @@
 import { isDiscountLabel } from "./discount.js";
 import type { Flag, Receipt } from "./schema.js";
-import { verificationFlags } from "./slip.js";
+import { qrReferenceFlags, verificationFlags } from "./slip.js";
 import { isValidThaiTaxId, taxIdDigits } from "./taxid.js";
 
 export interface ValidateOptions {
@@ -259,7 +259,7 @@ export function validateReceipt(
   }
 
   // What the bank said about a transfer slip, compared with the figures as they are now.
-  flags.push(...verificationFlags(r));
+  flags.push(...qrReferenceFlags(r), ...verificationFlags(r));
 
   return flags;
 }

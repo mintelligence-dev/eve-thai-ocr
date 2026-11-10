@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { bangkokDay, type Verification } from "@thai-receipt-reader/extractor/core";
+import { bangkokDay, type SlipQr, type Verification } from "@thai-receipt-reader/extractor/core";
 import { findSlipQr, type FoundSlipQr } from "@/lib/qr";
 import { apiErrorText, tpl, type ApiError, type Dict, type Lang } from "@/lib/i18n";
 
@@ -11,25 +11,37 @@ interface Service {
 }
 
 /**
- * Asks the bank whether a transfer slip's transfer exists, when the server has a
- * verification service set up and the slip's QR code can be found in the photos.
- * Nothing is sent until the person presses the button, and then only the QR text.
+ * Looks for the slip's QR code in the photos, on this device, whether or not a bank
+ * check is set up, and says whether the reference read agrees with the one in it.
+ * When the server has a verification service, it also asks the bank whether the
+ * transfer exists. Nothing is sent until the person presses the button, and then only
+ * the QR text.
  */
 export function SlipCheck({
   files,
   verification,
   mismatch,
+  reference,
+  qrRef,
   lang,
   t,
   onVerified,
+  onQr,
+  onUseQrReference,
 }: {
   files: File[];
   verification: Verification | undefined;
+  /** The reference as it stands now, and how it compares with the QR code's (null: nothing to compare). */
+  reference: string | null;
+  qrRef: { qr: string; agrees: boolean } | null;
   /** The bank has the transfer, but its amount or date differs from the slip as it now stands. */
   mismatch: boolean;
   lang: Lang;
   t: Dict;
   onVerified: (v: Verification) => void;
+  /** Called with what the QR code says, or null when none was found. */
+  onQr: (qr: SlipQr | null) => void;
+  onUseQrReference: () => void;
 }) {
   const [service, setService] = useState<Service | null>(null);
   // undefined while looking, null when the photos have no slip QR code.
@@ -48,18 +60,24 @@ export function SlipCheck({
     };
   }, []);
 
-  // Looking for the QR code happens on this device, so it can start before any button is pressed.
+  // Looking for the QR code happens on this device, so it can start before any button is pressed,
+  // and it does not need a bank-check service: the comparison with the reference is made anyway.
   useEffect(() => {
-    if (!service?.enabled) return;
     let alive = true;
     setFound(undefined);
     findSlipQr(files)
-      .then((f) => alive && setFound(f))
-      .catch(() => alive && setFound(null));
+      .catch(() => null)
+      .then((f) => {
+        if (!alive) return;
+        setFound(f);
+        onQr(f?.qr ?? null);
+      });
     return () => {
       alive = false;
     };
-  }, [service?.enabled, files]);
+    // `onQr` is a fresh function on each render and only reports the result
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files]);
 
   async function check() {
     if (!found) return;
@@ -103,8 +121,17 @@ export function SlipCheck({
       <p className="hint">{t.slipCheckIntro}</p>
 
       {service && !service.enabled && <p className="notice">{t.slipNoService}</p>}
-      {service?.enabled && found === undefined && <p className="notice">{t.slipScanning}</p>}
-      {service?.enabled && found === null && <p className="notice warning">{t.slipNoQr}</p>}
+      {found === undefined && <p className="notice">{t.slipScanning}</p>}
+      {found === null && <p className="notice warning">{service?.enabled ? t.slipNoQr : t.slipNoQrLocal}</p>}
+      {found && qrRef?.agrees && <div className="verify-status ok" role="status">{t.slipQrMatches}</div>}
+      {found && qrRef && !qrRef.agrees && (
+        <div className="verify-status warn" role="status">
+          {tpl(t.slipQrMismatch, { printed: reference ?? "", qr: qrRef.qr })}
+          <div className="row">
+            <button className="ghost" onClick={onUseQrReference}>{t.useQrReference}</button>
+          </div>
+        </div>
+      )}
       {service?.enabled && found && (
         <>
           {!verification && <p className="hint">{tpl(t.slipDisclosure, { provider: service.provider ?? "" })}</p>}

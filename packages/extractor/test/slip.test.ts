@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { normalizeExtraction, revalidate } from "../src/normalize.js";
-import type { BankSlip, Receipt } from "../src/schema.js";
-import { bangkokDay, crc16CcittFalse, parseSlipQr, verificationFlags } from "../src/slip.js";
+import { ReceiptSchema, type BankSlip, type Receipt } from "../src/schema.js";
+import { bangkokDay, crc16CcittFalse, parseSlipQr, qrReferenceFlags, verificationFlags } from "../src/slip.js";
 import { createEasySlipVerifier, slipVerifierFromEnv } from "../src/slip-verify.js";
 import * as fx from "./fixtures/index.js";
 
@@ -144,6 +144,66 @@ describe("verificationFlags", () => {
     expect(none).toEqual([expect.objectContaining({ code: "slip_not_found", severity: "warning", path: "verification" })]);
     const pending = verificationFlags(slip({ verification: { status: "pending", ...base } }));
     expect(pending).toEqual([expect.objectContaining({ code: "slip_pending", severity: "warning" })]);
+  });
+});
+
+describe("the reference on the slip against the one in its QR code", () => {
+  const qr = { sendingBank: "014", transRef: "202511083SAmPleRef3Xyz4mITo" };
+  const read = (reference: string | null, over: Partial<Receipt> = {}) => slip({ reference, slipQr: qr, ...over });
+
+  it("says nothing when they agree, or when there is no QR code", () => {
+    expect(qrReferenceFlags(read("202511083SAmPleRef3Xyz4mITo"))).toEqual([]);
+    expect(qrReferenceFlags(slip({ reference: "anything" }))).toEqual([]);
+  });
+
+  it("ignores case, spaces and punctuation, as for the bank's reference", () => {
+    expect(qrReferenceFlags(read("2026-1108 3rqeltbo3zaj4mito"))).toEqual([]);
+  });
+
+  it("warns, with both values, when a letter was misread (I read as l)", () => {
+    const flags = qrReferenceFlags(read("202511083SAmPleRef3Xyz4mlTo"));
+    expect(flags).toEqual([
+      expect.objectContaining({
+        code: "slip_qr_reference_mismatch",
+        severity: "warning",
+        path: "reference",
+        params: { printed: "202511083SAmPleRef3Xyz4mlTo", qr: "202511083SAmPleRef3Xyz4mITo" },
+      }),
+    ]);
+  });
+
+  it("warns when a part of the number was dropped, or the slip carries another slip's code", () => {
+    expect(qrReferenceFlags(read("175270"))[0]?.code).toBe("slip_qr_reference_mismatch");
+    expect(qrReferenceFlags(read("99999999999999999999"))[0]?.code).toBe("slip_qr_reference_mismatch");
+  });
+
+  it("says nothing when no reference was read, since there is nothing to compare", () => {
+    expect(qrReferenceFlags(read(null))).toEqual([]);
+  });
+
+  it("leaves it to the bank's own comparison once the bank has answered, so nothing is said twice", () => {
+    const verified = read("202511083SAmPleRef3Xyz4mlTo", {
+      verification: { status: "verified", provider: "test", checkedAt: "2025-10-14T00:00:00Z", bank: bank({ transRef: "202511083SAmPleRef3Xyz4mITo", amount: 2500 }) },
+    });
+    expect(qrReferenceFlags(verified)).toEqual([]);
+    expect(verificationFlags(verified).map((f) => f.code)).toEqual(["slip_reference_mismatch"]);
+    // an answer that is not a confirmation does not take over
+    const none = read("202511083SAmPleRef3Xyz4mlTo", { verification: { status: "not_found", provider: "test", checkedAt: "2025-10-14T00:00:00Z" } });
+    expect(qrReferenceFlags(none)).toHaveLength(1);
+  });
+
+  it("follows the person's edits: put right, it goes; spoilt again, it returns; the QR code is kept", () => {
+    const wrong = revalidate(read("202511083SAmPleRef3Xyz4mlTo"), { today });
+    expect(wrong.flags.map((f) => f.code)).toContain("slip_qr_reference_mismatch");
+    const fixed = revalidate({ ...wrong, reference: qr.transRef }, { today, previous: wrong });
+    expect(fixed.flags.some((f) => f.code === "slip_qr_reference_mismatch")).toBe(false);
+    const spoilt = revalidate({ ...fixed, reference: "0000" }, { today, previous: fixed });
+    expect(spoilt.flags.some((f) => f.code === "slip_qr_reference_mismatch")).toBe(true);
+    expect(spoilt.slipQr).toEqual(qr);
+  });
+
+  it("is kept on the receipt through the schema", () => {
+    expect(ReceiptSchema.parse(JSON.parse(JSON.stringify(read("x"))))).toEqual(read("x"));
   });
 });
 

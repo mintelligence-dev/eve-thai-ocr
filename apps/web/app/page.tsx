@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { RawPartial } from "@thai-receipt-reader/extractor";
 import {
   SAMPLES,
+  compareQrReference,
   itemsReconcile,
   normalizeExtraction,
   revalidate,
@@ -401,9 +402,13 @@ export default function Home() {
               files={photoFiles}
               verification={receipt.verification}
               mismatch={receipt.flags.some((f) => f.code === "slip_amount_mismatch" || f.code === "slip_date_mismatch")}
+              reference={receipt.reference}
+              qrRef={compareQrReference(receipt)}
               lang={lang}
               t={t}
               onVerified={(v) => edit({ verification: v })}
+              onQr={(qr) => edit({ slipQr: qr ?? undefined })}
+              onUseQrReference={() => receipt.slipQr && edit({ reference: receipt.slipQr.transRef })}
             />
           )}
 
