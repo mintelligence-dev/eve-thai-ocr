@@ -92,8 +92,9 @@ No key yet? On the page, press one of the synthetic samples (or open `/?sample=t
 | `RECEIPT_MODEL` | `google/gemini-2.5-flash` | Any vision model on AI Gateway (`provider/model`). The review screen shows which model read each document. |
 | `RATE_LIMIT_PER_HOUR` | `10` | Requests per visitor IP per hour (best effort, see below). |
 | `RATE_LIMIT_PER_DAY` | `200` | Requests for the whole site per day. |
-| `SLIP_VERIFY_PROVIDER` | *(off)* | `easyslip` turns on the optional bank check for transfer slips. |
+| `SLIP_VERIFY_PROVIDER` | *(off)* | `easyslip` or `slipok` turns on the optional bank check for transfer slips. |
 | `SLIP_VERIFY_API_KEY` | | Your key for that service. Needed together with the provider. |
+| `SLIP_VERIFY_BRANCH_ID` | | SlipOK only: the branch the key belongs to. |
 | `SLIP_RATE_LIMIT_PER_HOUR` | `20` | Bank checks per visitor IP per hour. |
 
 With the default model, thinking is capped (1,024 tokens). Reading a receipt is mostly transcription, so unlimited thinking only added time and cost: a 17-item receipt took ~40 s and ~2¢ uncapped, and ~9–13 s and ~0.5¢ capped, with no loss of accuracy. Turning thinking off completely halves the cost again but cost about 11 points of accuracy on our test set (98% → 87%), so it is not recommended (`pnpm bench -- --thinking 0` lets you test it).
@@ -127,11 +128,11 @@ Browser-safe helpers (no model code), such as `normalizeExtraction`, `revalidate
 
 A forged slip looks as real as a genuine one, so the picture alone proves nothing. What can be checked is the small **"Slip Verify" QR code** that banks print on a transfer slip: it holds the sending bank and the transaction reference, which a verification service can look up with the bank. The app then compares the **amount and date the bank reports** with the slip. A copied QR code on a slip whose amount was edited is caught that way: the bank's amount differs, so the amount is marked red and export is locked until it is put right.
 
-- **Off by default.** Set `SLIP_VERIFY_PROVIDER=easyslip` and `SLIP_VERIFY_API_KEY` (your own key from [EasySlip](https://easyslip.com), which charges for use; check its current price and terms). Without both, the page only says the check is not set up.
+- **Off by default.** Choose a service with `SLIP_VERIFY_PROVIDER`, and give it your own account's key: `easyslip` ([EasySlip](https://easyslip.com)) needs `SLIP_VERIFY_API_KEY`; `slipok` ([SlipOK](https://slipok.com)) needs `SLIP_VERIFY_API_KEY` and `SLIP_VERIFY_BRANCH_ID`. Both services charge for use; check their current prices, free allowance and terms yourself. Without a complete setup, the page only says the check is not set up.
 - **Nothing is sent until the person presses "Check with the bank".** The QR code is found on the device, and only its **text** (the sending bank's code and the transaction reference) is sent, through your server, to the service. The slip image is not sent. The service replies with the bank's record; the app keeps only the transaction reference, date and time, amount, fee and the two bank codes, **no names and no account numbers**.
 - **Results, in plain words:** the bank *has* the transfer and the figures match (green); the bank has it but the **amount or date differs** (red, export locked); the bank has *no* such transfer (yellow: the slip may be forged, but the transfer may also be too new or from a bank the service cannot check); the bank cannot tell yet (yellow); the service could not answer (shown as an error, **not** as a verdict on the slip). If an edit changes the amount or date later, it is compared with the bank's figures again. The JSON and CSV exports record the result (`verification`, `bank_check`).
 - **What it does not check:** that the receiver is *your* account (names and accounts are masked differently on each slip, so they are not compared), or that the same slip was not already used for another order (EasySlip can check that but this app does not use it). A slip without a visible QR code, or from a bank whose QR code the service cannot read, cannot be checked, which does not mean it is fake.
-- Written from EasySlip's public documentation and tested against a local stand-in that answers in the documented shapes, **not yet against the live service**. A change of its answer format would show up as "could not answer", never as a verified slip.
+- Both are written from the services' public documentation (EasySlip's API v2 pages, SlipOK's API guide 1.13) and tested against local stand-ins that answer in the documented shapes, **not yet against the live services**. A change in an answer format would show up as "could not answer", never as a verified slip. Notes on SlipOK: the request never sets its `log` option, so SlipOK keeps nothing about the slip and does no duplicate check; every valid check, and every repeat of one, uses a unit of its quota; slips from Bangkok Bank and SCB can need a few minutes before they can be checked (shown as "cannot confirm yet"); its guide gives two different error codes for "no such transaction" (1011 and, in an example, 1007), and both are read as not found.
 - Each check is one paid call, so it has its own per-visitor limit (`SLIP_RATE_LIMIT_PER_HOUR`, default 20). Do not publish a public demo with your key on without limits.
 
 ### Compare models on your own documents
@@ -274,8 +275,9 @@ pnpm test                                      # รันเทสต์ทั�
 | `RECEIPT_MODEL` | `google/gemini-2.5-flash` | โมเดลวิชันใดๆ บน AI Gateway (`provider/model`) หน้าตรวจทานแสดงว่าเอกสารนั้นอ่านด้วยโมเดลไหน |
 | `RATE_LIMIT_PER_HOUR` | `10` | จำนวนคำขอต่อ IP ผู้เยี่ยมชมต่อชั่วโมง (best effort ดูด้านล่าง) |
 | `RATE_LIMIT_PER_DAY` | `200` | จำนวนคำขอทั้งเว็บต่อวัน |
-| `SLIP_VERIFY_PROVIDER` | *(ปิด)* | ตั้งเป็น `easyslip` เพื่อเปิดตัวเลือกตรวจสลิปโอนเงินกับธนาคาร |
+| `SLIP_VERIFY_PROVIDER` | *(ปิด)* | ตั้งเป็น `easyslip` หรือ `slipok` เพื่อเปิดตัวเลือกตรวจสลิปโอนเงินกับธนาคาร |
 | `SLIP_VERIFY_API_KEY` | | คีย์ของบริการนั้น ต้องตั้งคู่กับ provider |
+| `SLIP_VERIFY_BRANCH_ID` | | เฉพาะ SlipOK: สาขาที่คีย์นั้นสังกัด |
 | `SLIP_RATE_LIMIT_PER_HOUR` | `20` | จำนวนการตรวจกับธนาคารต่อ IP ต่อชั่วโมง |
 
 โมเดลเริ่มต้นถูกจำกัดการ "คิด" ไว้ที่ 1,024 token เพราะการอ่านใบเสร็จส่วนใหญ่คือการคัดลอก การคิดไม่จำกัดแค่เพิ่มเวลาและค่าใช้จ่าย: ใบ 17 รายการใช้ ~40 วินาที ~2 เซนต์ เมื่อไม่จำกัด และ ~9–13 วินาที ~0.5 เซนต์ เมื่อจำกัด โดยความแม่นยำไม่ลดลง การปิดการคิดทั้งหมดถูกลงอีกครึ่งหนึ่ง แต่ความแม่นยำในชุดทดสอบของเราตกประมาณ 11 จุด (98% → 87%) จึงไม่แนะนำ (ลองได้ด้วย `pnpm bench -- --thinking 0`)
@@ -309,11 +311,11 @@ try {
 
 สลิปปลอมหน้าตาเหมือนของจริงทุกอย่าง รูปเพียงอย่างเดียวจึงพิสูจน์อะไรไม่ได้ สิ่งที่ตรวจได้คือ **QR "Slip Verify" เล็กๆ** ที่ธนาคารพิมพ์บนสลิปโอนเงิน ซึ่งมีรหัสธนาคารผู้โอนและเลขอ้างอิงรายการ ให้บริการตรวจสลิปไปถามธนาคารได้ แล้วแอปเทียบ**ยอดและวันที่ที่ธนาคารบันทึก**กับสลิป สลิปที่แก้ยอดแต่ยังใช้ QR ของรายการจริงจะถูกจับได้ เพราะยอดของธนาคารไม่ตรง ช่องยอดจะขึ้นสีแดงและล็อกการส่งออกจนกว่าจะแก้ให้ถูก
 
-- **ปิดอยู่เป็นค่าเริ่มต้น** ตั้ง `SLIP_VERIFY_PROVIDER=easyslip` และ `SLIP_VERIFY_API_KEY` (คีย์ของคุณเองจาก [EasySlip](https://easyslip.com) ซึ่งคิดค่าบริการ ตรวจราคาและเงื่อนไขล่าสุดก่อนใช้) ถ้าไม่ตั้งทั้งสองค่า หน้าเว็บจะแจ้งเพียงว่ายังไม่ได้ตั้งค่า
+- **ปิดอยู่เป็นค่าเริ่มต้น** เลือกบริการด้วย `SLIP_VERIFY_PROVIDER` และใส่คีย์จากบัญชีของคุณเอง: `easyslip` ([EasySlip](https://easyslip.com)) ใช้ `SLIP_VERIFY_API_KEY` ส่วน `slipok` ([SlipOK](https://slipok.com)) ใช้ `SLIP_VERIFY_API_KEY` และ `SLIP_VERIFY_BRANCH_ID` ทั้งสองบริการคิดค่าบริการ ตรวจราคา โควตาฟรี และเงื่อนไขล่าสุดเอง ถ้าตั้งค่าไม่ครบ หน้าเว็บจะแจ้งเพียงว่ายังไม่ได้ตั้งค่า
 - **ไม่ส่งอะไรออกไปจนกว่าผู้ใช้จะกด "ตรวจกับธนาคาร"** การหา QR ทำบนเครื่อง และส่งเฉพาะ**ข้อความ**ใน QR (รหัสธนาคารผู้โอนกับเลขอ้างอิงรายการ) ผ่านเซิร์ฟเวอร์ของคุณไปยังบริการ ไม่ส่งรูปสลิป บริการตอบรายการของธนาคารกลับมา แอปเก็บเพียงเลขอ้างอิง วันเวลา ยอด ค่าธรรมเนียม และรหัสธนาคารสองฝั่ง **ไม่เก็บชื่อและเลขบัญชี**
 - **ผลที่ได้ พูดตรงๆ:** ธนาคาร*มี*รายการและตัวเลขตรงกัน (เขียว) ธนาคารมีรายการแต่**ยอดหรือวันที่ไม่ตรง** (แดง ล็อกการส่งออก) ธนาคาร*ไม่พบ*รายการ (เหลือง: สลิปอาจปลอม แต่รายการอาจเพิ่งโอนหรือเป็นธนาคารที่บริการตรวจไม่ได้ก็ได้) ธนาคารยังยืนยันไม่ได้ (เหลือง) บริการตอบไม่ได้ (แสดงเป็นข้อผิดพลาด **ไม่ใช่**คำตัดสินสลิป) ถ้าภายหลังมีการแก้ยอดหรือวันที่ จะถูกเทียบกับตัวเลขของธนาคารใหม่ ไฟล์ JSON/CSV ที่ส่งออกบันทึกผลไว้ (`verification`, `bank_check`)
 - **สิ่งที่ไม่ได้ตรวจ:** ผู้รับคือบัญชี*ของคุณ*หรือไม่ (ชื่อและเลขบัญชีถูกปิดบังไม่เหมือนกันในแต่ละสลิป จึงไม่เทียบ) หรือสลิปเดียวกันเคยถูกใช้กับออเดอร์อื่นแล้วหรือไม่ (EasySlip ตรวจให้ได้ แต่แอปนี้ไม่ได้ใช้) สลิปที่ไม่เห็น QR ชัดหรือเป็นธนาคารที่บริการอ่าน QR ไม่ได้ ตรวจไม่ได้ ซึ่งไม่ได้แปลว่าปลอม
-- เขียนจากเอกสารสาธารณะของ EasySlip และทดสอบกับบริการจำลองในเครื่องที่ตอบตามรูปแบบในเอกสาร **ยังไม่ได้ทดสอบกับบริการจริง** ถ้ารูปแบบคำตอบเปลี่ยน ผลจะแสดงเป็น "ตอบไม่ได้" ไม่ใช่สลิปที่ยืนยันแล้ว
+- ทั้งสองตัวเขียนจากเอกสารสาธารณะของบริการ (หน้า API v2 ของ EasySlip และ API guide 1.13 ของ SlipOK) และทดสอบกับบริการจำลองในเครื่องที่ตอบตามรูปแบบในเอกสาร **ยังไม่ได้ทดสอบกับบริการจริง** ถ้ารูปแบบคำตอบเปลี่ยน ผลจะแสดงเป็น "ตอบไม่ได้" ไม่ใช่สลิปที่ยืนยันแล้ว ข้อสังเกตเรื่อง SlipOK: คำขอไม่เคยตั้งตัวเลือก `log` ของเขา SlipOK จึงไม่เก็บข้อมูลสลิปและไม่ตรวจสลิปซ้ำ การตรวจที่สลิปถูกต้องทุกครั้ง รวมถึงการตรวจสลิปเดิมซ้ำ หักโควตาครั้งละหนึ่งหน่วย สลิปของธนาคารกรุงเทพและ SCB อาจต้องรอไม่กี่นาทีถึงตรวจได้ (แสดงเป็น "ยังยืนยันไม่ได้") และเอกสารของเขาให้รหัสข้อผิดพลาดของ "ไม่มีรายการนี้" สองแบบ (1011 และ 1007 ในตัวอย่าง) แอปอ่านทั้งสองเป็น "ไม่พบรายการ"
 - การตรวจแต่ละครั้งคือการเรียกบริการที่เสียเงิน จึงมีขีดจำกัดต่อผู้เยี่ยมชมแยกต่างหาก (`SLIP_RATE_LIMIT_PER_HOUR` ค่าเริ่มต้น 20) อย่าเปิดเดโมสาธารณะพร้อมคีย์ของคุณโดยไม่มีขีดจำกัด
 
 ### เทียบโมเดลด้วยเอกสารของคุณเอง

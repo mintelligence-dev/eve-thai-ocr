@@ -33,7 +33,7 @@ async function loadRoute() {
   return await import("../app/api/verify-slip/route");
 }
 
-const ENV = ["SLIP_VERIFY_PROVIDER", "SLIP_VERIFY_API_KEY", "SLIP_VERIFY_BASE_URL", "SLIP_RATE_LIMIT_PER_HOUR"] as const;
+const ENV = ["SLIP_VERIFY_PROVIDER", "SLIP_VERIFY_API_KEY", "SLIP_VERIFY_BRANCH_ID", "SLIP_VERIFY_BASE_URL", "SLIP_RATE_LIMIT_PER_HOUR"] as const;
 
 beforeEach(() => {
   for (const k of ENV) vi.stubEnv(k, "");
@@ -54,6 +54,57 @@ describe("GET /api/verify-slip", () => {
     expect(await GET().json()).toEqual({ enabled: false });
     enable();
     expect(await GET().json()).toEqual({ enabled: true, provider: "easyslip" });
+  });
+});
+
+describe("with SlipOK", () => {
+  const SLIPOK_ANSWER = {
+    success: true,
+    data: { success: true, transRef: "010092101507665143", sendingBank: "004", receivingBank: "014", transDate: "20200401", transTime: "10:15:07", amount: 1, transFeeAmount: 0 },
+  };
+  const enableSlipOk = (branch = "BRANCH1") => {
+    vi.stubEnv("SLIP_VERIFY_PROVIDER", "slipok");
+    vi.stubEnv("SLIP_VERIFY_API_KEY", "test-key");
+    vi.stubEnv("SLIP_VERIFY_BRANCH_ID", branch);
+  };
+
+  it("is on only with a branch id, and says which service it is", async () => {
+    vi.stubEnv("SLIP_VERIFY_PROVIDER", "slipok");
+    vi.stubEnv("SLIP_VERIFY_API_KEY", "test-key");
+    const { GET } = await loadRoute();
+    expect(await GET().json()).toEqual({ enabled: false });
+    enableSlipOk();
+    expect(await GET().json()).toEqual({ enabled: true, provider: "slipok" });
+  });
+
+  it("sends SlipOK only the QR text and returns the same kind of result", async () => {
+    enableSlipOk();
+    const fetchMock = answer(200, SLIPOK_ANSWER);
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await loadRoute();
+    const res = await POST(post({ payload: PAYLOAD }));
+    expect(res.status).toBe(200);
+    const { verification } = await res.json();
+    expect(verification).toMatchObject({
+      status: "verified",
+      provider: "slipok",
+      bank: { transRef: "010092101507665143", date: "2020-04-01T10:15:07+07:00", amount: 1, fee: 0, senderBank: "004", receiverBank: "014" },
+    });
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://api.slipok.com/api/line/apikey/BRANCH1");
+    expect(JSON.parse(init.body as string)).toEqual({ data: PAYLOAD });
+  });
+
+  it("passes on a delayed slip as pending, and a used-up package as unavailable", async () => {
+    enableSlipOk();
+    const { POST } = await loadRoute();
+    vi.stubGlobal("fetch", answer(400, { code: 1010, message: "wait", data: { delay: 8 } }));
+    expect((await (await POST(post({ payload: PAYLOAD }))).json()).verification.status).toBe("pending");
+
+    vi.stubGlobal("fetch", answer(400, { code: 1004, message: "over quota" }));
+    const res = await POST(post({ payload: PAYLOAD }));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ code: "slip_unavailable", reason: "quota" });
   });
 });
 

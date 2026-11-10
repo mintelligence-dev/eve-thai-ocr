@@ -25,8 +25,10 @@ export { findImageConflicts, type ImageConflict, type ImageFact } from "./images
 export { parseSlipQr, crc16CcittFalse, verificationFlags, bangkokDay, type SlipQr } from "./slip.js";
 export {
   createEasySlipVerifier,
+  createSlipOkVerifier,
   slipVerifierFromEnv,
   type EasySlipOptions,
+  type SlipOkOptions,
   type SlipCheck,
   type SlipVerifier,
 } from "./slip-verify.js";
