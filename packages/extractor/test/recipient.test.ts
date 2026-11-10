@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { toCSV } from "../src/export.js";
 import { SYSTEM_PROMPT } from "../src/extract.js";
 import { normalizeExtraction, revalidate } from "../src/normalize.js";
-import { ReceiptSchema, type RawExtraction } from "../src/schema.js";
+import { RawExtractionSchema, ReceiptSchema, type RawExtraction } from "../src/schema.js";
 import { scoreReceipt } from "../src/score.js";
 import * as fx from "./fixtures/index.js";
 
@@ -53,10 +53,17 @@ describe("recipientName", () => {
     expect(edited.flags.map((f) => f.path)).not.toContain("recipientName");
   });
 
-  it("is described to the model, along with the rule that a name is the name only", () => {
-    expect(SYSTEM_PROMPT).toContain("recipientName");
-    expect(SYSTEM_PROMPT).toMatch(/never add the bank's name/);
-    expect(SYSTEM_PROMPT).toContain("HEAD OFFICE");
+  it("is described to the model in the schema, with the rule that a name is the name only", () => {
+    // The rules sit in the field descriptions, not in the system prompt: a sentence about
+    // codes in the prompt made the model drop the "063-" from a receipt's number (see the commit message).
+    const text = (field: keyof typeof RawExtractionSchema.shape) => RawExtractionSchema.shape[field].description ?? "";
+    expect(text("recipientName")).toMatch(/shop or business name/);
+    expect(text("recipientName")).toMatch(/person's name/);
+    expect(text("merchant")).toMatch(/without a bank name/);
+    expect(text("merchant")).toContain("wraps onto a second line");
+    expect(text("payer")).toMatch(/without the bank's name/);
+    // and the prompt itself stays free of the name rules
+    expect(SYSTEM_PROMPT).not.toMatch(/never add the bank's name/);
   });
 });
 
