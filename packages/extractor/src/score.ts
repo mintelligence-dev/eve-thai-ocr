@@ -7,6 +7,14 @@ export interface Expected {
   merchant?: string;
   /** Sender on a transfer slip. */
   payer?: string;
+  /** Slip: the account holder's name when a shop name is shown too; null = must be empty. */
+  recipientName?: string | null;
+  /**
+   * Compare merchant, payer and recipientName as whole names (case, spaces and punctuation
+   * ignored). The default accepts a name that merely contains, or is contained in, the
+   * expected one, so extra text such as a bank name passes.
+   */
+  strictNames?: boolean;
   /** The shop's tax ID (digits). */
   taxId?: string;
   /** Reference number, or a list of acceptable ones (letters and digits only are compared). */
@@ -78,15 +86,21 @@ export function scoreReceipt(receipt: Receipt, expected: Expected): Score {
   const add = (field: string, pass: boolean, exp: unknown, actual: unknown) =>
     checks.push({ field, pass, expected: exp, actual });
 
+  const sameName = (expectedName: string, actual: string | null) => {
+    const e = norm(expectedName);
+    const a = norm(actual ?? "");
+    return expected.strictNames ? a === e : a !== "" && (a.includes(e) || e.includes(a));
+  };
   if (expected.merchant !== undefined) {
-    const e = norm(expected.merchant);
-    const a = norm(receipt.merchant ?? "");
-    add("merchant", a !== "" && (a.includes(e) || e.includes(a)), expected.merchant, receipt.merchant);
+    add("merchant", sameName(expected.merchant, receipt.merchant), expected.merchant, receipt.merchant);
   }
   if (expected.payer !== undefined) {
-    const e = norm(expected.payer);
-    const a = norm(receipt.payer ?? "");
-    add("payer", a !== "" && (a.includes(e) || e.includes(a)), expected.payer, receipt.payer);
+    add("payer", sameName(expected.payer, receipt.payer), expected.payer, receipt.payer);
+  }
+  if (expected.recipientName === null) {
+    add("recipientName", receipt.recipientName === null, null, receipt.recipientName);
+  } else if (expected.recipientName !== undefined) {
+    add("recipientName", sameName(expected.recipientName, receipt.recipientName), expected.recipientName, receipt.recipientName);
   }
   if (expected.taxId !== undefined) {
     add("taxId", (receipt.taxId ?? "") === expected.taxId.replace(/\D/g, ""), expected.taxId, receipt.taxId);

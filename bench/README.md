@@ -28,6 +28,8 @@ bench/private/shop1.expected.json
 {
   "merchant": "ORCHID PHARMACY",            // substring match, case/punctuation ignored (the shop, or the payee on a slip)
   "payer": "SAMPLE PAYER",               // slips: the sender
+  "recipientName": null,           // slips: the account holder's name when a shop name is shown too (null = must stay empty)
+  "strictNames": true,             // merchant, payer and recipientName must match as WHOLE names (default: containing the expected text is enough, so extra text such as a bank name passes)
   "taxId": "5566778899006",        // the shop's tax ID (digits)
   "reference": "20261003114",      // a string, a list of acceptable ones, or null = none is printed
   "date": null,                    // null = the model must NOT fill in a date

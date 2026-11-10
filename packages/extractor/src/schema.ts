@@ -36,11 +36,21 @@ export const RawExtractionSchema = z.object({
   merchant: z
     .string()
     .nullable()
-    .describe("Shop name for a receipt, or the payee / recipient (To) name for a transfer slip."),
+    .describe(
+      "Shop name for a receipt, or the recipient (To) name for a transfer slip: the name only, without a bank name, account number, biller ID or shop code. A name that wraps onto a second line is one name.",
+    ),
+  recipientName: z
+    .string()
+    .nullable()
+    .describe(
+      "Transfer slip only: when the recipient is shown with BOTH a shop or business name and, separately, a person's name (the account holder), this is the person's name and 'merchant' is the shop or business name. Null when the slip shows only one name for the recipient, and on receipts.",
+    ),
   payer: z
     .string()
     .nullable()
-    .describe("Sender (From) name on a transfer slip. Null on receipts or when no name is shown."),
+    .describe(
+      "Sender (From) name on a transfer slip: the name only, without the bank's name (ธนาคาร, ธ.) or an account number. Null on receipts or when no name is shown.",
+    ),
   referenceText: z
     .string()
     .nullable()
@@ -174,6 +184,11 @@ export const ReceiptSchema = z.object({
   merchant: z.string().nullable(),
   /** Sender on a transfer slip. */
   payer: z.string().nullable(),
+  /**
+   * Transfer slip: the account holder's name, when the recipient is shown with both a shop
+   * or business name (`merchant`) and a person's name. Null when only one name is shown.
+   */
+  recipientName: z.string().nullable(),
   /** Transaction reference on a transfer slip, or the receipt / invoice number. */
   reference: z.string().nullable(),
   /** The shop's tax ID, digits only. */

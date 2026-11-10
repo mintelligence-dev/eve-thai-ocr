@@ -144,6 +144,7 @@ export function normalizeExtraction(
     documentType: raw.documentType,
     merchant: clean(raw.merchant),
     payer: clean(raw.payer),
+    recipientName: clean(raw.recipientName),
     reference: referenceFrom(raw),
     fee: money(raw.feeText, "fee"),
     taxId: taxId,
@@ -193,7 +194,7 @@ export function normalizeExtraction(
 const FIELD_FLAGS = new Set<Flag["code"]>(["model_uncertain", "unparseable", "two_digit_year", "addon_split"]);
 
 const SCALAR_FIELDS = [
-  "documentType", "merchant", "payer", "reference", "taxId", "fee",
+  "documentType", "merchant", "payer", "recipientName", "reference", "taxId", "fee",
   "date", "time", "currency", "subtotal", "vat", "total",
 ] as const;
 type ScalarField = (typeof SCALAR_FIELDS)[number];

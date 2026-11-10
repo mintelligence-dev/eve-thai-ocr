@@ -412,7 +412,7 @@ export default function Home() {
             // A field that does not apply to this kind of document is hidden, unless it
             // holds a value (never hide data silently) or the user asks to see it.
             const hasReceiptData = receipt.subtotal !== null || receipt.vat !== null || receipt.taxId !== null || receipt.lineItems.length > 0;
-            const hasSlipData = receipt.payer !== null || receipt.fee !== null;
+            const hasSlipData = receipt.payer !== null || receipt.recipientName !== null || receipt.fee !== null;
             const showReceiptParts = !isSlip || hasReceiptData || showHidden;
             const showSlipParts = isSlip || hasSlipData || showHidden;
             return (
@@ -432,6 +432,13 @@ export default function Home() {
                     <input className={cls("merchant")} value={receipt.merchant ?? ""} onChange={(e) => edit({ merchant: e.target.value || null })} />
                     {hint("merchant")}
                   </label>
+                  {showSlipParts && (
+                    <label>
+                      {t.recipientName}
+                      <input className={cls("recipientName")} placeholder={t.recipientNameHint} value={receipt.recipientName ?? ""} onChange={(e) => edit({ recipientName: e.target.value || null })} />
+                      {hint("recipientName")}
+                    </label>
+                  )}
                   {showReceiptParts && (
                     <label>
                       {t.taxId}
@@ -599,6 +606,7 @@ function LiveRead({ raw, t }: { raw: RawPartial; t: Dict }) {
   const fields: [string, string | null | undefined][] = [
     [t.type, raw.documentType ? t.docTypes[raw.documentType] : null],
     [t.merchant, raw.merchant],
+    [t.recipientName, raw.recipientName],
     [t.taxId, raw.taxIdText],
     [t.payer, raw.payer],
     [t.date, raw.dateText],

@@ -65,6 +65,8 @@ export const T = {
     merchant: "ชื่อร้าน / ผู้รับเงิน",
     payee: "ผู้รับเงิน",
     payer: "ผู้โอน",
+    recipientName: "ชื่อเจ้าของบัญชีผู้รับ",
+    recipientNameHint: "เฉพาะสลิปที่แสดงทั้งชื่อร้านและชื่อบุคคล",
     amountTransferred: "จำนวนเงินที่โอน",
     fee: "ค่าธรรมเนียม",
     reference: "เลขที่รายการอ้างอิง",
@@ -163,6 +165,8 @@ export const T = {
     merchant: "Shop / payee",
     payee: "Payee",
     payer: "Payer",
+    recipientName: "Recipient account holder",
+    recipientNameHint: "Only when the slip shows both a shop name and a person's name",
     amountTransferred: "Amount transferred",
     fee: "Fee",
     reference: "Reference number",
@@ -210,12 +214,12 @@ export const tpl = fill;
 
 const FIELD: Record<Lang, Record<string, string>> = {
   th: {
-    documentType: "ประเภทเอกสาร", merchant: "ชื่อร้าน / ผู้รับเงิน", payer: "ผู้โอน", reference: "เลขที่อ้างอิง", taxId: "เลขผู้เสียภาษี", fee: "ค่าธรรมเนียม", date: "วันที่", time: "เวลา", currency: "สกุลเงิน",
+    documentType: "ประเภทเอกสาร", merchant: "ชื่อร้าน / ผู้รับเงิน", payer: "ผู้โอน", recipientName: "ชื่อเจ้าของบัญชีผู้รับ", reference: "เลขที่อ้างอิง", taxId: "เลขผู้เสียภาษี", fee: "ค่าธรรมเนียม", date: "วันที่", time: "เวลา", currency: "สกุลเงิน",
     subtotal: "ยอดก่อน VAT", vat: "VAT", total: "ยอดรวม", lineItems: "รายการสินค้า", verification: "ตรวจกับธนาคาร",
     description: "ชื่อรายการ", quantity: "จำนวน", unitPrice: "ราคาต่อหน่วย", amount: "จำนวนเงิน",
   },
   en: {
-    documentType: "Document type", merchant: "Shop / payee", payer: "Payer", reference: "Reference", taxId: "Tax ID", fee: "Fee", date: "Date", time: "Time", currency: "Currency",
+    documentType: "Document type", merchant: "Shop / payee", payer: "Payer", recipientName: "Recipient account holder", reference: "Reference", taxId: "Tax ID", fee: "Fee", date: "Date", time: "Time", currency: "Currency",
     subtotal: "Subtotal", vat: "VAT", total: "Total", lineItems: "Items", verification: "Bank check",
     description: "Item name", quantity: "Quantity", unitPrice: "Unit price", amount: "Amount",
   },
