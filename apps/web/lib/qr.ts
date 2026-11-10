@@ -1,30 +1,33 @@
 /**
  * Find the bank's "Slip Verify" QR code in the photos of a transfer slip, in the
  * browser. The photos never leave the device here: only the text of the QR code
- * is sent on, and only when the person asks for the check.
+ * is sent on, and only when the person asks for the check. What to look at, and in
+ * what order, is in qr-scan.ts.
  */
-import { parseSlipQr, type SlipQr } from "@thai-receipt-reader/extractor/core";
+import { scanForSlipQr, type FoundSlipQr, type Pixels, type Region } from "./qr-scan";
 
-export interface FoundSlipQr {
-  /** The QR text exactly as read. */
-  payload: string;
-  qr: SlipQr;
+export type { FoundSlipQr } from "./qr-scan";
+
+/** Pixels of a part of an image, scaled, drawn on a canvas. */
+function pixelsOf(bitmap: ImageBitmap, [fx, fy, fw, fh]: Region, scale: number): Pixels {
+  const sx = Math.floor(bitmap.width * fx);
+  const sy = Math.floor(bitmap.height * fy);
+  const sw = Math.max(1, Math.floor(bitmap.width * fw));
+  const sh = Math.max(1, Math.floor(bitmap.height * fh));
+  const width = Math.max(1, Math.round(sw * scale));
+  const height = Math.max(1, Math.round(sh * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return { data: new Uint8ClampedArray(4), width: 1, height: 1 };
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, width, height);
+  const { data } = ctx.getImageData(0, 0, width, height);
+  return { data, width, height };
 }
 
-/** Regions to try, as fractions of the image: the whole image, then overlapping parts. */
-export const SCAN_REGIONS: readonly (readonly [x: number, y: number, w: number, h: number])[] = [
-  [0, 0, 1, 1],
-  [0, 0.5, 1, 0.5], // bottom half: the slip's QR code is usually near the end
-  [0, 0, 1, 0.5],
-  [0, 0.5, 0.5, 0.5],
-  [0.5, 0.5, 0.5, 0.5],
-];
-
-/**
- * A reader finds one QR code per call, and a slip can carry others (a payment QR,
- * an app promotion). Looking at parts of the image as well as the whole gives the
- * slip's own code a chance to be the one found.
- */
+/** Look in each photo in turn; the first slip QR code found is returned. */
 export async function findSlipQr(files: File[]): Promise<FoundSlipQr | null> {
   const { default: jsQR } = await import("jsqr");
   for (const file of files) {
@@ -35,22 +38,12 @@ export async function findSlipQr(files: File[]): Promise<FoundSlipQr | null> {
       continue;
     }
     try {
-      for (const [fx, fy, fw, fh] of SCAN_REGIONS) {
-        const sx = Math.floor(bitmap.width * fx);
-        const sy = Math.floor(bitmap.height * fy);
-        const sw = Math.max(1, Math.floor(bitmap.width * fw));
-        const sh = Math.max(1, Math.floor(bitmap.height * fh));
-        const canvas = document.createElement("canvas");
-        canvas.width = sw;
-        canvas.height = sh;
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        if (!ctx) continue;
-        ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, sw, sh);
-        const { data } = ctx.getImageData(0, 0, sw, sh);
-        const code = jsQR(data, sw, sh, { inversionAttempts: "attemptBoth" });
-        const qr = code ? parseSlipQr(code.data) : null;
-        if (code && qr) return { payload: code.data.trim(), qr };
-      }
+      const found = await scanForSlipQr(bitmap, {
+        pixels: (region, scale) => pixelsOf(bitmap, region, scale),
+        decode: (p) => jsQR(p.data, p.width, p.height, { inversionAttempts: "attemptBoth" })?.data ?? null,
+        yieldNow: () => new Promise((resolve) => setTimeout(resolve, 0)),
+      });
+      if (found) return found;
     } finally {
       bitmap.close();
     }
