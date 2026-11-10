@@ -14,8 +14,9 @@ import {
   type Receipt,
 } from "@thai-receipt-reader/extractor/core";
 import { ImageError, MAX_UPLOAD_BYTES, MIN_SIDE_WARN, prepareImage } from "@/lib/image";
+import { PdfError, isPdfFile, pdfToImages } from "@/lib/pdf";
 import { readNdjson } from "@/lib/ndjson";
-import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type Dict, type Lang } from "@/lib/i18n";
+import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type ApiError, type Dict, type Lang } from "@/lib/i18n";
 
 const MAX_PHOTOS = 4;
 let nextPhotoId = 1;
@@ -54,7 +55,7 @@ export default function Home() {
   // What the model has read so far while it is still reading (raw text, unchecked).
   const [live, setLive] = useState<RawPartial | null>(null);
   // Keep the cause, not the text, so a language switch re-renders the message.
-  const [error, setError] = useState<{ code?: string; retryAfterSec?: number; detail?: string } | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
   const [reviewed, setReviewed] = useState(false);
   // Show the fields that do not apply to the current document type.
   const [showHidden, setShowHidden] = useState(false);
@@ -160,17 +161,26 @@ export default function Home() {
           break;
         }
         try {
-          // Fix orientation, shrink and re-encode on the device before anything is uploaded.
-          const prepared = await prepareImage(f);
-          const total = photosRef.current.reduce((sum, p) => sum + p.file.size, 0) + prepared.file.size;
-          if (total > MAX_UPLOAD_BYTES) {
-            setError({ code: "too_large" });
-            break;
+          // A PDF becomes one image per page; a photo is one image. Either way each is
+          // shrunk and re-encoded on the device before anything is uploaded.
+          const pages = isPdfFile(f) ? await pdfToImages(f, MAX_PHOTOS - photosRef.current.length) : null;
+          const prepared = pages ? null : await prepareImage(f);
+          const ready = pages ?? [prepared!.file];
+          let full = false;
+          for (const file of ready) {
+            const total = photosRef.current.reduce((sum, p) => sum + p.file.size, 0) + file.size;
+            if (total > MAX_UPLOAD_BYTES) {
+              setError({ code: "too_large" });
+              full = true;
+              break;
+            }
+            setAllPhotos([...photosRef.current, { id: nextPhotoId++, file, url: URL.createObjectURL(file) }]);
           }
-          setAllPhotos([...photosRef.current, { id: nextPhotoId++, file: prepared.file, url: URL.createObjectURL(prepared.file) }]);
-          if (Math.min(prepared.width, prepared.height) < MIN_SIDE_WARN) setNotice({ w: prepared.width, h: prepared.height });
+          if (full) break;
+          if (prepared && Math.min(prepared.width, prepared.height) < MIN_SIDE_WARN) setNotice({ w: prepared.width, h: prepared.height });
         } catch (e) {
-          setError({ code: e instanceof ImageError ? e.code : "decode_failed" });
+          if (e instanceof PdfError) setError({ code: e.code, pages: e.pages, max: MAX_PHOTOS });
+          else setError({ code: e instanceof ImageError ? e.code : "decode_failed" });
         }
       }
     } finally {
@@ -274,7 +284,7 @@ export default function Home() {
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             multiple
             hidden
             onChange={(e) => {

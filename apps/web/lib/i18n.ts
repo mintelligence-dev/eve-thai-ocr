@@ -12,7 +12,7 @@ export const T = {
     tagline: "อ่านใบเสร็จและสลิปโอนเงินภาษาไทยให้เป็นข้อมูลที่แก้ไขได้ แล้วส่งออกเป็น JSON หรือ CSV",
     notice: "แอปนี้อ่านข้อมูลจากรูปเท่านั้น ไม่ตรวจว่าใบเสร็จหรือสลิปเป็นของจริง และไม่เก็บรูปที่อัปโหลดไว้",
     drop: "ลากรูปมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์",
-    dropHint: "ใช้รูปจากมือถือได้เลย (JPEG, PNG, WebP, HEIC) ระบบย่อรูปให้อัตโนมัติบนเครื่องคุณก่อนอัปโหลด",
+    dropHint: "ใช้รูปจากมือถือได้เลย (JPEG, PNG, WebP, HEIC) หรือไฟล์ PDF ระบบย่อรูปให้อัตโนมัติบนเครื่องคุณก่อนอัปโหลด",
     camera: "ถ่ายรูป",
     addPhoto: "+ เพิ่มรูปของใบเดียวกัน",
     longHint: "ใบยาวมาก? ถ่ายแยกเป็นหลายรูปได้ (สูงสุด 4 รูป) ให้รูปถัดไปซ้อนกับท้ายรูปก่อนหน้า 2–3 บรรทัด และเรียงจากบนลงล่าง ระบบจะรวมเป็นใบเดียวและเช็กให้ว่าเป็นใบเดียวกันจริงไหม",
@@ -96,7 +96,7 @@ export const T = {
     tagline: "Turn Thai receipts and transfer slips into editable data, then export it as JSON or CSV.",
     notice: "This app only reads what is printed. It does not check whether a receipt or slip is genuine, and it does not keep your image.",
     drop: "Drop an image here, or click to choose a file",
-    dropHint: "Phone photos are fine (JPEG, PNG, WebP, HEIC). They are resized automatically on your device before upload.",
+    dropHint: "Phone photos are fine (JPEG, PNG, WebP, HEIC), and so are PDF files. They are resized automatically on your device before upload.",
     camera: "Take photo",
     addPhoto: "+ Add another photo of the same receipt",
     longHint: "A very long receipt? Take it in several photos (up to 4). Make each photo overlap the end of the previous one by 2–3 lines, in order from top to bottom. They are read as one receipt, and we check they really are the same one.",
@@ -295,7 +295,10 @@ export function flagText(f: Flag, lang: Lang): string {
 const API: Record<Lang, Record<string, string>> = {
   th: {
     missing_image: "ยังไม่ได้เลือกรูป",
-    bad_type: "รองรับเฉพาะไฟล์รูปภาพ (JPEG, PNG, WebP)",
+    bad_type: "รองรับเฉพาะไฟล์รูปภาพ (JPEG, PNG, WebP) และ PDF",
+    pdf_encrypted: "PDF นี้ตั้งรหัสผ่านไว้ เปิดอ่านไม่ได้ ลองบันทึกเป็น PDF ใหม่แบบไม่ใส่รหัสผ่าน หรือถ่ายภาพหน้าจอแล้วอัปโหลดแทน",
+    pdf_too_many_pages: "PDF นี้มี {pages} หน้า แต่ใช้ได้สูงสุด {max} หน้าต่อหนึ่งใบเสร็จ ระบบไม่ตัดหน้าให้เอง เพราะอาจไม่ใช่ใบเสร็จใบเดียว ลองแยกเฉพาะหน้าของใบเสร็จแล้วอัปโหลดใหม่",
+    pdf_unreadable: "เปิดไฟล์ PDF นี้ไม่ได้ ไฟล์อาจเสียหาย ลองบันทึกหรือพิมพ์เป็น PDF ใหม่ แล้วอัปโหลดอีกครั้ง",
     empty_file: "ไฟล์ว่างเปล่า",
     too_large: "รูปใหญ่เกินไป แม้ย่อแล้วก็ยังเกิน 4 MB ลองถ่ายใหม่หรือครอปให้เหลือเฉพาะใบเสร็จ",
     decode_failed: "เปิดรูปนี้ไม่ได้ ลองบันทึกเป็น JPEG หรือ PNG แล้วอัปโหลดใหม่",
@@ -311,7 +314,10 @@ const API: Record<Lang, Record<string, string>> = {
   },
   en: {
     missing_image: "Please choose an image first.",
-    bad_type: "Only JPEG, PNG or WebP files are supported.",
+    bad_type: "Only JPEG, PNG, WebP or PDF files are supported.",
+    pdf_encrypted: "This PDF is password protected, so it can't be read. Save an unprotected copy, or upload a screenshot instead.",
+    pdf_too_many_pages: "This PDF has {pages} pages, but at most {max} pages can be read as one receipt. Pages are not dropped for you, because the file may hold more than one receipt. Keep only the receipt's pages and try again.",
+    pdf_unreadable: "This PDF can't be opened. The file may be damaged. Save or print it as a new PDF and try again.",
     empty_file: "The file is empty.",
     too_large: "The image is still over 4 MB even after resizing. Try a new photo, or crop it to just the receipt.",
     decode_failed: "This image can't be opened. Save it as JPEG or PNG and try again.",
@@ -333,6 +339,9 @@ export interface ApiError {
   detail?: string;
   /** For different_documents: which values disagreed. */
   fields?: string[];
+  /** For pdf_too_many_pages: the page count of the file and the most that can be read. */
+  pages?: number;
+  max?: number;
 }
 
 const CONFLICT_FIELDS: Record<Lang, Record<string, string>> = {
@@ -346,7 +355,7 @@ export function apiErrorText(e: ApiError, lang: Lang): string {
   const seconds = e.retryAfterSec ?? 15;
   const key = e.code === "different_documents" && e.fields?.length ? "different_documents_fields" : e.code ?? "";
   const fields = (e.fields ?? []).map((f) => CONFLICT_FIELDS[lang][f] ?? f).join(lang === "th" ? ", " : ", ");
-  const base = tpl(API[lang][key] ?? API[lang].generic!, { minutes, seconds, fields });
+  const base = tpl(API[lang][key] ?? API[lang].generic!, { minutes, seconds, fields, pages: e.pages ?? 0, max: e.max ?? 0 });
   return e.detail ? `${base} (${e.detail})` : base;
 }
 

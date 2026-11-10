@@ -55,6 +55,18 @@ export class ImageError extends Error {
   }
 }
 
+/**
+ * Encode a canvas as JPEG, lowering the quality until it fits the upload limit.
+ * Throws ImageError("too_large") if even the lowest quality is over it.
+ */
+export async function canvasToJpegFile(canvas: HTMLCanvasElement, baseName: string): Promise<File> {
+  for (const quality of [0.9, 0.75, 0.6]) {
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+    if (blob && blob.size <= MAX_UPLOAD_BYTES) return new File([blob], `${baseName}.jpg`, { type: "image/jpeg" });
+  }
+  throw new ImageError("too_large");
+}
+
 /** Decode, orient, shrink and re-encode. Throws ImageError with a code the UI can translate. */
 export async function prepareImage(input: File): Promise<PreparedImage> {
   if (!input.type.startsWith("image/")) throw new ImageError("bad_type");
@@ -85,19 +97,8 @@ export async function prepareImage(input: File): Promise<PreparedImage> {
     ctx.fillRect(0, 0, target.width, target.height);
     ctx.drawImage(bitmap, 0, 0, target.width, target.height);
 
-    for (const quality of [0.9, 0.75, 0.6]) {
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
-      if (blob && blob.size <= MAX_UPLOAD_BYTES) {
-        const name = input.name.replace(/\.[^.]+$/, "") || "receipt";
-        return {
-          file: new File([blob], `${name}.jpg`, { type: "image/jpeg" }),
-          width: target.width,
-          height: target.height,
-          resized: true,
-        };
-      }
-    }
-    throw new ImageError("too_large");
+    const file = await canvasToJpegFile(canvas, input.name.replace(/\.[^.]+$/, "") || "receipt");
+    return { file, width: target.width, height: target.height, resized: true };
   } finally {
     bitmap.close();
   }

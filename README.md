@@ -11,6 +11,7 @@ Open-source AI tool that turns **printed** Thai receipts and bank transfer slips
 ### What it does
 
 - Upload a photo, or take one on your phone. Photos are resized on your device first (see [Privacy](#privacy-and-data)).
+- **PDF files work too** (for example a receipt saved or emailed as a PDF). Each page is turned into an image on your device and then handled like a photo, so up to 4 pages are read as one receipt. A PDF with more pages is refused rather than cut short, because it may hold several receipts, and a password-protected PDF is refused. Only a PDF that is a scan or a picture is tested; the text inside a PDF is not used.
 - **A very long receipt can be photographed in up to 4 photos**, in order from top to bottom, overlapping by a few lines. They are read as one receipt, and the app **checks that they really are the same one**: photos that look like different receipts are refused with a message instead of being merged.
 - **Receipts and tax invoices:** shop name, shop tax ID, receipt number, date and time, subtotal, VAT, total and line items.
 - **Transfer slips:** payee, payer, amount, fee, reference number, date and time.
@@ -157,7 +158,7 @@ The demo has no login, so anyone with the link can use your API budget.
 Receipts and slips contain personal and financial data. Please read this before you run it for other people.
 
 - **Your images are not stored by this app.** They are handled in memory for one request. The only things logged are error details (type, status and a short, truncated message), never the document. No accounts, no database.
-- **Photos are cleaned on the device first.** The browser fixes the rotation, shrinks the photo and re-encodes it as JPEG, which also removes EXIF metadata such as the GPS location. The server then checks the file type from the file's first bytes.
+- **Photos are cleaned on the device first.** The browser fixes the rotation, shrinks the photo and re-encodes it as JPEG, which also removes EXIF metadata such as the GPS location. The server then checks the file type from the file's first bytes. **A PDF never reaches the server:** its pages are drawn in your browser, and only the resulting JPEG images are uploaded.
 - **The model provider receives the image** (through Vercel AI Gateway). At the time of writing, the AI Gateway catalog marks the models used here as **not used for training**. For **zero data retention (ZDR)**, meaning the provider keeps nothing after answering, it lists `gpt-4.1-mini` and `mistral-small` as all providers and Gemini as only some. Enforcing ZDR for every request is an AI Gateway setting that, per Vercel's pricing page, is for Pro and Enterprise plans. Check the current [AI Gateway data-handling docs](https://vercel.com/docs/ai-gateway) and your provider's terms; they can change.
 - **Tax IDs:** the shop's 13-digit tax ID is read from receipts. For a sole proprietor this is their personal ID number. The app does not keep it, but it appears in the exported files. The model is told not to output customers' personal ID numbers, card numbers, phone numbers or bank account numbers.
 - Text printed on a document can try to instruct the model (prompt injection). Results always pass schema validation and a human review, and CSV cells that start with `=`, `+`, `-` or `@` are neutralised, but treat exports as untrusted input.
@@ -177,6 +178,7 @@ Receipts and slips contain personal and financial data. Please read this before 
 ### ทำอะไรได้
 
 - อัปโหลดรูป หรือถ่ายรูปจากมือถือ ระบบย่อรูปบนเครื่องคุณก่อน (ดู [ความเป็นส่วนตัว](#ความเป็นส่วนตัวและข้อมูล))
+- **รองรับไฟล์ PDF** (เช่น ใบเสร็จที่บันทึกหรือส่งมาทางอีเมลเป็น PDF) แต่ละหน้าถูกแปลงเป็นรูปบนเครื่องของคุณ แล้วทำงานเหมือนรูปถ่าย จึงอ่านได้สูงสุด 4 หน้าเป็นใบเดียว PDF ที่มีหน้ามากกว่านั้นจะถูกปฏิเสธแทนที่จะตัดหน้าให้เอง เพราะอาจมีหลายใบเสร็จ และ PDF ที่ตั้งรหัสผ่านก็ถูกปฏิเสธ ทดสอบเฉพาะ PDF ที่เป็นภาพสแกนหรือรูป ข้อความที่อยู่ในไฟล์ PDF ไม่ได้ถูกนำมาใช้
 - **ใบเสร็จที่ยาวมากถ่ายแยกได้สูงสุด 4 รูป** เรียงจากบนลงล่างและให้รูปซ้อนกันสองสามบรรทัด ระบบอ่านรวมเป็นใบเดียว และ **เช็กให้ว่าเป็นใบเดียวกันจริงไหม** ถ้ารูปดูเหมือนคนละใบ จะปฏิเสธพร้อมข้อความ ไม่รวมให้
 - **ใบเสร็จและใบกำกับภาษี:** ชื่อร้าน เลขประจำตัวผู้เสียภาษีของร้าน เลขที่ใบเสร็จ วันที่ เวลา ยอดก่อน VAT VAT ยอดรวม และรายการสินค้า
 - **สลิปโอนเงิน:** ผู้รับเงิน ผู้โอน จำนวนเงิน ค่าธรรมเนียม เลขอ้างอิง วันที่ เวลา
@@ -323,7 +325,7 @@ pnpm bench                  # ต้องมี AI_GATEWAY_API_KEY ใน apps/
 ใบเสร็จและสลิปมีข้อมูลส่วนบุคคลและข้อมูลการเงิน โปรดอ่านก่อนเปิดให้คนอื่นใช้
 
 - **แอปนี้ไม่เก็บรูปของคุณ** รูปถูกประมวลผลในหน่วยความจำภายในหนึ่งคำขอ สิ่งเดียวที่บันทึกคือรายละเอียดของ error (ชนิด รหัสสถานะ และข้อความสั้นๆ ที่ตัดแล้ว) ไม่มีเนื้อหาของเอกสาร ไม่มีบัญชีผู้ใช้และไม่มีฐานข้อมูล
-- **รูปถูกจัดการบนเครื่องก่อน** เบราว์เซอร์แก้การหมุนรูป ย่อรูป และเข้ารหัสใหม่เป็น JPEG ซึ่งล้างข้อมูล EXIF เช่น พิกัด GPS ออกไปด้วย จากนั้นเซิร์ฟเวอร์ตรวจชนิดไฟล์จากไบต์แรกของไฟล์
+- **รูปถูกจัดการบนเครื่องก่อน** เบราว์เซอร์แก้การหมุนรูป ย่อรูป และเข้ารหัสใหม่เป็น JPEG ซึ่งล้างข้อมูล EXIF เช่น พิกัด GPS ออกไปด้วย จากนั้นเซิร์ฟเวอร์ตรวจชนิดไฟล์จากไบต์แรกของไฟล์ **ไฟล์ PDF ไม่ถูกส่งไปที่เซิร์ฟเวอร์** เบราว์เซอร์วาดแต่ละหน้าเป็นรูปเอง แล้วอัปโหลดเฉพาะรูป JPEG ที่ได้
 - **ผู้ให้บริการโมเดลได้รับรูป** (ผ่าน Vercel AI Gateway) ณ เวลาที่เขียน แคตตาล็อกของ AI Gateway ระบุว่าโมเดลที่ใช้ที่นี่ **ไม่ถูกใช้เทรน** ส่วน **การไม่เก็บข้อมูลเลย (ZDR)** ซึ่งหมายถึงผู้ให้บริการไม่เก็บอะไรไว้หลังตอบ แคตตาล็อกระบุ `gpt-4.1-mini` และ `mistral-small` ว่าทุกผู้ให้บริการ และ Gemini ว่าเพียงบางส่วน การบังคับใช้ ZDR กับทุกคำขอเป็นการตั้งค่าของ AI Gateway ที่ตามหน้าราคาของ Vercel ใช้ได้กับแผน Pro และ Enterprise โปรดตรวจ [เอกสารการจัดการข้อมูลของ AI Gateway](https://vercel.com/docs/ai-gateway) และเงื่อนไขของผู้ให้บริการที่ใช้ เพราะเปลี่ยนได้
 - **เลขผู้เสียภาษี:** ระบบอ่านเลขผู้เสียภาษี 13 หลักของ "ร้าน" จากใบเสร็จ ถ้าร้านเป็นบุคคลธรรมดา เลขนี้คือเลขบัตรประชาชนของเขา แอปไม่เก็บไว้ แต่เลขจะอยู่ในไฟล์ที่ส่งออก โมเดลถูกสั่งไม่ให้ดึงเลขบัตรประชาชนของลูกค้า เลขบัตร เบอร์โทร หรือเลขบัญชีธนาคาร
 - ข้อความที่พิมพ์บนเอกสารอาจพยายามสั่งโมเดลได้ (prompt injection) ผลลัพธ์ต้องผ่านการตรวจรูปแบบและคนตรวจเสมอ และเซลล์ CSV ที่ขึ้นต้นด้วย `=`, `+`, `-` หรือ `@` ถูกทำให้ปลอดภัยแล้ว แต่ควรถือไฟล์ที่ส่งออกเป็นข้อมูลที่ยังไม่น่าเชื่อถือ
