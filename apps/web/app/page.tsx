@@ -13,7 +13,7 @@ import {
   type LineItem,
   type Receipt,
 } from "@thai-receipt-reader/extractor/core";
-import { ImageError, MAX_UPLOAD_BYTES, MIN_SIDE_WARN, prepareImage } from "@/lib/image";
+import { ImageError, MAX_UPLOAD_BYTES, looksTooSmall, prepareImage } from "@/lib/image";
 import { PdfError, isPdfFile, pdfToImages } from "@/lib/pdf";
 import { SlipCheck } from "./slip-check";
 import { readNdjson } from "@/lib/ndjson";
@@ -180,7 +180,7 @@ export default function Home() {
             setAllPhotos([...photosRef.current, { id: nextPhotoId++, file, url: URL.createObjectURL(file) }]);
           }
           if (full) break;
-          if (prepared && Math.min(prepared.width, prepared.height) < MIN_SIDE_WARN) setNotice({ w: prepared.width, h: prepared.height });
+          if (prepared && looksTooSmall(prepared.width, prepared.height)) setNotice({ w: prepared.width, h: prepared.height });
         } catch (e) {
           if (e instanceof PdfError) setError({ code: e.code, pages: e.pages, max: MAX_PHOTOS });
           else setError({ code: e instanceof ImageError ? e.code : "decode_failed" });

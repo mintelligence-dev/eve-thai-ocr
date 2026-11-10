@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { KEEP_UNDER_BYTES, MAX_SIDE, fitWithin, needsResize } from "./image";
+import { KEEP_UNDER_BYTES, MAX_SIDE, fitWithin, looksTooSmall, needsResize } from "./image";
 import { sniffImageType } from "./image-type";
 
 describe("fitWithin", () => {
@@ -13,6 +13,26 @@ describe("fitWithin", () => {
   });
   it("keeps a very thin image at least 1px", () => {
     expect(fitWithin(10_000, 1).height).toBe(1);
+  });
+});
+
+describe("looksTooSmall", () => {
+  it("does not warn about a phone screenshot, which is narrow but sharp (the slips that were wrongly warned)", () => {
+    expect(looksTooSmall(591, 1280)).toBe(false);
+    expect(looksTooSmall(631, 1280)).toBe(false);
+    expect(looksTooSmall(722, 1280)).toBe(false);
+    expect(looksTooSmall(960, 1280)).toBe(false);
+  });
+  it("does not warn about an ordinary photo, in either orientation", () => {
+    expect(looksTooSmall(1536, 2048)).toBe(false);
+    expect(looksTooSmall(2048, 1536)).toBe(false);
+    expect(looksTooSmall(600, 800)).toBe(false);
+  });
+  it("warns about a picture that is small all over", () => {
+    expect(looksTooSmall(480, 640)).toBe(true);
+    expect(looksTooSmall(600, 600)).toBe(true);
+    expect(looksTooSmall(300, 300)).toBe(true);
+    expect(looksTooSmall(0, 0)).toBe(true);
   });
 });
 

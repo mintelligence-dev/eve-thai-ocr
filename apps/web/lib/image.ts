@@ -14,8 +14,17 @@ export const KEEP_UNDER_BYTES = 1_500_000;
 export const MAX_INPUT_BYTES = 40 * 1024 * 1024;
 /** The server's upload limit (Vercel rejects request bodies above 4.5 MB). */
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
-/** Below this many pixels on the short side, text is probably too small to read. */
-export const MIN_SIDE_WARN = 600;
+/**
+ * Below this many pixels in all, text is probably too small to read. The whole picture is
+ * counted, not its short side: a phone screenshot is narrow by nature (591 x 1280, say) but
+ * its text is sharp at that size, while a photo of 480 x 640 is not.
+ */
+export const MIN_PIXELS_WARN = 400_000;
+
+/** Should the person be warned that this picture is too small for small print? */
+export function looksTooSmall(width: number, height: number): boolean {
+  return width * height < MIN_PIXELS_WARN;
+}
 
 const SERVER_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
