@@ -23,7 +23,7 @@ Open-source AI tool that turns **printed** Thai receipts and bank transfer slips
 
 ### What it does not do
 
-- **Extraction only.** It does not verify that a receipt or a payment slip is genuine.
+- **Extraction only.** A picture cannot prove a receipt or a slip is genuine, so the app never says so from the picture. For transfer slips there is an optional check with the bank (see [Checking a slip with the bank](#checking-a-slip-with-the-bank)); it is off unless you set it up.
 - **Printed documents only. Handwriting is refused**, not read badly: handwritten numbers came back differently on every run in our tests (the same amount as 200,000, 2,000,000 and 2,009,000), with nothing on screen to warn you.
 - Up to 4 photos of **one** document. Different receipts are never merged (see "How reliable is it?" for how well that is checked). There is no batch mode for many receipts yet.
 - No accounting-system integrations and no automatic sending anywhere.
@@ -92,6 +92,9 @@ No key yet? On the page, press one of the synthetic samples (or open `/?sample=t
 | `RECEIPT_MODEL` | `google/gemini-2.5-flash` | Any vision model on AI Gateway (`provider/model`). The review screen shows which model read each document. |
 | `RATE_LIMIT_PER_HOUR` | `10` | Requests per visitor IP per hour (best effort, see below). |
 | `RATE_LIMIT_PER_DAY` | `200` | Requests for the whole site per day. |
+| `SLIP_VERIFY_PROVIDER` | *(off)* | `easyslip` turns on the optional bank check for transfer slips. |
+| `SLIP_VERIFY_API_KEY` | | Your key for that service. Needed together with the provider. |
+| `SLIP_RATE_LIMIT_PER_HOUR` | `20` | Bank checks per visitor IP per hour. |
 
 With the default model, thinking is capped (1,024 tokens). Reading a receipt is mostly transcription, so unlimited thinking only added time and cost: a 17-item receipt took ~40 s and ~2¢ uncapped, and ~9–13 s and ~0.5¢ capped, with no loss of accuracy. Turning thinking off completely halves the cost again but cost about 11 points of accuracy on our test set (98% → 87%), so it is not recommended (`pnpm bench -- --thinking 0` lets you test it).
 
@@ -119,6 +122,17 @@ try {
 ```
 
 Browser-safe helpers (no model code), such as `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON` and `toCSV`, are at `@thai-receipt-reader/extractor/core`.
+
+### Checking a slip with the bank
+
+A forged slip looks as real as a genuine one, so the picture alone proves nothing. What can be checked is the small **"Slip Verify" QR code** that banks print on a transfer slip: it holds the sending bank and the transaction reference, which a verification service can look up with the bank. The app then compares the **amount and date the bank reports** with the slip. A copied QR code on a slip whose amount was edited is caught that way: the bank's amount differs, so the amount is marked red and export is locked until it is put right.
+
+- **Off by default.** Set `SLIP_VERIFY_PROVIDER=easyslip` and `SLIP_VERIFY_API_KEY` (your own key from [EasySlip](https://easyslip.com), which charges for use; check its current price and terms). Without both, the page only says the check is not set up.
+- **Nothing is sent until the person presses "Check with the bank".** The QR code is found on the device, and only its **text** (the sending bank's code and the transaction reference) is sent, through your server, to the service. The slip image is not sent. The service replies with the bank's record; the app keeps only the transaction reference, date and time, amount, fee and the two bank codes, **no names and no account numbers**.
+- **Results, in plain words:** the bank *has* the transfer and the figures match (green); the bank has it but the **amount or date differs** (red, export locked); the bank has *no* such transfer (yellow: the slip may be forged, but the transfer may also be too new or from a bank the service cannot check); the bank cannot tell yet (yellow); the service could not answer (shown as an error, **not** as a verdict on the slip). If an edit changes the amount or date later, it is compared with the bank's figures again. The JSON and CSV exports record the result (`verification`, `bank_check`).
+- **What it does not check:** that the receiver is *your* account (names and accounts are masked differently on each slip, so they are not compared), or that the same slip was not already used for another order (EasySlip can check that but this app does not use it). A slip without a visible QR code, or from a bank whose QR code the service cannot read, cannot be checked, which does not mean it is fake.
+- Written from EasySlip's public documentation and tested against a local stand-in that answers in the documented shapes, **not yet against the live service**. A change of its answer format would show up as "could not answer", never as a verified slip.
+- Each check is one paid call, so it has its own per-visitor limit (`SLIP_RATE_LIMIT_PER_HOUR`, default 20). Do not publish a public demo with your key on without limits.
 
 ### Compare models on your own documents
 
@@ -159,6 +173,7 @@ Receipts and slips contain personal and financial data. Please read this before 
 
 - **Your images are not stored by this app.** They are handled in memory for one request. The only things logged are error details (type, status and a short, truncated message), never the document. No accounts, no database.
 - **Photos are cleaned on the device first.** The browser fixes the rotation, shrinks the photo and re-encodes it as JPEG, which also removes EXIF metadata such as the GPS location. The server then checks the file type from the file's first bytes. **A PDF never reaches the server:** its pages are drawn in your browser, and only the resulting JPEG images are uploaded.
+- **Only if you turn on the bank check:** pressing "Check with the bank" sends the text of the slip's QR code (sending bank code and transaction reference, no image) to the verification service you configured. Nothing is sent otherwise.
 - **The model provider receives the image** (through Vercel AI Gateway). At the time of writing, the AI Gateway catalog marks the models used here as **not used for training**. For **zero data retention (ZDR)**, meaning the provider keeps nothing after answering, it lists `gpt-4.1-mini` and `mistral-small` as all providers and Gemini as only some. Enforcing ZDR for every request is an AI Gateway setting that, per Vercel's pricing page, is for Pro and Enterprise plans. Check the current [AI Gateway data-handling docs](https://vercel.com/docs/ai-gateway) and your provider's terms; they can change.
 - **Tax IDs:** the shop's 13-digit tax ID is read from receipts. For a sole proprietor this is their personal ID number. The app does not keep it, but it appears in the exported files. The model is told not to output customers' personal ID numbers, card numbers, phone numbers or bank account numbers.
 - Text printed on a document can try to instruct the model (prompt injection). Results always pass schema validation and a human review, and CSV cells that start with `=`, `+`, `-` or `@` are neutralised, but treat exports as untrusted input.
@@ -190,7 +205,7 @@ Receipts and slips contain personal and financial data. Please read this before 
 
 ### ไม่ทำอะไร
 
-- **ดึงข้อมูลเท่านั้น** ไม่ตรวจว่าใบเสร็จหรือสลิปเป็นของจริง
+- **ดึงข้อมูลเท่านั้น** รูปถ่ายพิสูจน์ไม่ได้ว่าใบเสร็จหรือสลิปเป็นของจริง แอปจึงไม่ตัดสินจากรูป สำหรับสลิปโอนเงินมีตัวเลือกตรวจกับธนาคาร (ดู [ตรวจสลิปกับธนาคาร](#ตรวจสลิปกับธนาคาร)) ซึ่งปิดอยู่จนกว่าคุณจะตั้งค่า
 - **รองรับเฉพาะเอกสารที่พิมพ์ ลายมือจะถูกปฏิเสธ** ไม่ใช่อ่านแบบไม่แม่น เพราะตัวเลขลายมืออ่านได้ไม่ตรงกันทุกรอบ (ยอดเดียวกันได้ทั้ง 200,000 / 2,000,000 / 2,009,000 ในการทดสอบ) โดยไม่มีอะไรบนจอเตือนคุณ
 - สูงสุด 4 รูปต่อ **หนึ่ง** เอกสาร ใบเสร็จคนละใบไม่ถูกรวมกัน (ดูหัวข้อ "เชื่อถือได้แค่ไหน" ว่าเช็กได้ดีแค่ไหน) ยังไม่มีโหมดอัปโหลดหลายใบพร้อมกัน
 - ไม่เชื่อมระบบบัญชี ไม่ส่งข้อมูลไปที่ไหนอัตโนมัติ
@@ -259,6 +274,9 @@ pnpm test                                      # รันเทสต์ทั�
 | `RECEIPT_MODEL` | `google/gemini-2.5-flash` | โมเดลวิชันใดๆ บน AI Gateway (`provider/model`) หน้าตรวจทานแสดงว่าเอกสารนั้นอ่านด้วยโมเดลไหน |
 | `RATE_LIMIT_PER_HOUR` | `10` | จำนวนคำขอต่อ IP ผู้เยี่ยมชมต่อชั่วโมง (best effort ดูด้านล่าง) |
 | `RATE_LIMIT_PER_DAY` | `200` | จำนวนคำขอทั้งเว็บต่อวัน |
+| `SLIP_VERIFY_PROVIDER` | *(ปิด)* | ตั้งเป็น `easyslip` เพื่อเปิดตัวเลือกตรวจสลิปโอนเงินกับธนาคาร |
+| `SLIP_VERIFY_API_KEY` | | คีย์ของบริการนั้น ต้องตั้งคู่กับ provider |
+| `SLIP_RATE_LIMIT_PER_HOUR` | `20` | จำนวนการตรวจกับธนาคารต่อ IP ต่อชั่วโมง |
 
 โมเดลเริ่มต้นถูกจำกัดการ "คิด" ไว้ที่ 1,024 token เพราะการอ่านใบเสร็จส่วนใหญ่คือการคัดลอก การคิดไม่จำกัดแค่เพิ่มเวลาและค่าใช้จ่าย: ใบ 17 รายการใช้ ~40 วินาที ~2 เซนต์ เมื่อไม่จำกัด และ ~9–13 วินาที ~0.5 เซนต์ เมื่อจำกัด โดยความแม่นยำไม่ลดลง การปิดการคิดทั้งหมดถูกลงอีกครึ่งหนึ่ง แต่ความแม่นยำในชุดทดสอบของเราตกประมาณ 11 จุด (98% → 87%) จึงไม่แนะนำ (ลองได้ด้วย `pnpm bench -- --thinking 0`)
 
@@ -286,6 +304,17 @@ try {
 ```
 
 ฟังก์ชันที่ใช้ในเบราว์เซอร์ได้ (ไม่มีโค้ดเรียกโมเดล) เช่น `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON`, `toCSV` อยู่ที่ `@thai-receipt-reader/extractor/core`
+
+### ตรวจสลิปกับธนาคาร
+
+สลิปปลอมหน้าตาเหมือนของจริงทุกอย่าง รูปเพียงอย่างเดียวจึงพิสูจน์อะไรไม่ได้ สิ่งที่ตรวจได้คือ **QR "Slip Verify" เล็กๆ** ที่ธนาคารพิมพ์บนสลิปโอนเงิน ซึ่งมีรหัสธนาคารผู้โอนและเลขอ้างอิงรายการ ให้บริการตรวจสลิปไปถามธนาคารได้ แล้วแอปเทียบ**ยอดและวันที่ที่ธนาคารบันทึก**กับสลิป สลิปที่แก้ยอดแต่ยังใช้ QR ของรายการจริงจะถูกจับได้ เพราะยอดของธนาคารไม่ตรง ช่องยอดจะขึ้นสีแดงและล็อกการส่งออกจนกว่าจะแก้ให้ถูก
+
+- **ปิดอยู่เป็นค่าเริ่มต้น** ตั้ง `SLIP_VERIFY_PROVIDER=easyslip` และ `SLIP_VERIFY_API_KEY` (คีย์ของคุณเองจาก [EasySlip](https://easyslip.com) ซึ่งคิดค่าบริการ ตรวจราคาและเงื่อนไขล่าสุดก่อนใช้) ถ้าไม่ตั้งทั้งสองค่า หน้าเว็บจะแจ้งเพียงว่ายังไม่ได้ตั้งค่า
+- **ไม่ส่งอะไรออกไปจนกว่าผู้ใช้จะกด "ตรวจกับธนาคาร"** การหา QR ทำบนเครื่อง และส่งเฉพาะ**ข้อความ**ใน QR (รหัสธนาคารผู้โอนกับเลขอ้างอิงรายการ) ผ่านเซิร์ฟเวอร์ของคุณไปยังบริการ ไม่ส่งรูปสลิป บริการตอบรายการของธนาคารกลับมา แอปเก็บเพียงเลขอ้างอิง วันเวลา ยอด ค่าธรรมเนียม และรหัสธนาคารสองฝั่ง **ไม่เก็บชื่อและเลขบัญชี**
+- **ผลที่ได้ พูดตรงๆ:** ธนาคาร*มี*รายการและตัวเลขตรงกัน (เขียว) ธนาคารมีรายการแต่**ยอดหรือวันที่ไม่ตรง** (แดง ล็อกการส่งออก) ธนาคาร*ไม่พบ*รายการ (เหลือง: สลิปอาจปลอม แต่รายการอาจเพิ่งโอนหรือเป็นธนาคารที่บริการตรวจไม่ได้ก็ได้) ธนาคารยังยืนยันไม่ได้ (เหลือง) บริการตอบไม่ได้ (แสดงเป็นข้อผิดพลาด **ไม่ใช่**คำตัดสินสลิป) ถ้าภายหลังมีการแก้ยอดหรือวันที่ จะถูกเทียบกับตัวเลขของธนาคารใหม่ ไฟล์ JSON/CSV ที่ส่งออกบันทึกผลไว้ (`verification`, `bank_check`)
+- **สิ่งที่ไม่ได้ตรวจ:** ผู้รับคือบัญชี*ของคุณ*หรือไม่ (ชื่อและเลขบัญชีถูกปิดบังไม่เหมือนกันในแต่ละสลิป จึงไม่เทียบ) หรือสลิปเดียวกันเคยถูกใช้กับออเดอร์อื่นแล้วหรือไม่ (EasySlip ตรวจให้ได้ แต่แอปนี้ไม่ได้ใช้) สลิปที่ไม่เห็น QR ชัดหรือเป็นธนาคารที่บริการอ่าน QR ไม่ได้ ตรวจไม่ได้ ซึ่งไม่ได้แปลว่าปลอม
+- เขียนจากเอกสารสาธารณะของ EasySlip และทดสอบกับบริการจำลองในเครื่องที่ตอบตามรูปแบบในเอกสาร **ยังไม่ได้ทดสอบกับบริการจริง** ถ้ารูปแบบคำตอบเปลี่ยน ผลจะแสดงเป็น "ตอบไม่ได้" ไม่ใช่สลิปที่ยืนยันแล้ว
+- การตรวจแต่ละครั้งคือการเรียกบริการที่เสียเงิน จึงมีขีดจำกัดต่อผู้เยี่ยมชมแยกต่างหาก (`SLIP_RATE_LIMIT_PER_HOUR` ค่าเริ่มต้น 20) อย่าเปิดเดโมสาธารณะพร้อมคีย์ของคุณโดยไม่มีขีดจำกัด
 
 ### เทียบโมเดลด้วยเอกสารของคุณเอง
 
@@ -326,6 +355,7 @@ pnpm bench                  # ต้องมี AI_GATEWAY_API_KEY ใน apps/
 
 - **แอปนี้ไม่เก็บรูปของคุณ** รูปถูกประมวลผลในหน่วยความจำภายในหนึ่งคำขอ สิ่งเดียวที่บันทึกคือรายละเอียดของ error (ชนิด รหัสสถานะ และข้อความสั้นๆ ที่ตัดแล้ว) ไม่มีเนื้อหาของเอกสาร ไม่มีบัญชีผู้ใช้และไม่มีฐานข้อมูล
 - **รูปถูกจัดการบนเครื่องก่อน** เบราว์เซอร์แก้การหมุนรูป ย่อรูป และเข้ารหัสใหม่เป็น JPEG ซึ่งล้างข้อมูล EXIF เช่น พิกัด GPS ออกไปด้วย จากนั้นเซิร์ฟเวอร์ตรวจชนิดไฟล์จากไบต์แรกของไฟล์ **ไฟล์ PDF ไม่ถูกส่งไปที่เซิร์ฟเวอร์** เบราว์เซอร์วาดแต่ละหน้าเป็นรูปเอง แล้วอัปโหลดเฉพาะรูป JPEG ที่ได้
+- **เฉพาะเมื่อเปิดการตรวจกับธนาคาร:** การกด "ตรวจกับธนาคาร" ส่งข้อความใน QR ของสลิป (รหัสธนาคารผู้โอนกับเลขอ้างอิง ไม่มีรูป) ไปยังบริการตรวจสลิปที่คุณตั้งไว้ ถ้าไม่เปิด จะไม่ส่งอะไรออกไป
 - **ผู้ให้บริการโมเดลได้รับรูป** (ผ่าน Vercel AI Gateway) ณ เวลาที่เขียน แคตตาล็อกของ AI Gateway ระบุว่าโมเดลที่ใช้ที่นี่ **ไม่ถูกใช้เทรน** ส่วน **การไม่เก็บข้อมูลเลย (ZDR)** ซึ่งหมายถึงผู้ให้บริการไม่เก็บอะไรไว้หลังตอบ แคตตาล็อกระบุ `gpt-4.1-mini` และ `mistral-small` ว่าทุกผู้ให้บริการ และ Gemini ว่าเพียงบางส่วน การบังคับใช้ ZDR กับทุกคำขอเป็นการตั้งค่าของ AI Gateway ที่ตามหน้าราคาของ Vercel ใช้ได้กับแผน Pro และ Enterprise โปรดตรวจ [เอกสารการจัดการข้อมูลของ AI Gateway](https://vercel.com/docs/ai-gateway) และเงื่อนไขของผู้ให้บริการที่ใช้ เพราะเปลี่ยนได้
 - **เลขผู้เสียภาษี:** ระบบอ่านเลขผู้เสียภาษี 13 หลักของ "ร้าน" จากใบเสร็จ ถ้าร้านเป็นบุคคลธรรมดา เลขนี้คือเลขบัตรประชาชนของเขา แอปไม่เก็บไว้ แต่เลขจะอยู่ในไฟล์ที่ส่งออก โมเดลถูกสั่งไม่ให้ดึงเลขบัตรประชาชนของลูกค้า เลขบัตร เบอร์โทร หรือเลขบัญชีธนาคาร
 - ข้อความที่พิมพ์บนเอกสารอาจพยายามสั่งโมเดลได้ (prompt injection) ผลลัพธ์ต้องผ่านการตรวจรูปแบบและคนตรวจเสมอ และเซลล์ CSV ที่ขึ้นต้นด้วย `=`, `+`, `-` หรือ `@` ถูกทำให้ปลอดภัยแล้ว แต่ควรถือไฟล์ที่ส่งออกเป็นข้อมูลที่ยังไม่น่าเชื่อถือ

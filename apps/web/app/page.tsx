@@ -15,6 +15,7 @@ import {
 } from "@thai-receipt-reader/extractor/core";
 import { ImageError, MAX_UPLOAD_BYTES, MIN_SIDE_WARN, prepareImage } from "@/lib/image";
 import { PdfError, isPdfFile, pdfToImages } from "@/lib/pdf";
+import { SlipCheck } from "./slip-check";
 import { readNdjson } from "@/lib/ndjson";
 import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type ApiError, type Dict, type Lang } from "@/lib/i18n";
 
@@ -145,6 +146,8 @@ export default function Home() {
   );
   const recon = useMemo(() => (receipt ? itemsReconcile(receipt) : null), [receipt]);
   const hasErrors = receipt?.flags.some((f) => f.severity === "error") ?? false;
+  // The photo files, kept as the same array until a photo is added, moved or removed.
+  const photoFiles = useMemo(() => photos.map((p) => p.file), [photos]);
 
   /** Add photos of the document, in the order given. Each is shrunk on the device first. */
   async function addFiles(files: File[]) {
@@ -390,6 +393,17 @@ export default function Home() {
             </>
           ) : (
             <p className="ok">{t.allClear}</p>
+          )}
+
+          {receipt.documentType === "transfer_slip" && (
+            <SlipCheck
+              files={photoFiles}
+              verification={receipt.verification}
+              mismatch={receipt.flags.some((f) => f.code === "slip_amount_mismatch" || f.code === "slip_date_mismatch")}
+              lang={lang}
+              t={t}
+              onVerified={(v) => edit({ verification: v })}
+            />
           )}
 
           {(() => {

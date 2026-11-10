@@ -102,6 +102,11 @@ export const FlagSchema = z.object({
     "addon_split",
     "invalid_tax_id",
     "merged_images",
+    "slip_not_found",
+    "slip_pending",
+    "slip_amount_mismatch",
+    "slip_date_mismatch",
+    "slip_reference_mismatch",
   ]),
   severity: z.enum(["error", "warning"]),
   /** English text, for logs and API consumers. */
@@ -126,6 +131,42 @@ export const LineItemSchema = z.object({
 });
 export type LineItem = z.infer<typeof LineItemSchema>;
 
+/**
+ * What the bank's own records say about a transfer. Only the figures needed to
+ * compare with the slip are kept: no account numbers and no names.
+ */
+export const BankSlipSchema = z.object({
+  transRef: z.string(),
+  /** ISO date and time with offset, as the bank reports it. */
+  date: z.string().nullable(),
+  /** Baht. */
+  amount: z.number(),
+  /** Baht. */
+  fee: z.number().nullable(),
+  /** 3-digit Bank of Thailand code of the sender's bank. */
+  senderBank: z.string().nullable(),
+  /** 3-digit Bank of Thailand code of the receiver's bank. */
+  receiverBank: z.string().nullable(),
+});
+export type BankSlip = z.infer<typeof BankSlipSchema>;
+
+/**
+ * The result of looking a transfer slip up with the bank (see slip.ts). Absent
+ * when nobody checked. It is kept on the receipt so that an edit to the amount or
+ * date is compared with the bank's figures again, and so an export records it.
+ */
+export const VerificationSchema = z.object({
+  /** verified: the bank has this transfer. not_found: it has no such transfer. pending: too recent to tell. */
+  status: z.enum(["verified", "not_found", "pending"]),
+  /** Name of the service that looked it up. */
+  provider: z.string(),
+  /** When it was looked up (ISO timestamp). */
+  checkedAt: z.string(),
+  /** Present when verified. */
+  bank: BankSlipSchema.optional(),
+});
+export type Verification = z.infer<typeof VerificationSchema>;
+
 /** Normalised, editable result shown on the review screen and exported. */
 export const ReceiptSchema = z.object({
   documentType: z.enum(["receipt", "transfer_slip", "unknown"]),
@@ -149,6 +190,8 @@ export const ReceiptSchema = z.object({
   vat: z.number().nullable(),
   total: z.number().nullable(),
   lineItems: z.array(LineItemSchema),
+  /** The bank's answer, when a transfer slip was checked with the bank. */
+  verification: VerificationSchema.optional(),
   flags: z.array(FlagSchema),
 });
 export type Receipt = z.infer<typeof ReceiptSchema>;

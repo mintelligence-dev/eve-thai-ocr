@@ -86,6 +86,15 @@ textarea { width: 100%; resize: none; min-height: 2.6em; field-sizing: content; 
 .sum.warn { background: var(--warn-bg); color: var(--warn); }
 .sum-tag { font-size: 13px; white-space: nowrap; }
 
+/* Asking the bank about a transfer slip */
+.verify { margin: 16px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.verify h3 { margin-top: 0; }
+.verify-status { margin-top: 12px; padding: 10px 14px; border-radius: 10px; font-size: 15px; }
+.verify-status small { display: block; margin-top: 4px; color: inherit; opacity: 0.85; }
+.verify-status.ok { background: var(--ok-bg); color: var(--ok); }
+.verify-status.warn { background: var(--warn-bg); color: var(--warn); }
+.verify-status.bad { background: var(--bad-bg); color: var(--bad); }
+
 .theme { display: flex; gap: 4px; }
 .theme button { padding: 4px 12px; font-size: 14px; }
 .theme button.on { background: var(--accent); color: var(--bg); }

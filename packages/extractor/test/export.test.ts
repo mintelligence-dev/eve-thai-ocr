@@ -24,8 +24,19 @@ describe("export", () => {
   it("exports the payer, reference and fee of a slip", () => {
     const csv = toCSV(normalizeExtraction(fx.transferSlip, { today }));
     const [header, row] = csv.replace("\uFEFF", "").trim().split("\r\n");
-    expect(header).toContain("total,payer,reference,fee,tax_id,item_description");
-    expect(row).toContain("2500,นายสมมติ ตัวอย่าง,202509030941" + "0001,0,,");
+    expect(header).toContain("total,payer,reference,fee,tax_id,bank_check,item_description");
+    // tax_id and bank_check are empty for a slip nobody checked with the bank
+    expect(row).toContain("2500,นายสมมติ ตัวอย่าง,202509030941" + "0001,0,,,");
+  });
+
+  it("records the result of checking a slip with the bank", () => {
+    const receipt = normalizeExtraction(fx.transferSlip, { today });
+    const csv = toCSV({
+      ...receipt,
+      verification: { status: "not_found", provider: "easyslip", checkedAt: "2026-11-10T06:00:00.000Z" },
+    });
+    const [, row] = csv.replace("\uFEFF", "").trim().split("\r\n");
+    expect(row).toContain(",,not_found,");
   });
 
   it("keeps totals for a slip with no line items", () => {

@@ -22,3 +22,11 @@ export * from "./score.js";
 export { isDiscountLabel } from "./discount.js";
 export { isValidThaiTaxId, taxIdDigits } from "./taxid.js";
 export { findImageConflicts, type ImageConflict, type ImageFact } from "./images.js";
+export { parseSlipQr, crc16CcittFalse, verificationFlags, bangkokDay, type SlipQr } from "./slip.js";
+export {
+  createEasySlipVerifier,
+  slipVerifierFromEnv,
+  type EasySlipOptions,
+  type SlipCheck,
+  type SlipVerifier,
+} from "./slip-verify.js";

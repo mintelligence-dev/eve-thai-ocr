@@ -17,6 +17,20 @@ export const T = {
     addPhoto: "+ เพิ่มรูปของใบเดียวกัน",
     longHint: "ใบยาวมาก? ถ่ายแยกเป็นหลายรูปได้ (สูงสุด 4 รูป) ให้รูปถัดไปซ้อนกับท้ายรูปก่อนหน้า 2–3 บรรทัด และเรียงจากบนลงล่าง ระบบจะรวมเป็นใบเดียวและเช็กให้ว่าเป็นใบเดียวกันจริงไหม",
     orderHint: "เรียงจากบนลงล่างของใบเสร็จ (ใช้ปุ่มลูกศรสลับลำดับ)",
+    slipCheckTitle: "ตรวจกับธนาคาร",
+    slipCheckIntro: "สลิปธนาคารมี QR เล็กๆ ที่ใช้ถามธนาคารได้ว่ามีรายการโอนนี้จริงไหม และยอดกับวันที่ตรงกับที่อ่านได้หรือเปล่า รูปสลิปอย่างเดียวพิสูจน์ไม่ได้ว่าจริงหรือปลอม",
+    slipNoService: "เดโมนี้ยังไม่ได้เปิดบริการตรวจกับธนาคาร (ผู้ติดตั้งต้องตั้งค่าบริการตรวจสลิปก่อน)",
+    slipScanning: "กำลังหา QR ตรวจสลิปในรูป…",
+    slipNoQr: "ไม่พบ QR ตรวจสลิปของธนาคารในรูป (เป็น QR เล็กๆ มักอยู่ท้ายสลิป ต้องเห็นชัดและไม่ถูกตัดออก) จึงตรวจกับธนาคารไม่ได้ ซึ่งไม่ได้แปลว่าสลิปปลอม",
+    slipDisclosure: "เมื่อกดตรวจ ระบบจะส่งเฉพาะข้อความใน QR (รหัสธนาคารผู้โอนและเลขอ้างอิงรายการ) ผ่านเซิร์ฟเวอร์นี้ไปยังบริการตรวจสลิปของบุคคลที่สาม ({provider}) ไม่ส่งรูปสลิป",
+    slipCheck: "ตรวจกับธนาคาร",
+    slipChecking: "กำลังถามธนาคาร…",
+    slipRecheck: "ตรวจอีกครั้ง",
+    slipVerified: "ธนาคารยืนยันว่ามีรายการโอนนี้ (ตามธนาคาร ยอด {amount} บาท วันที่ {date})",
+    slipVerifiedNote: "ยืนยันเฉพาะว่ามีรายการโอนตามเลขอ้างอิงนี้ ส่วนยอดและวันที่ให้ดูว่าตรงกับช่องด้านล่างหรือไม่ (ถ้าไม่ตรงจะมีแจ้งเตือนสีแดง) ยังไม่ได้ตรวจว่าผู้รับคือบัญชีของคุณ และไม่ได้ตรวจว่าเคยใช้สลิปนี้ไปแล้วหรือไม่",
+    slipMismatch: "ธนาคารมีรายการโอนตามเลขอ้างอิงนี้ แต่ยอดหรือวันที่ไม่ตรงกับสลิป (ตามธนาคาร ยอด {amount} บาท วันที่ {date}) ดูแจ้งเตือนสีแดงในรายการที่ควรตรวจ",
+    slipNotFoundStatus: "ธนาคารไม่พบรายการโอนนี้ ผลนี้ยังสรุปไม่ได้ว่าจริงหรือปลอม (ดูคำอธิบายในรายการที่ควรตรวจ)",
+    slipPendingStatus: "ธนาคารยังยืนยันไม่ได้ รายการอาจเพิ่งโอน ลองตรวจอีกครั้งในอีกสักครู่",
     movePhoto: "ย้ายรูปที่ {n} {dir}",
     moveLeft: "ไปทางซ้าย",
     moveRight: "ไปทางขวา",
@@ -101,6 +115,20 @@ export const T = {
     addPhoto: "+ Add another photo of the same receipt",
     longHint: "A very long receipt? Take it in several photos (up to 4). Make each photo overlap the end of the previous one by 2–3 lines, in order from top to bottom. They are read as one receipt, and we check they really are the same one.",
     orderHint: "In order from the top of the receipt to the bottom (use the arrows to reorder).",
+    slipCheckTitle: "Check with the bank",
+    slipCheckIntro: "A bank slip carries a small QR code that can ask the bank whether this transfer exists, and whether its amount and date match what was read. The slip image alone cannot prove it is real or fake.",
+    slipNoService: "This demo has no bank-check service set up (whoever installs the app must configure a slip verification service first).",
+    slipScanning: "Looking for the slip's QR code in the photo…",
+    slipNoQr: "No bank slip QR code was found in the photo (it is a small QR code, usually near the end of the slip, and it must be sharp and not cropped), so the bank can't be asked. That does not mean the slip is fake.",
+    slipDisclosure: "When you press the button, only the text inside the QR code (the sending bank's code and the transaction reference) is sent, through this server, to a third-party slip verification service ({provider}). The slip image is not sent.",
+    slipCheck: "Check with the bank",
+    slipChecking: "Asking the bank…",
+    slipRecheck: "Check again",
+    slipVerified: "The bank confirms this transfer exists (bank's record: {amount} baht on {date})",
+    slipVerifiedNote: "This only confirms that a transfer with this reference exists. Look at whether the amount and date match the fields below (a red warning appears if they don't). It has not checked that the receiver is your account, or whether this slip was already used.",
+    slipMismatch: "The bank has a transfer with this reference, but its amount or date does not match the slip (bank's record: {amount} baht on {date}). See the red warning in the list to check.",
+    slipNotFoundStatus: "The bank has no such transfer. That alone does not show whether the slip is real or fake (see the explanation in the list to check).",
+    slipPendingStatus: "The bank can't confirm yet. The transfer may be very recent. Try again in a few minutes.",
     movePhoto: "Move photo {n} {dir}",
     moveLeft: "left",
     moveRight: "right",
@@ -183,12 +211,12 @@ export const tpl = fill;
 const FIELD: Record<Lang, Record<string, string>> = {
   th: {
     documentType: "ประเภทเอกสาร", merchant: "ชื่อร้าน / ผู้รับเงิน", payer: "ผู้โอน", reference: "เลขที่อ้างอิง", taxId: "เลขผู้เสียภาษี", fee: "ค่าธรรมเนียม", date: "วันที่", time: "เวลา", currency: "สกุลเงิน",
-    subtotal: "ยอดก่อน VAT", vat: "VAT", total: "ยอดรวม", lineItems: "รายการสินค้า",
+    subtotal: "ยอดก่อน VAT", vat: "VAT", total: "ยอดรวม", lineItems: "รายการสินค้า", verification: "ตรวจกับธนาคาร",
     description: "ชื่อรายการ", quantity: "จำนวน", unitPrice: "ราคาต่อหน่วย", amount: "จำนวนเงิน",
   },
   en: {
     documentType: "Document type", merchant: "Shop / payee", payer: "Payer", reference: "Reference", taxId: "Tax ID", fee: "Fee", date: "Date", time: "Time", currency: "Currency",
-    subtotal: "Subtotal", vat: "VAT", total: "Total", lineItems: "Items",
+    subtotal: "Subtotal", vat: "VAT", total: "Total", lineItems: "Items", verification: "Bank check",
     description: "Item name", quantity: "Quantity", unitPrice: "Unit price", amount: "Amount",
   },
 };
@@ -229,6 +257,11 @@ const FLAG: Record<Lang, Record<string, string>> = {
     invalid_tax_id: "เลขผู้เสียภาษี {text} ไม่ถูกต้อง (หลักตรวจสุดท้ายไม่ตรง) อาจอ่านตัวเลขผิด ตรวจกับรูปต้นฉบับ",
     merged_images: "อ่านจาก {count} รูปที่ต่อกันจากบนลงล่าง ตรวจบรรทัดตรงรอยต่อของรูป ไม่ควรมีบรรทัดตกหล่นหรือซ้ำ",
     not_a_receipt: "ระบบไม่แน่ใจว่าเอกสารนี้เป็นใบเสร็จหรือสลิปโอนเงิน ถ้าใช่ ให้เลือกประเภทเอกสารให้ถูกต้อง ถ้าไม่ใช่ ข้อมูลด้านล่างอาจเป็นข้อมูลที่ไม่มีอยู่จริง",
+    slip_amount_mismatch: "ยอดในสลิปคือ {printed} แต่ธนาคารบันทึกรายการนี้ไว้ {bank} ตรวจตัวเลขกับรูปต้นฉบับ ถ้าอ่านถูกแล้ว สลิปอาจถูกแก้ไข ควรระวังก่อนใช้สลิปนี้",
+    slip_date_mismatch: "วันที่ในสลิปคือ {printed} แต่ธนาคารบันทึกรายการนี้ไว้วันที่ {bank} ตรวจวันที่กับรูปต้นฉบับ ถ้าอ่านถูกแล้ว สลิปอาจถูกแก้ไข ควรระวังก่อนใช้สลิปนี้",
+    slip_reference_mismatch: "เลขอ้างอิงในสลิป ({printed}) ไม่ตรงกับของธนาคาร ({bank}) ตรวจว่าอ่านเลขถูกหรือไม่ หรือสลิปแสดงเลขหลายชุด",
+    slip_not_found: "ธนาคารไม่พบรายการโอนตามเลขอ้างอิงนี้ สลิปอาจเป็นของปลอมหรือถูกแก้ไข หรือรายการเพิ่งโอน หรือเป็นธนาคารที่บริการนี้ตรวจไม่ได้ ผลนี้ยังสรุปไม่ได้ว่าจริงหรือปลอม",
+    slip_pending: "ธนาคารยังยืนยันรายการนี้ไม่ได้ (รายการอาจเพิ่งโอน) ลองตรวจอีกครั้งในอีกสักครู่",
   },
   en: {
     missing_total: "The total is missing.",
@@ -253,6 +286,11 @@ const FLAG: Record<Lang, Record<string, string>> = {
     invalid_tax_id: "Tax ID {text} is not valid (its check digit does not match), so a digit may have been misread. Check it against the original.",
     merged_images: "Read from {count} photos, top to bottom. Check the lines where the photos meet: none should be missing or repeated.",
     not_a_receipt: "We aren't sure this is a receipt or transfer slip. If it is, set the document type. If not, the data below may be made up.",
+    slip_amount_mismatch: "The slip shows {printed} but the bank's record of this transfer is {bank}. Check the number against the original. If it was read correctly, the slip may have been altered, so be careful before relying on it.",
+    slip_date_mismatch: "The slip shows {printed} but the bank's record of this transfer is dated {bank}. Check the date against the original. If it was read correctly, the slip may have been altered, so be careful before relying on it.",
+    slip_reference_mismatch: "The reference on the slip ({printed}) differs from the bank's ({bank}). Check it was read correctly, or whether the slip shows more than one number.",
+    slip_not_found: "The bank has no transfer with this reference. The slip may be forged or altered, or the transfer is very recent, or it is from a bank this service can't check. This alone does not show whether the slip is real or fake.",
+    slip_pending: "The bank can't confirm this transfer yet (it may be very recent). Try again in a few minutes.",
   },
 };
 
@@ -288,6 +326,11 @@ export function flagText(f: Flag, lang: Lang): string {
     case "addon_split": return tpl(t.addon_split!, p);
     case "merged_images": return tpl(t.merged_images!, p);
     case "invalid_tax_id": return tpl(t.invalid_tax_id!, p);
+    case "slip_amount_mismatch": return tpl(t.slip_amount_mismatch!, p);
+    case "slip_date_mismatch": return tpl(t.slip_date_mismatch!, p);
+    case "slip_reference_mismatch": return tpl(t.slip_reference_mismatch!, p);
+    case "slip_not_found": return t.slip_not_found!;
+    case "slip_pending": return t.slip_pending!;
     default: return f.message;
   }
 }
@@ -307,6 +350,12 @@ const API: Record<Lang, Record<string, string>> = {
     extract_failed: "อ่านข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง",
     busy: "ตอนนี้มีคนใช้งานเยอะ ลองใหม่อีกครั้งในอีกสักครู่ (ประมาณ {seconds} วินาที)",
     too_many_images: "ใช้ได้สูงสุด 4 รูปต่อหนึ่งใบเสร็จ",
+    invalid_qr: "ข้อความที่อ่านได้จาก QR ไม่ใช่ QR ตรวจสลิปของธนาคาร หรืออ่านผิดพลาด ลองถ่ายหรือครอปสลิปให้เห็น QR ชัดขึ้น",
+    slip_verify_disabled: "เซิร์ฟเวอร์นี้ยังไม่ได้ตั้งค่าบริการตรวจสลิป",
+    slip_unavailable_rejected: "บริการตรวจสลิปปฏิเสธคำขอ (คีย์ไม่ถูกต้องหรือถูกปิดใช้งาน) ต้องให้ผู้ดูแลตรวจสอบ",
+    slip_unavailable_quota: "บริการตรวจสลิปใช้โควตาหมดแล้ว ต้องให้ผู้ดูแลเพิ่มโควตา",
+    slip_unavailable_busy: "บริการตรวจสลิปรับคำขอไม่ทัน ลองใหม่อีกครั้งในอีกสักครู่",
+    slip_unavailable_error: "ถามธนาคารไม่สำเร็จในครั้งนี้ ซึ่งไม่ได้แปลว่าสลิปปลอม ลองใหม่อีกครั้ง",
     different_documents: "รูปเหล่านี้ดูเหมือนไม่ใช่ใบเสร็จใบเดียวกัน ระบบไม่ได้รวมให้ เอารูปที่ไม่เกี่ยวข้องออก หรืออัปโหลดแยกทีละใบ",
     different_documents_fields: "รูปเหล่านี้ดูเหมือนไม่ใช่ใบเสร็จใบเดียวกัน ({fields} ไม่ตรงกัน) ระบบไม่ได้รวมให้ เอารูปที่ไม่เกี่ยวข้องออก หรืออัปโหลดแยกทีละใบ",
     handwritten: "รูปนี้เขียนด้วยลายมือ ระบบรองรับเฉพาะใบเสร็จและสลิปโอนเงินแบบพิมพ์ เพราะอ่านลายมือไม่แม่น โดยเฉพาะตัวเลข กรุณาใช้เอกสารที่พิมพ์ออกมา",
@@ -326,6 +375,12 @@ const API: Record<Lang, Record<string, string>> = {
     extract_failed: "Couldn't read the document. Please try again.",
     busy: "The service is busy right now. Please try again in a moment (about {seconds} s).",
     too_many_images: "At most 4 photos can be read as one receipt.",
+    invalid_qr: "The text read from the QR code is not a bank slip QR code, or it was read wrongly. Try a sharper photo or crop the slip so the QR code is clear.",
+    slip_verify_disabled: "Slip checking is not set up on this server.",
+    slip_unavailable_rejected: "The slip checking service refused the request (the key is invalid or disabled). Whoever runs this app needs to look at it.",
+    slip_unavailable_quota: "The slip checking service has run out of quota. Whoever runs this app needs to add more.",
+    slip_unavailable_busy: "The slip checking service is busy. Try again in a moment.",
+    slip_unavailable_error: "The bank could not be asked this time. That does not mean the slip is fake. Try again.",
     different_documents: "These photos don't look like the same receipt, so they were not combined. Remove the one that doesn't belong, or upload them one at a time.",
     different_documents_fields: "These photos don't look like the same receipt ({fields} differ), so they were not combined. Remove the one that doesn't belong, or upload them one at a time.",
     handwritten: "This looks handwritten. Only printed receipts and transfer slips are supported, because handwriting, especially numbers, can't be read reliably. Please use a printed document.",
@@ -342,6 +397,8 @@ export interface ApiError {
   /** For pdf_too_many_pages: the page count of the file and the most that can be read. */
   pages?: number;
   max?: number;
+  /** For slip_unavailable: why the service could not answer. */
+  reason?: string;
 }
 
 const CONFLICT_FIELDS: Record<Lang, Record<string, string>> = {
@@ -353,7 +410,10 @@ const CONFLICT_FIELDS: Record<Lang, Record<string, string>> = {
 export function apiErrorText(e: ApiError, lang: Lang): string {
   const minutes = e.retryAfterSec ? Math.max(1, Math.ceil(e.retryAfterSec / 60)) : 1;
   const seconds = e.retryAfterSec ?? 15;
-  const key = e.code === "different_documents" && e.fields?.length ? "different_documents_fields" : e.code ?? "";
+  const key =
+    e.code === "different_documents" && e.fields?.length ? "different_documents_fields"
+    : e.code === "slip_unavailable" ? `slip_unavailable_${e.reason ?? "error"}`
+    : e.code ?? "";
   const fields = (e.fields ?? []).map((f) => CONFLICT_FIELDS[lang][f] ?? f).join(lang === "th" ? ", " : ", ");
   const base = tpl(API[lang][key] ?? API[lang].generic!, { minutes, seconds, fields, pages: e.pages ?? 0, max: e.max ?? 0 });
   return e.detail ? `${base} (${e.detail})` : base;

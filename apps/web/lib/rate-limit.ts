@@ -48,6 +48,12 @@ const DAY = 24 * HOUR;
 export const perVisitor = createLimiter(int(process.env.RATE_LIMIT_PER_HOUR, 10), HOUR);
 export const wholeSite = createLimiter(int(process.env.RATE_LIMIT_PER_DAY, 200), DAY);
 
+/**
+ * Asking the bank is a paid call to a third-party service, so it has its own
+ * per-visitor limit, apart from the one for reading documents.
+ */
+export const slipPerVisitor = createLimiter(int(process.env.SLIP_RATE_LIMIT_PER_HOUR, 20), HOUR);
+
 /** Best-effort client IP. On Vercel, x-forwarded-for is set by the platform. */
 export function clientKey(headers: Headers): string {
   return (

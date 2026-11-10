@@ -1,5 +1,6 @@
 import { isDiscountLabel } from "./discount.js";
 import type { Flag, Receipt } from "./schema.js";
+import { verificationFlags } from "./slip.js";
 
 export interface ValidateOptions {
   today?: Date;
@@ -231,6 +232,9 @@ export function validateReceipt(
       });
     }
   }
+
+  // What the bank said about a transfer slip, compared with the figures as they are now.
+  flags.push(...verificationFlags(r));
 
   return flags;
 }
