@@ -26,7 +26,8 @@ const row = (cells: (string | number | null)[]) => cells.map(csvCell).join(",");
 export function toCSV(receipt: Receipt): string {
   const header = [
     "document_type", "merchant", "date", "time", "currency",
-    "subtotal", "vat", "total", "payer", "reference", "fee", "tax_id", "recipient_name", "bank_check",
+    "subtotal", "vat", "total", "payer", "reference", "fee", "tax_id", "recipient_name",
+    "bank_check", "bank_provider", "bank_checked_at", "bank_amount", "bank_date", "bank_trans_ref",
     "item_description", "item_quantity", "item_unit_price", "item_amount",
   ];
   const doc = [
@@ -35,6 +36,11 @@ export function toCSV(receipt: Receipt): string {
     receipt.payer, receipt.reference, receipt.fee, receipt.taxId,
     receipt.recipientName,
     receipt.verification?.status ?? null,
+    receipt.verification?.provider ?? null,
+    receipt.verification?.checkedAt ?? null,
+    receipt.verification?.bank?.amount ?? null,
+    receipt.verification?.bank?.date ?? null,
+    receipt.verification?.bank?.transRef ?? null,
   ];
   const items = receipt.lineItems.length
     ? receipt.lineItems.map((i) => [i.description, i.quantity, i.unitPrice, i.amount])

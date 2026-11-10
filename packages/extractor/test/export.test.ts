@@ -21,22 +21,59 @@ describe("export", () => {
     expect(lines[1]).toContain("ลาเต้เย็น,2,65,130");
   });
 
-  it("exports the payer, reference and fee of a slip", () => {
-    const csv = toCSV(normalizeExtraction(fx.transferSlip, { today }));
+  /** The cells of the first data row, by column name. */
+  const cells = (csv: string) => {
     const [header, row] = csv.replace("\uFEFF", "").trim().split("\r\n");
-    expect(header).toContain("total,payer,reference,fee,tax_id,recipient_name,bank_check,item_description");
-    // tax_id, recipient_name and bank_check are empty for this slip
-    expect(row).toContain("2500,นายสมมติ ตัวอย่าง,202509030941" + "0001,0,,,,");
+    const names = header!.split(",");
+    const values = row!.split(",");
+    return { names, get: (name: string) => values[names.indexOf(name)] };
+  };
+
+  it("exports the payer, reference and fee of a slip", () => {
+    const { names, get } = cells(toCSV(normalizeExtraction(fx.transferSlip, { today })));
+    expect(names.slice(names.indexOf("total"), names.indexOf("item_description"))).toEqual([
+      "total", "payer", "reference", "fee", "tax_id", "recipient_name",
+      "bank_check", "bank_provider", "bank_checked_at", "bank_amount", "bank_date", "bank_trans_ref",
+    ]);
+    expect(get("total")).toBe("2500");
+    expect(get("payer")).toBe("นายสมมติ ตัวอย่าง");
+    expect(get("reference")).toBe("202509030941" + "0001");
+    expect(get("fee")).toBe("0");
+    // nothing about the bank for a slip nobody checked
+    for (const c of ["bank_check", "bank_provider", "bank_checked_at", "bank_amount", "bank_date", "bank_trans_ref"]) expect(get(c), c).toBe("");
   });
 
-  it("records the result of checking a slip with the bank", () => {
+  it("records what the bank said about a slip, next to the status", () => {
     const receipt = normalizeExtraction(fx.transferSlip, { today });
-    const csv = toCSV({
-      ...receipt,
-      verification: { status: "not_found", provider: "easyslip", checkedAt: "2026-11-10T06:00:00.000Z" },
-    });
-    const [, row] = csv.replace("\uFEFF", "").trim().split("\r\n");
-    expect(row).toContain(",,not_found,");
+    const { get } = cells(
+      toCSV({
+        ...receipt,
+        verification: {
+          status: "verified",
+          provider: "slip2go",
+          checkedAt: "2026-11-10T06:00:00.000Z",
+          bank: { transRef: "2025090309410001", date: "2025-09-03T09:41:00+07:00", amount: 2500, fee: 0, senderBank: "004", receiverBank: "014" },
+        },
+      }),
+    );
+    expect(get("bank_check")).toBe("verified");
+    expect(get("bank_provider")).toBe("slip2go");
+    expect(get("bank_checked_at")).toBe("2026-11-10T06:00:00.000Z");
+    expect(get("bank_amount")).toBe("2500");
+    expect(get("bank_date")).toBe("2025-09-03T09:41:00+07:00");
+    expect(get("bank_trans_ref")).toBe("2025090309410001");
+  });
+
+  it("says when the bank was asked but could not answer or had no such transfer, with no bank figures", () => {
+    const receipt = normalizeExtraction(fx.transferSlip, { today });
+    for (const [status, reason] of [["not_found", undefined], ["pending", undefined], ["unavailable", "busy"]] as const) {
+      const { get } = cells(toCSV({ ...receipt, verification: { status, reason, provider: "easyslip", checkedAt: "2026-11-10T06:00:00.000Z" } }));
+      expect(get("bank_check")).toBe(status);
+      expect(get("bank_provider")).toBe("easyslip");
+      expect(get("bank_checked_at")).toBe("2026-11-10T06:00:00.000Z");
+      expect(get("bank_amount")).toBe("");
+      expect(get("bank_trans_ref")).toBe("");
+    }
   });
 
   it("keeps totals for a slip with no line items", () => {

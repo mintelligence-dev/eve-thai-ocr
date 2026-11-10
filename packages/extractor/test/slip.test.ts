@@ -147,6 +147,16 @@ describe("verificationFlags", () => {
   });
 });
 
+describe("a bank check that could not be answered", () => {
+  it("raises no flag, since it says nothing about the slip, and is kept through edits", () => {
+    const asked = slip({ verification: { status: "unavailable", reason: "quota", provider: "test", checkedAt: "2025-10-14T00:00:00Z" } });
+    expect(verificationFlags(asked)).toEqual([]);
+    const edited = revalidate({ ...asked, total: 1 }, { today, previous: asked });
+    expect(edited.flags.some((f) => f.code.startsWith("slip_"))).toBe(false);
+    expect(edited.verification).toMatchObject({ status: "unavailable", reason: "quota" });
+  });
+});
+
 describe("editing a slip after the bank was asked", () => {
   it("raises the amount error again when the amount is changed, and clears it when put right", () => {
     const checked = withBank(bank());

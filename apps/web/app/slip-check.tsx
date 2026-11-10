@@ -72,8 +72,22 @@ export function SlipCheck({
         body: JSON.stringify({ payload: found.payload }),
       });
       const body = await res.json().catch(() => ({}));
-      if (res.ok && body.verification) onVerified(body.verification as Verification);
-      else setError(body ?? {});
+      if (res.ok && body.verification) {
+        onVerified(body.verification as Verification);
+      } else {
+        setError(body ?? {});
+        // Note that it was asked and could not be answered, so an export says so. An answer already
+        // had (verified, not found, pending) is kept: a later failure does not undo it.
+        const reasons = ["rejected", "quota", "busy", "error"];
+        if (body?.code === "slip_unavailable" && (!verification || verification.status === "unavailable")) {
+          onVerified({
+            status: "unavailable",
+            reason: reasons.includes(body.reason) ? body.reason : "error",
+            provider: service?.provider ?? "",
+            checkedAt: new Date().toISOString(),
+          });
+        }
+      }
     } catch {
       setError({});
     } finally {
@@ -111,6 +125,7 @@ export function SlipCheck({
       )}
       {verification?.status === "not_found" && <div className="verify-status warn" role="status">{t.slipNotFoundStatus}</div>}
       {verification?.status === "pending" && <div className="verify-status warn" role="status">{t.slipPendingStatus}</div>}
+      {verification?.status === "unavailable" && <div className="verify-status warn" role="status">{t.slipUnavailableStatus}</div>}
     </section>
   );
 }

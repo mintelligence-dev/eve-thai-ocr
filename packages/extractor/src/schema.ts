@@ -166,8 +166,14 @@ export type BankSlip = z.infer<typeof BankSlipSchema>;
  * date is compared with the bank's figures again, and so an export records it.
  */
 export const VerificationSchema = z.object({
-  /** verified: the bank has this transfer. not_found: it has no such transfer. pending: too recent to tell. */
-  status: z.enum(["verified", "not_found", "pending"]),
+  /**
+   * verified: the bank has this transfer. not_found: it has no such transfer. pending: too
+   * recent to tell. unavailable: it was asked, but the service or the bank could not answer;
+   * that says nothing about the slip.
+   */
+  status: z.enum(["verified", "not_found", "pending", "unavailable"]),
+  /** For unavailable: why (the key was refused, out of quota, busy, or another error). */
+  reason: z.enum(["rejected", "quota", "busy", "error"]).optional(),
   /** Name of the service that looked it up. */
   provider: z.string(),
   /** When it was looked up (ISO timestamp). */
