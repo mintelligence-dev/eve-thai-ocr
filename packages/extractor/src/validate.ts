@@ -1,6 +1,7 @@
 import { isDiscountLabel } from "./discount.js";
 import type { Flag, Receipt } from "./schema.js";
 import { verificationFlags } from "./slip.js";
+import { isValidThaiTaxId, taxIdDigits } from "./taxid.js";
 
 export interface ValidateOptions {
   today?: Date;
@@ -231,6 +232,30 @@ export function validateReceipt(
         params: { vat: r.vat.toFixed(2), rate: (vatRate * 100).toFixed(0) },
       });
     }
+  }
+
+  // These two depend only on the value as it is now, so they are checked here (and
+  // again after every edit) rather than once when the document is read.
+  if (r.currency && r.currency.toUpperCase() !== "THB") {
+    flags.push({
+      path: "currency",
+      code: "unsupported_currency",
+      severity: "warning",
+      message: `Currency ${r.currency} is not THB. Amounts are not converted.`,
+      params: { currency: r.currency },
+    });
+  }
+
+  // A misread digit nearly always breaks the check digit, so a bad ID is flagged.
+  const taxId = r.taxId ? taxIdDigits(r.taxId) : "";
+  if (taxId && !isValidThaiTaxId(taxId)) {
+    flags.push({
+      path: "taxId",
+      code: "invalid_tax_id",
+      severity: "warning",
+      message: `Tax ID "${taxId}" is not a valid 13-digit Thai tax ID (the check digit does not match). It may have been misread.`,
+      params: { text: taxId },
+    });
   }
 
   // What the bank said about a transfer slip, compared with the figures as they are now.

@@ -1,6 +1,6 @@
 import { splitAddOns } from "./addons.js";
 import { assumeSingleUnits } from "./assume.js";
-import { isValidThaiTaxId, taxIdDigits } from "./taxid.js";
+import { taxIdDigits } from "./taxid.js";
 import type { Flag, LineItem, RawExtraction, Receipt } from "./schema.js";
 import {
   hasTooManyDecimals,
@@ -104,15 +104,6 @@ export function normalizeExtraction(
   // Receipts write the baht as THB, BHT, ฿ or บาท; they all mean the same thing.
   const rawCurrency = clean(raw.currency)?.toUpperCase();
   const currency = rawCurrency && !["BHT", "BAHT", "฿", "บาท"].includes(rawCurrency) ? rawCurrency : "THB";
-  if (currency !== "THB") {
-    flags.push({
-      path: "currency",
-      code: "unsupported_currency",
-      severity: "warning",
-      message: `Currency ${currency} is not THB. Amounts are not converted.`,
-      params: { currency },
-    });
-  }
 
   // A transfer slip has no line items; anything the model listed is a misread
   // of the slip's own fields (From, To, fee...), so it is dropped.
@@ -146,18 +137,8 @@ export function normalizeExtraction(
     });
   }
 
-  // A misread digit nearly always breaks the check digit, so a bad ID is flagged.
   const taxIdText = clean(raw.taxIdText);
   const taxId = taxIdText ? taxIdDigits(taxIdText) || null : null;
-  if (taxId && !isValidThaiTaxId(taxId)) {
-    flags.push({
-      path: "taxId",
-      code: "invalid_tax_id",
-      severity: "warning",
-      message: `Tax ID "${taxId}" is not a valid 13-digit Thai tax ID (the check digit does not match). It may have been misread.`,
-      params: { text: taxId },
-    });
-  }
 
   const base: Omit<Receipt, "flags"> = {
     documentType: raw.documentType,
@@ -208,11 +189,73 @@ export function normalizeExtraction(
   return { ...base, flags: [...flags, ...checks] };
 }
 
+/** Flags that record how a field was read, and so hold until that field is changed. */
+const FIELD_FLAGS = new Set<Flag["code"]>(["model_uncertain", "unparseable", "two_digit_year", "addon_split"]);
+
+const SCALAR_FIELDS = [
+  "documentType", "merchant", "payer", "reference", "taxId", "fee",
+  "date", "time", "currency", "subtotal", "vat", "total",
+] as const;
+type ScalarField = (typeof SCALAR_FIELDS)[number];
+
+const ITEM_CELL = /^lineItems\.(\d+)\.(description|quantity|unitPrice|amount)$/;
+const ITEM_ROW = /^lineItems\.(\d+)$/;
+
+/**
+ * Does a flag from before an edit still hold after it? The flags that say how a
+ * field was read (the model was unsure, a date had a two-digit year, a price had to
+ * be split) are about that field's value, so they stay until the value changes.
+ * A line item is told apart by its name: if rows were removed or reordered, the
+ * flag of a row that is no longer there is dropped rather than put on another row.
+ */
+function stillHolds(flag: Flag, before: Receipt, after: Receipt): boolean {
+  if (flag.code === "merged_images") return true; // about the whole document
+  if (!FIELD_FLAGS.has(flag.code)) return false; // recomputed by validateReceipt
+
+  const cell = ITEM_CELL.exec(flag.path);
+  if (cell) {
+    const a = before.lineItems[Number(cell[1])];
+    const b = after.lineItems[Number(cell[1])];
+    const field = cell[2] as keyof LineItem;
+    return !!a && !!b && a.description === b.description && a[field] === b[field];
+  }
+  const row = ITEM_ROW.exec(flag.path);
+  if (row) {
+    const a = before.lineItems[Number(row[1])];
+    const b = after.lineItems[Number(row[1])];
+    return !!a && !!b && a.description === b.description && a.quantity === b.quantity && a.unitPrice === b.unitPrice && a.amount === b.amount;
+  }
+  // The summary "the model doubted N item cells" holds while the list keeps its length.
+  if (flag.path === "lineItems") return before.lineItems.length === after.lineItems.length;
+  if ((SCALAR_FIELDS as readonly string[]).includes(flag.path)) {
+    const field = flag.path as ScalarField;
+    return before[field] === after[field];
+  }
+  return false;
+}
+
+export interface RevalidateOptions extends ValidateOptions {
+  /**
+   * The receipt as it was before the edit. Flags that describe how the document was
+   * read are kept for every field the edit did not change. Without it only the flag
+   * about merged photos is kept, and the rest are dropped (every other flag is
+   * recomputed from the current values either way).
+   */
+  previous?: Receipt;
+}
+
 /** Re-run validation after a user edit (e.g. on the review screen). */
-export function revalidate(
-  receipt: Receipt,
-  options: ValidateOptions = {},
-): Receipt {
-  const { flags: _old, ...base } = receipt;
-  return { ...base, flags: validateReceipt(base, options) };
+export function revalidate(receipt: Receipt, options: RevalidateOptions = {}): Receipt {
+  const { flags: carried, ...base } = receipt;
+  const { previous, ...validateOptions } = options;
+
+  const kept = (previous?.flags ?? carried).filter((f) =>
+    f.code === "merged_images" || (previous !== undefined && stillHolds(f, previous, receipt)),
+  );
+  // A field that still cannot be read already has an error; don't also say "missing".
+  const failed = new Set(kept.filter((f) => f.code === "unparseable").map((f) => f.path));
+  const checks = validateReceipt(base, validateOptions).filter(
+    (f) => !(f.code === "missing" && failed.has(f.path)),
+  );
+  return { ...base, flags: [...kept, ...checks] };
 }

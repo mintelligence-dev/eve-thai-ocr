@@ -229,7 +229,8 @@ export default function Home() {
   }
 
   function edit(patch: Partial<Receipt>) {
-    setReceipt((r) => (r ? revalidate({ ...r, ...patch }) : r));
+    // `previous` lets the flags about how the document was read survive edits to other fields.
+    setReceipt((r) => (r ? revalidate({ ...r, ...patch }, { previous: r }) : r));
     setReviewed(false);
   }
 
