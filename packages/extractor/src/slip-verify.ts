@@ -247,11 +247,108 @@ export function createSlipOkVerifier(options: SlipOkOptions): SlipVerifier {
 }
 
 // ---------------------------------------------------------------------------
+// Slip2Go
+// ---------------------------------------------------------------------------
+
+export interface Slip2GoOptions extends CallOptions {
+  /** The shop's Secret Key (API Connect > Authentication in the Slip2Go dashboard). */
+  secretKey: string;
+  /** Default https://connect.slip2go.com . Tests and local stand-ins point this elsewhere. */
+  baseUrl?: string;
+}
+
+/** Pick the figures we keep out of Slip2Go's `data`. Its answer has no fee. Null if it does not look like a bank slip. */
+function readSlip2Go(data: unknown): BankSlip | null {
+  if (!isRecord(data)) return null;
+  const amount = numeric(data.amount);
+  const transRef = str(data.transRef);
+  if (amount === null || amount < 0 || transRef === null) return null;
+  const dateTime = str(data.dateTime);
+  const bankId = (party: unknown) => (isRecord(party) && isRecord(party.bank) ? bankCode(party.bank.id) : null);
+  return {
+    transRef,
+    date: dateTime && !Number.isNaN(Date.parse(dateTime)) ? dateTime : null,
+    amount,
+    fee: null,
+    senderBank: bankId(data.sender),
+    receiverBank: bankId(data.receiver),
+  };
+}
+
+/**
+ * What a Slip2Go result code means for us (the table on its "Response" guide page).
+ * Slip2Go answers most questions with HTTP 200 and the verdict in `code`.
+ *  - 200404 "Slip not found" is not found. 200500 "Slip is fraud" is shown as not found
+ *    too: the app has no stronger word than "the bank has no such transfer".
+ *  - There is no "too recent" code (Bangkok Bank and SCB slips need a few minutes), so a
+ *    very new slip probably comes back as 200404; the not-found message says so.
+ *  - 200401/200402/200403 (receiver, amount, date) and 200501 (duplicate) only come back
+ *    when the request carries `checkCondition`, which this one never does.
+ */
+function slip2GoError(code: string): SlipCheck {
+  switch (code) {
+    case "200404":
+    case "200500":
+      return { status: "not_found" };
+    case "200502": // an error from the bank itself, try again
+    case "429000": // too many requests
+    case "500503": // scheduled maintenance
+      return unavailable("busy");
+    case "401001": // token mismatch
+    case "401002": // shop not found
+    case "401003": // account not found or suspended
+    case "401007": // this IP is not allowed
+      return unavailable("rejected");
+    case "401004": // package expired
+    case "401005": // out of tokens
+    case "401006": // out of credit
+      return unavailable("quota");
+    default:
+      return unavailable("error");
+  }
+}
+
+/**
+ * Slip2Go (https://slip2go.com), "verify slip by QR code": `POST
+ * /api/verify-slip/qr-code/info` with `Authorization: Bearer <Secret Key>` and the QR
+ * text as `payload.qrCode`. Written from its public guides (the QR-code, Authentication
+ * and Response pages) and the API Connect page of its dashboard, which gives the
+ * address. The request leaves out `checkCondition`, so no duplicate, amount, date or
+ * receiver check is asked for: those are done by this app. Anything the guides do not
+ * cover is reported as `unavailable`, never as verified.
+ */
+export function createSlip2GoVerifier(options: Slip2GoOptions): SlipVerifier {
+  const base = (options.baseUrl ?? "https://connect.slip2go.com").replace(/\/+$/, "");
+  const url = `${base}/api/verify-slip/qr-code/info`;
+
+  return {
+    name: "slip2go",
+    async verify({ payload, signal }) {
+      const res = await postJson(options, url, { Authorization: `Bearer ${options.secretKey}` }, { payload: { qrCode: payload } }, signal);
+      if (!res) return unavailable("error");
+      const { body } = res;
+      const code = isRecord(body) && (typeof body.code === "string" || typeof body.code === "number") ? String(body.code) : null;
+
+      if (code === null) {
+        if (res.status === 401 || res.status === 403) return unavailable("rejected");
+        return res.status === 429 ? unavailable("busy") : unavailable("error");
+      }
+      if (code === "200000" || code === "200200") {
+        const bank = res.ok && isRecord(body) ? readSlip2Go(body.data) : null;
+        return bank ? { status: "verified", bank } : unavailable("error");
+      }
+      return slip2GoError(code);
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 
 /**
  * The verifier chosen by environment variables, or null when none is set up:
  *  - SLIP_VERIFY_PROVIDER=easyslip with SLIP_VERIFY_API_KEY
  *  - SLIP_VERIFY_PROVIDER=slipok with SLIP_VERIFY_API_KEY and SLIP_VERIFY_BRANCH_ID
+ *  - SLIP_VERIFY_PROVIDER=slip2go with SLIP_VERIFY_API_KEY (the shop's Secret Key)
  * SLIP_VERIFY_BASE_URL overrides the service address (for tests and local stand-ins).
  */
 export function slipVerifierFromEnv(env: Record<string, string | undefined>): SlipVerifier | null {
@@ -262,5 +359,6 @@ export function slipVerifierFromEnv(env: Record<string, string | undefined>): Sl
   if (!apiKey) return null;
   if (provider === "easyslip") return createEasySlipVerifier({ apiKey, baseUrl });
   if (provider === "slipok" && branchId) return createSlipOkVerifier({ apiKey, branchId, baseUrl });
+  if (provider === "slip2go") return createSlip2GoVerifier({ secretKey: apiKey, baseUrl });
   return null;
 }

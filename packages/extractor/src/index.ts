@@ -26,9 +26,11 @@ export { parseSlipQr, crc16CcittFalse, verificationFlags, bangkokDay, type SlipQ
 export {
   createEasySlipVerifier,
   createSlipOkVerifier,
+  createSlip2GoVerifier,
   slipVerifierFromEnv,
   type EasySlipOptions,
   type SlipOkOptions,
+  type Slip2GoOptions,
   type SlipCheck,
   type SlipVerifier,
 } from "./slip-verify.js";

@@ -108,6 +108,55 @@ describe("with SlipOK", () => {
   });
 });
 
+describe("with Slip2Go", () => {
+  const SLIP2GO_ANSWER = {
+    code: "200000",
+    message: "Slip found.",
+    data: { transRef: "015073144041ATF00999", dateTime: "2025-10-05T14:48:00.000Z", amount: 1, sender: { bank: { id: "014" } }, receiver: { bank: { id: "004" } } },
+  };
+  const enableSlip2Go = () => {
+    vi.stubEnv("SLIP_VERIFY_PROVIDER", "slip2go");
+    vi.stubEnv("SLIP_VERIFY_API_KEY", "test-secret");
+  };
+
+  it("needs only the secret key, and says which service it is", async () => {
+    vi.stubEnv("SLIP_VERIFY_PROVIDER", "slip2go");
+    const { GET } = await loadRoute();
+    expect(await GET().json()).toEqual({ enabled: false });
+    enableSlip2Go();
+    expect(await GET().json()).toEqual({ enabled: true, provider: "slip2go" });
+  });
+
+  it("sends Slip2Go only the QR text, and returns the same kind of result", async () => {
+    enableSlip2Go();
+    const fetchMock = answer(200, SLIP2GO_ANSWER);
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await loadRoute();
+    const res = await POST(post({ payload: PAYLOAD }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).verification).toMatchObject({
+      status: "verified",
+      provider: "slip2go",
+      bank: { transRef: "015073144041ATF00999", amount: 1, fee: null, senderBank: "014", receiverBank: "004" },
+    });
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://connect.slip2go.com/api/verify-slip/qr-code/info");
+    expect(JSON.parse(init.body as string)).toEqual({ payload: { qrCode: PAYLOAD } });
+  });
+
+  it("passes on 'slip not found' as a result, and a bank error as unavailable", async () => {
+    enableSlip2Go();
+    const { POST } = await loadRoute();
+    vi.stubGlobal("fetch", answer(200, { code: "200404", message: "Slip not found." }));
+    expect((await (await POST(post({ payload: PAYLOAD }))).json()).verification.status).toBe("not_found");
+
+    vi.stubGlobal("fetch", answer(200, { code: "200502", message: "Bank error, Please try again." }));
+    const res = await POST(post({ payload: PAYLOAD }));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ code: "slip_unavailable", reason: "busy" });
+  });
+});
+
 describe("POST /api/verify-slip", () => {
   it("refuses when no service is set up, and asks nobody", async () => {
     const fetchMock = answer(200, BANK_ANSWER);
