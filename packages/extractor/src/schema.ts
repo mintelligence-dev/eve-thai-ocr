@@ -117,6 +117,9 @@ export const FlagSchema = z.object({
     "slip_amount_mismatch",
     "slip_date_mismatch",
     "slip_reference_mismatch",
+    "slip_payer_mismatch",
+    "slip_receiver_mismatch",
+    "slip_time_mismatch",
     "slip_qr_reference_mismatch",
   ]),
   severity: z.enum(["error", "warning"]),
@@ -158,6 +161,13 @@ export const BankSlipSchema = z.object({
   senderBank: z.string().nullable(),
   /** 3-digit Bank of Thailand code of the receiver's bank. */
   receiverBank: z.string().nullable(),
+  /**
+   * The sender's and the receiver's names as the bank's record gives them (account
+   * numbers are not kept). They may be cut short, or hold a shop name followed by a
+   * cut-off account holder's name.
+   */
+  senderName: z.string().nullable().optional(),
+  receiverName: z.string().nullable().optional(),
 });
 export type BankSlip = z.infer<typeof BankSlipSchema>;
 

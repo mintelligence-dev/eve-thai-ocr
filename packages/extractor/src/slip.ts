@@ -146,6 +146,43 @@ export function qrReferenceFlags(r: Pick<Receipt, "slipQr" | "reference" | "veri
 }
 
 /**
+ * A name reduced to what identifies it: lower case, without titles (นาย, น.ส., Mr...) at its
+ * start, without the words of a company's legal form (บริษัท, จำกัด, Co., Ltd.), and without
+ * spaces and punctuation. A slip and a bank's record write these differently.
+ */
+export function nameCore(name: string): string {
+  let t = name.normalize("NFC").toLowerCase();
+  // titles only where a word starts: "คุณ" also ends many surnames
+  t = t.replace(/(^|\s)(นางสาว|น\.ส\.|น\.ส|นส\.|นาง|นาย|ด\.ช\.|ด\.ญ\.|เด็กชาย|เด็กหญิง|คุณ|mr\.?|mrs\.?|ms\.?|miss)(?=\s|\p{L}|$)/giu, "$1");
+  t = t.replace(/บริษัท|บจก\.?|บมจ\.?|หจก\.?|จำกัด|\(มหาชน\)|มหาชน|\b(co|ltd|limited|company|public|pcl)\b/giu, " ");
+  return t.replace(/[^\p{L}\p{N}\p{M}]+/gu, "");
+}
+
+/**
+ * Do these two names name the same party? True when one contains the other once reduced
+ * (so a name cut short, a name with a second line, and a shop name followed by a cut-off
+ * account holder's name all agree), false when neither does, null when one is too short to
+ * say. A letter misread by the model makes them differ, which is wanted: the person should look.
+ */
+export function namesAgree(read: string, bank: string): boolean | null {
+  const a = nameCore(read);
+  const b = nameCore(bank);
+  if (a.length < 2 || b.length < 2) return null;
+  return a.includes(b) || b.includes(a);
+}
+
+/** The time of day (HH:mm) in Thailand of an ISO date-time, or null if it is not one. */
+export function bangkokTime(iso: string): string | null {
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(t);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("hour")}:${get("minute")}`;
+}
+
+const minutesOfDay = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+/**
  * Flags from the bank's answer, for `validateReceipt`. When the bank has the
  * transfer, the amount and the date on the slip must equal the bank's figures:
  * a different one is an error (a misread digit that the person can correct, or
@@ -153,7 +190,9 @@ export function qrReferenceFlags(r: Pick<Receipt, "slipQr" | "reference" | "veri
  * a slip can legitimately show more than one number. Names and accounts are not
  * compared: banks mask them differently on each slip.
  */
-export function verificationFlags(r: Pick<Receipt, "verification" | "total" | "date" | "reference">): Flag[] {
+export function verificationFlags(
+  r: Pick<Receipt, "verification" | "total" | "date" | "time" | "reference" | "payer" | "merchant" | "recipientName">,
+): Flag[] {
   const v = r.verification;
   if (!v) return [];
   const flags: Flag[] = [];
@@ -197,6 +236,47 @@ export function verificationFlags(r: Pick<Receipt, "verification" | "total" | "d
       message: `The slip shows ${r.date} but the bank's record of this transfer is dated ${bankDay}.`,
       params: { printed: r.date, bank: bankDay },
     });
+  }
+
+  // The names, and the time of day: a warning for the person to look at, like the reference.
+  if (r.payer && bank.senderName && namesAgree(r.payer, bank.senderName) === false) {
+    flags.push({
+      path: "payer",
+      code: "slip_payer_mismatch",
+      severity: "warning",
+      message: `The payer on the slip (${r.payer}) differs from the bank's record of the sender (${bank.senderName}). Check the name against the original.`,
+      params: { printed: r.payer, bank: bank.senderName },
+    });
+  }
+
+  // the receiver is the shop name or the account holder's name: either may be what the bank holds
+  const receivers = [r.merchant, r.recipientName].filter((n): n is string => !!n);
+  if (receivers.length > 0 && bank.receiverName) {
+    const verdicts = receivers.map((n) => namesAgree(n, bank.receiverName!));
+    if (verdicts.some((v) => v !== null) && !verdicts.includes(true)) {
+      flags.push({
+        path: "merchant",
+        code: "slip_receiver_mismatch",
+        severity: "warning",
+        message: `The receiver on the slip (${receivers.join(" / ")}) differs from the bank's record (${bank.receiverName}). Check the name against the original.`,
+        params: { printed: receivers.join(" / "), bank: bank.receiverName },
+      });
+    }
+  }
+
+  const bankClock = bank.date ? bangkokTime(bank.date) : null;
+  if (r.time && bankClock && /^\d{2}:\d{2}$/.test(r.time)) {
+    const gap = Math.abs(minutesOfDay(r.time) - minutesOfDay(bankClock));
+    // a minute either way: the slip shows the time to the minute, the bank to the second
+    if (Math.min(gap, 1440 - gap) > 1) {
+      flags.push({
+        path: "time",
+        code: "slip_time_mismatch",
+        severity: "warning",
+        message: `The time on the slip (${r.time}) differs from the bank's record (${bankClock}). Check it against the original.`,
+        params: { printed: r.time, bank: bankClock },
+      });
+    }
   }
 
   if (r.reference && alnum(r.reference) !== alnum(bank.transRef)) {

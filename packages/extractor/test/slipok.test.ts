@@ -74,7 +74,7 @@ describe("SlipOK request", () => {
 });
 
 describe("SlipOK answer", () => {
-  it("keeps only the figures it needs from the guide's example: no names, accounts or proxies", async () => {
+  it("keeps the figures and the display names from the guide's example, but no accounts or proxies", async () => {
     const check = await ask(asFetch(reply(200, GUIDE_ANSWER)));
     expect(check).toEqual({
       status: "verified",
@@ -85,10 +85,13 @@ describe("SlipOK answer", () => {
         fee: 0,
         senderBank: "004",
         receiverBank: "004",
+        senderName: "นาย ธนาคาร ก",
+        receiverName: "กสิกร ร",
       },
     });
     const text = JSON.stringify(check);
-    for (const secret of ["Thanakarn", "ธนาคาร ก", "0209", "3109", "KASIKORN"]) expect(text).not.toContain(secret);
+    // the English name is not kept, and neither is any account value
+    for (const secret of ["Thanakarn", "0209", "3109", "KASIKORN"]) expect(text).not.toContain(secret);
   });
 
   it("reads the date as the slip's day in Thailand", async () => {

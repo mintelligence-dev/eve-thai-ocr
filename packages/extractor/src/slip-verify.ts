@@ -1,5 +1,7 @@
+import { resolve } from "node:path";
 import type { BankSlip } from "./schema.js";
 import type { SlipQr } from "./slip.js";
+import { cachedVerifier } from "./slip-cache.js";
 
 /**
  * Asking a verification service whether the bank has a transfer. A service looks
@@ -93,6 +95,11 @@ function readEasySlip(data: unknown): BankSlip | null {
     const bank = isRecord(party) && isRecord(party.bank) ? party.bank : null;
     return bank ? str(bank.id) : null;
   };
+  // the account name is {th, en} (Thai first), or a plain string
+  const accountName = (party: unknown) => {
+    const name = isRecord(party) && isRecord(party.account) ? party.account.name : null;
+    return typeof name === "string" ? str(name) : isRecord(name) ? (str(name.th) ?? str(name.en)) : null;
+  };
   return {
     transRef,
     date: str(slip.date),
@@ -100,6 +107,8 @@ function readEasySlip(data: unknown): BankSlip | null {
     fee: num(slip.fee),
     senderBank: bankId(slip.sender),
     receiverBank: bankId(slip.receiver),
+    senderName: accountName(slip.sender),
+    receiverName: accountName(slip.receiver),
   };
 }
 
@@ -163,6 +172,9 @@ function slipOkDate(data: Record<string, unknown>): string | null {
   return Number.isNaN(Date.parse(iso)) ? null : iso;
 }
 
+/** A party's name in SlipOK's answer: the display name (Thai or English, as the bank's slip shows it), else the English name. */
+const slipOkName = (party: unknown) => (isRecord(party) ? (str(party.displayName) ?? str(party.name)) : null);
+
 /** Pick the figures we keep out of SlipOK's answer (`data`). Null if it does not look like a bank slip. */
 function readSlipOk(data: unknown): BankSlip | null {
   if (!isRecord(data) || data.success !== true) return null;
@@ -176,6 +188,8 @@ function readSlipOk(data: unknown): BankSlip | null {
     fee: numeric(data.transFeeAmount),
     senderBank: bankCode(data.sendingBank),
     receiverBank: bankCode(data.receivingBank),
+    senderName: slipOkName(data.sender),
+    receiverName: slipOkName(data.receiver),
   };
 }
 
@@ -265,6 +279,7 @@ function readSlip2Go(data: unknown): BankSlip | null {
   if (amount === null || amount < 0 || transRef === null) return null;
   const dateTime = str(data.dateTime);
   const bankId = (party: unknown) => (isRecord(party) && isRecord(party.bank) ? bankCode(party.bank.id) : null);
+  const accountName = (party: unknown) => (isRecord(party) && isRecord(party.account) ? str(party.account.name) : null);
   return {
     transRef,
     date: dateTime && !Number.isNaN(Date.parse(dateTime)) ? dateTime : null,
@@ -272,6 +287,8 @@ function readSlip2Go(data: unknown): BankSlip | null {
     fee: null,
     senderBank: bankId(data.sender),
     receiverBank: bankId(data.receiver),
+    senderName: accountName(data.sender),
+    receiverName: accountName(data.receiver),
   };
 }
 
@@ -350,8 +367,16 @@ export function createSlip2GoVerifier(options: Slip2GoOptions): SlipVerifier {
  *  - SLIP_VERIFY_PROVIDER=slipok with SLIP_VERIFY_API_KEY and SLIP_VERIFY_BRANCH_ID
  *  - SLIP_VERIFY_PROVIDER=slip2go with SLIP_VERIFY_API_KEY (the shop's Secret Key)
  * SLIP_VERIFY_BASE_URL overrides the service address (for tests and local stand-ins).
+ * SLIP_VERIFY_CACHE_DIR keeps confirmed answers in a folder and replays them (see slip-cache.ts).
  */
 export function slipVerifierFromEnv(env: Record<string, string | undefined>): SlipVerifier | null {
+  const verifier = chooseVerifier(env);
+  // SLIP_VERIFY_CACHE_DIR (development only): keep confirmed answers in this folder and give them again
+  const cacheDir = env.SLIP_VERIFY_CACHE_DIR?.trim();
+  return verifier && cacheDir ? cachedVerifier(verifier, resolve(cacheDir)) : verifier;
+}
+
+function chooseVerifier(env: Record<string, string | undefined>): SlipVerifier | null {
   const provider = env.SLIP_VERIFY_PROVIDER?.trim().toLowerCase();
   const apiKey = env.SLIP_VERIFY_API_KEY?.trim();
   const branchId = env.SLIP_VERIFY_BRANCH_ID?.trim();

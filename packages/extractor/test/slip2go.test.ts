@@ -56,14 +56,28 @@ describe("Slip2Go request", () => {
 });
 
 describe("Slip2Go answer", () => {
-  it("keeps only the figures it needs from the guide's example: no names, accounts or ids", async () => {
+  it("keeps the figures and the two names from the guide's example, but no account numbers or ids", async () => {
     const check = await ask(asFetch(reply(200, GUIDE_ANSWER)));
     expect(check).toEqual({
       status: "verified",
-      bank: { transRef: "015073144041ATF00999", date: "2025-10-05T14:48:00.000Z", amount: 1, fee: null, senderBank: "014", receiverBank: "004" },
+      bank: {
+        transRef: "015073144041ATF00999",
+        date: "2025-10-05T14:48:00.000Z",
+        amount: 1,
+        fee: null,
+        senderBank: "014",
+        receiverBank: "004",
+        senderName: "บริษัท สลิปทูโก จำกัด",
+        receiverName: "บริษัท สลิปทูโก จำกัด",
+      },
     });
     const text = JSON.stringify(check);
-    for (const secret of ["สลิปทูโก", "5366", "9866", "92887bd5", "ธนาคาร"]) expect(text).not.toContain(secret);
+    for (const secret of ["5366", "9866", "92887bd5", "ธนาคารกสิกร", "NATID"]) expect(text).not.toContain(secret);
+  });
+
+  it("leaves the names empty when the answer has none", async () => {
+    const check = await ask(asFetch(reply(200, answerWith({ sender: undefined, receiver: { bank: { id: "004" } } }))));
+    expect(check).toMatchObject({ status: "verified", bank: { senderName: null, receiverName: null } });
   });
 
   it("also reads 'Slip is valid' (200200)", async () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { normalizeExtraction, revalidate } from "../src/normalize.js";
 import { ReceiptSchema, type BankSlip, type Receipt } from "../src/schema.js";
-import { bangkokDay, crc16CcittFalse, parseSlipQr, qrReferenceFlags, verificationFlags } from "../src/slip.js";
+import { bangkokDay, bangkokTime, crc16CcittFalse, nameCore, namesAgree, parseSlipQr, qrReferenceFlags, verificationFlags } from "../src/slip.js";
 import { createEasySlipVerifier, slipVerifierFromEnv } from "../src/slip-verify.js";
 import * as fx from "./fixtures/index.js";
 
@@ -125,7 +125,8 @@ describe("verificationFlags", () => {
   });
   it("compares the day in Thailand, not in UTC", () => {
     // 00:30 on the 3rd in Thailand is still the 2nd in UTC
-    expect(verificationFlags(withBank(bank({ date: "2025-09-02T17:30:00Z" })))).toEqual([]);
+    // (the time on the slip is left out: the bank's 00:30 would differ from the slip's 09:41)
+    expect(verificationFlags(withBank(bank({ date: "2025-09-02T17:30:00Z" }), { time: null }))).toEqual([]);
   });
   it("makes the reference a warning, since a slip can show more than one number", () => {
     const flags = verificationFlags(withBank(bank({ transRef: "OTHER123" })));
@@ -207,6 +208,134 @@ describe("the reference on the slip against the one in its QR code", () => {
   });
 });
 
+describe("names and time against the bank's record", () => {
+  const named = (over: Partial<BankSlip> = {}, receipt: Partial<Receipt> = {}) =>
+    verificationFlags(
+      withBank(bank({ senderName: "นาย ตัวอย่าง ทดสอบ", receiverName: "SAMPLE KITCHEN (ชื่อบัญชี: น", ...over }), {
+        payer: "นาย ตัวอย่าง ทดสอบ",
+        merchant: "SAMPLE KITCHEN",
+        recipientName: null,
+        time: "09:41",
+        ...receipt,
+      }),
+    );
+  const codes = (flags: ReturnType<typeof named>) => flags.map((f) => f.code);
+
+  it("says nothing when everything agrees, however the name is cut or written", () => {
+    expect(named()).toEqual([]);
+    // the slip shows an initial, the bank the whole name, and the title is attached or not
+    expect(named({ senderName: "นายตัวอย่าง ทดสอบสมมติ" }, { payer: "นาย ตัวอย่าง ท." })).toEqual([]);
+    // a company's legal form is written differently
+    expect(named({ receiverName: "บริษัท ตัวอย่าง ราเมน จำกัด" }, { merchant: "บจก.ตัวอย่าง ราเมน" })).toEqual([]);
+    // a name that wraps onto a second line, and capital letters
+    expect(named({ receiverName: "Sample Retail Co.,Ltd. Head Office" }, { merchant: "SAMPLE RETAIL CO.,LTD." })).toEqual([]);
+  });
+
+  it("warns when the payer differs, with both names, as a warning on the payer", () => {
+    const flags = named({ senderName: "นาย คนอื่น ทดสอบ" });
+    expect(flags).toEqual([
+      expect.objectContaining({
+        code: "slip_payer_mismatch",
+        severity: "warning",
+        path: "payer",
+        params: { printed: "นาย ตัวอย่าง ทดสอบ", bank: "นาย คนอื่น ทดสอบ" },
+      }),
+    ]);
+  });
+
+  it("warns when a letter of a name was misread, since the bank's name is the right one", () => {
+    expect(codes(named({ senderName: "นาย ตัวอย่าง ทดสอบ" }, { payer: "นาย ตัวอย่าง ทตสอบ" }))).toEqual(["slip_payer_mismatch"]);
+  });
+
+  it("compares the receiver with the shop name or the account holder's name, whichever the bank holds", () => {
+    // the bank holds the person's name; the slip also shows a shop name
+    expect(named({ receiverName: "น.ส. ตัวอย่าง สมมติ" }, { merchant: "SAMPLE KITCHEN", recipientName: "น.ส. ตัวอย่าง สมมติ" })).toEqual([]);
+    // the bank holds the shop name followed by a cut-off account holder's name
+    expect(named({ receiverName: "SAMPLE KITCHEN (ชื่อบัญชี: น" }, { merchant: "SAMPLE KITCHEN", recipientName: "น.ส. ตัวอย่าง สมมติ" })).toEqual([]);
+    // neither agrees: one warning, naming what the slip shows
+    const flags = named({ receiverName: "ร้านอื่น" }, { merchant: "SAMPLE KITCHEN", recipientName: "น.ส. ตัวอย่าง สมมติ" });
+    expect(flags).toEqual([
+      expect.objectContaining({
+        code: "slip_receiver_mismatch",
+        severity: "warning",
+        path: "merchant",
+        params: { printed: "SAMPLE KITCHEN / น.ส. ตัวอย่าง สมมติ", bank: "ร้านอื่น" },
+      }),
+    ]);
+  });
+
+  it("warns for a name written in another language than the bank's, which the person can dismiss", () => {
+    expect(codes(named({ receiverName: "ร้านตัวอย่าง" }, { merchant: "SAMPLE SHOP" }))).toEqual(["slip_receiver_mismatch"]);
+  });
+
+  it("says nothing when the slip or the bank has no name to compare", () => {
+    expect(named({}, { payer: null, merchant: null })).toEqual([]);
+    expect(named({ senderName: null, receiverName: null })).toEqual([]);
+    expect(named({ senderName: undefined, receiverName: undefined })).toEqual([]);
+    expect(named({ senderName: "ก" }, { payer: "ข" })).toEqual([]); // too short to say
+  });
+
+  it("compares the time to the minute, allowing one minute, and in Thai time whatever the offset", () => {
+    expect(named({ date: "2025-09-03T09:41:52+07:00" })).toEqual([]);
+    expect(named({ date: "2025-09-03T09:42:10+07:00" })).toEqual([]); // one minute apart
+    expect(named({ date: "2025-09-03T02:41:00Z" })).toEqual([]); // 09:41 in Thailand
+    const flags = named({ date: "2025-09-03T09:44:00+07:00" });
+    expect(flags).toEqual([
+      expect.objectContaining({ code: "slip_time_mismatch", severity: "warning", path: "time", params: { printed: "09:41", bank: "09:44" } }),
+    ]);
+    // across midnight a minute apart is still a minute apart: only the date differs, and that is the date check's to say
+    expect(named({ date: "2025-09-04T00:00:20+07:00" }, { time: "23:59", date: "2025-09-03" }).map((f) => f.code)).toEqual(["slip_date_mismatch"]);
+  });
+
+  it("says nothing until the bank has confirmed the transfer", () => {
+    const base = { payer: "นาย คนอื่น", merchant: "ร้านอื่น", time: "01:00" };
+    expect(verificationFlags(slip(base))).toEqual([]);
+    expect(verificationFlags(slip({ ...base, verification: { status: "not_found", provider: "t", checkedAt: "2025-10-14T00:00:00Z" } })).map((f) => f.code)).toEqual(["slip_not_found"]);
+  });
+
+  it("follows the person's edits: put right, the warning goes; spoilt again, it returns", () => {
+    const wrong = revalidate(
+      withBank(bank({ senderName: "นาย ตัวอย่าง ทดสอบ", receiverName: "SAMPLE KITCHEN" }), { payer: "นาย คนอื่น ทดสอบ", merchant: "SAMPLE KITCHEN", time: "09:41" }),
+      { today },
+    );
+    expect(wrong.flags.map((f) => f.code)).toContain("slip_payer_mismatch");
+    const fixed = revalidate({ ...wrong, payer: "นาย ตัวอย่าง ทดสอบ" }, { today, previous: wrong });
+    expect(fixed.flags.some((f) => f.code === "slip_payer_mismatch")).toBe(false);
+    const spoilt = revalidate({ ...fixed, payer: "ใครสักคน" }, { today, previous: fixed });
+    expect(spoilt.flags.some((f) => f.code === "slip_payer_mismatch")).toBe(true);
+  });
+});
+
+describe("nameCore, namesAgree and bangkokTime", () => {
+  it("reduces a name to what identifies it", () => {
+    expect(nameCore("นาย ตัวอย่าง ทดสอบ")).toBe("ตัวอย่างทดสอบ");
+    expect(nameCore("น.ส. ตัวอย่าง")).toBe("ตัวอย่าง");
+    expect(nameCore("Mr. Sample Test")).toBe("sampletest");
+    expect(nameCore("บริษัท ตัวอย่าง จำกัด (มหาชน)")).toBe("ตัวอย่าง");
+    expect(nameCore("SAMPLE CO.,LTD.")).toBe("sample");
+  });
+
+  it("takes a title off only where a word starts: a surname ending in คุณ keeps it", () => {
+    expect(nameCore("น.ส. สมมติ ตัวอย่างคุณ")).toBe("สมมติตัวอย่างคุณ");
+    expect(nameCore("คุณตัวอย่าง")).toBe("ตัวอย่าง");
+  });
+
+  it("agrees when one name holds the other, disagrees otherwise, and is unsure for a very short name", () => {
+    expect(namesAgree("ตัวอย่าง ท.", "นาย ตัวอย่าง ทดสอบ")).toBe(true);
+    expect(namesAgree("นาย ตัวอย่าง ทดสอบ", "ตัวอย่าง ท")).toBe(true);
+    expect(namesAgree("ตัวอย่าง ทดสอบ", "คนอื่น ทดสอบ")).toBe(false);
+    expect(namesAgree("ก", "ตัวอย่าง")).toBeNull();
+    expect(namesAgree("นาย", "ตัวอย่าง")).toBeNull();
+  });
+
+  it("gives the time of day in Thailand", () => {
+    expect(bangkokTime("2025-09-03T09:41:52+07:00")).toBe("09:41");
+    expect(bangkokTime("2025-09-03T17:30:00Z")).toBe("00:30");
+    expect(bangkokTime("2025-09-03T00:00:00+07:00")).toBe("00:00");
+    expect(bangkokTime("not a date")).toBeNull();
+  });
+});
+
 describe("a bank check that could not be answered", () => {
   it("raises no flag, since it says nothing about the slip, and is kept through edits", () => {
     const asked = slip({ verification: { status: "unavailable", reason: "quota", provider: "test", checkedAt: "2025-10-14T00:00:00Z" } });
@@ -274,15 +403,25 @@ describe("EasySlip verifier", () => {
     expect(JSON.parse(init.body as string)).toEqual({ payload: DOCUMENTED });
   });
 
-  it("keeps only the figures it needs: no names and no account numbers", async () => {
+  it("keeps the figures and the two names (Thai first), but no account numbers", async () => {
     const check = await ask(reply(200, BODY_OK) as unknown as typeof fetch);
     expect(check).toEqual({
       status: "verified",
-      bank: { transRef: "2025090309410001", date: "2025-09-03T09:41:00+07:00", amount: 2500, fee: 0, senderBank: "004", receiverBank: "014" },
+      bank: {
+        transRef: "2025090309410001",
+        date: "2025-09-03T09:41:00+07:00",
+        amount: 2500,
+        fee: 0,
+        senderBank: "004",
+        receiverBank: "014",
+        senderName: "นายสมมติ ตัวอย่าง",
+        receiverName: "ร้านตัวอย่าง",
+      },
     });
     const text = JSON.stringify(check);
-    expect(text).not.toContain("สมมติ");
     expect(text).not.toContain("1234");
+    expect(text).not.toContain("5678");
+    expect(text).not.toContain("MR SAMPLE"); // the English name is only a fallback
   });
 
   it("reports a missing slip and a too-recent one", async () => {

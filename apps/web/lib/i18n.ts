@@ -274,6 +274,9 @@ const FLAG: Record<Lang, Record<string, string>> = {
     slip_amount_mismatch: "ยอดในสลิปคือ {printed} แต่ธนาคารบันทึกรายการนี้ไว้ {bank} ตรวจตัวเลขกับรูปต้นฉบับ ถ้าอ่านถูกแล้ว สลิปอาจถูกแก้ไข ควรระวังก่อนใช้สลิปนี้",
     slip_date_mismatch: "วันที่ในสลิปคือ {printed} แต่ธนาคารบันทึกรายการนี้ไว้วันที่ {bank} ตรวจวันที่กับรูปต้นฉบับ ถ้าอ่านถูกแล้ว สลิปอาจถูกแก้ไข ควรระวังก่อนใช้สลิปนี้",
     slip_reference_mismatch: "เลขอ้างอิงในสลิป ({printed}) ไม่ตรงกับของธนาคาร ({bank}) ตรวจว่าอ่านเลขถูกหรือไม่ หรือสลิปแสดงเลขหลายชุด",
+    slip_payer_mismatch: "ชื่อผู้โอนในสลิป ({printed}) ไม่ตรงกับที่ธนาคารบันทึก ({bank}) ตรวจชื่อกับรูปต้นฉบับ อาจอ่านตัวอักษรผิด (ชื่อไทยอ่านผิดบ่อย) ถ้าอ่านถูกแล้ว สลิปอาจถูกแก้ไข",
+    slip_receiver_mismatch: "ชื่อผู้รับ/ร้านในสลิป ({printed}) ไม่ตรงกับที่ธนาคารบันทึก ({bank}) ตรวจชื่อกับรูปต้นฉบับ อาจอ่านตัวอักษรผิด ชื่อบนสลิปอาจเขียนต่างจากชื่อบัญชี (เช่น ภาษาไทยกับอังกฤษ) หรือสลิปอาจถูกแก้ไข",
+    slip_time_mismatch: "เวลาในสลิป ({printed}) ต่างจากที่ธนาคารบันทึก ({bank}) ตรวจเวลากับรูปต้นฉบับ ถ้าอ่านถูกแล้ว สลิปอาจถูกแก้ไข",
     slip_qr_reference_mismatch: "เลขอ้างอิงในสลิป ({printed}) ไม่ตรงกับเลขใน QR บนสลิป ({qr}) ตรวจว่าอ่านเลขถูกหรือไม่ (ตัวอักษรหน้าตาคล้ายกัน เช่น I กับ l) หรือสลิปแสดงเลขหลายชุด เลขใน QR ไม่ได้พิสูจน์ว่าสลิปจริง",
     slip_not_found: "ธนาคารไม่พบรายการโอนตามเลขอ้างอิงนี้ สลิปอาจเป็นของปลอมหรือถูกแก้ไข หรือรายการเพิ่งโอน หรือเป็นธนาคารที่บริการนี้ตรวจไม่ได้ ผลนี้ยังสรุปไม่ได้ว่าจริงหรือปลอม",
     slip_pending: "ธนาคารยังยืนยันรายการนี้ไม่ได้ (รายการอาจเพิ่งโอน) ลองตรวจอีกครั้งในอีกสักครู่",
@@ -304,6 +307,9 @@ const FLAG: Record<Lang, Record<string, string>> = {
     slip_amount_mismatch: "The slip shows {printed} but the bank's record of this transfer is {bank}. Check the number against the original. If it was read correctly, the slip may have been altered, so be careful before relying on it.",
     slip_date_mismatch: "The slip shows {printed} but the bank's record of this transfer is dated {bank}. Check the date against the original. If it was read correctly, the slip may have been altered, so be careful before relying on it.",
     slip_reference_mismatch: "The reference on the slip ({printed}) differs from the bank's ({bank}). Check it was read correctly, or whether the slip shows more than one number.",
+    slip_payer_mismatch: "The payer on the slip ({printed}) differs from the bank's record of the sender ({bank}). Check the name against the original. A letter may have been misread (Thai names often are); if it was read correctly, the slip may have been altered.",
+    slip_receiver_mismatch: "The receiver on the slip ({printed}) differs from the bank's record ({bank}). Check the name against the original. A letter may have been misread, the slip may write the name differently from the account's (for example Thai against English), or the slip may have been altered.",
+    slip_time_mismatch: "The time on the slip ({printed}) differs from the bank's record ({bank}). Check the time against the original. If it was read correctly, the slip may have been altered.",
     slip_qr_reference_mismatch: "The reference on the slip ({printed}) differs from the one in the slip's QR code ({qr}). Check it was read correctly (letters that look alike, such as I and l), or whether the slip shows more than one number. The QR code does not prove the slip is real.",
     slip_not_found: "The bank has no transfer with this reference. The slip may be forged or altered, or the transfer is very recent, or it is from a bank this service can't check. This alone does not show whether the slip is real or fake.",
     slip_pending: "The bank can't confirm this transfer yet (it may be very recent). Try again in a few minutes.",
@@ -346,6 +352,9 @@ export function flagText(f: Flag, lang: Lang): string {
     case "slip_date_mismatch": return tpl(t.slip_date_mismatch!, p);
     case "slip_reference_mismatch": return tpl(t.slip_reference_mismatch!, p);
     case "slip_qr_reference_mismatch": return tpl(t.slip_qr_reference_mismatch!, p);
+    case "slip_payer_mismatch": return tpl(t.slip_payer_mismatch!, p);
+    case "slip_receiver_mismatch": return tpl(t.slip_receiver_mismatch!, p);
+    case "slip_time_mismatch": return tpl(t.slip_time_mismatch!, p);
     case "slip_not_found": return t.slip_not_found!;
     case "slip_pending": return t.slip_pending!;
     default: return f.message;

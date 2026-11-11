@@ -204,8 +204,9 @@ describe("POST /api/verify-slip", () => {
       bank: { transRef: "2025090309410001", date: "2025-09-03T09:41:00+07:00", amount: 2500, fee: 0, senderBank: "004", receiverBank: "014" },
     });
     expect(new Date(verification.checkedAt).getTime()).not.toBeNaN();
-    // no names or account numbers are passed on to the page
-    expect(JSON.stringify(verification)).not.toContain("สมมติ");
+    // the names go to the page (they are compared with what the slip shows); account numbers do not
+    expect(verification.bank).toMatchObject({ senderName: "นายสมมติ ตัวอย่าง", receiverName: "ร้านตัวอย่าง" });
+    expect(JSON.stringify(verification)).not.toContain("account");
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
