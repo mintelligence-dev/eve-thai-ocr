@@ -218,7 +218,20 @@ export function validateReceipt(
     });
   }
 
-  if (r.vat !== null && r.total !== null) {
+  // VAT is part of what is paid, so it can never be more than the total. The usual cause is an
+  // amount printed as baht and satang in two columns (841 | 12) read as one number (84112).
+  const vatTooBig = r.vat !== null && r.total !== null && r.total >= 0 && r.vat > r.total + 1;
+  if (vatTooBig) {
+    flags.push({
+      path: "vat",
+      code: "vat_exceeds_total",
+      severity: "warning",
+      message: `VAT ${r.vat!.toFixed(2)} is more than the total ${r.total!.toFixed(2)}. An amount may have been read 100 times too large (baht and satang in separate columns).`,
+      params: { vat: r.vat!.toFixed(2), total: r.total!.toFixed(2) },
+    });
+  }
+
+  if (r.vat !== null && r.total !== null && !vatTooBig) {
     const total = toSatang(r.total);
     const vat = toSatang(r.vat);
     const inclusive = Math.round((total * vatRate) / (1 + vatRate));

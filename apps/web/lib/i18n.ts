@@ -321,6 +321,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     negative_amount: "จำนวนเงินติดลบ แต่ชื่อรายการไม่ได้บอกว่าเป็นส่วนลด เครื่องหมายลบอาจอ่านผิด",
     addon_split: "ยอดที่พิมพ์ในรายการนี้ ({printed}) รวมของเพิ่มด้านล่างไว้แล้ว ระบบแยกเป็น {base} บวกราคาของเพิ่ม เพื่อไม่ให้นับซ้ำ ตรวจกับรูปต้นฉบับด้วย",
     invalid_tax_id: "เลขผู้เสียภาษี {text} ไม่ถูกต้อง (หลักตรวจสุดท้ายไม่ตรง) อาจอ่านตัวเลขผิด ตรวจกับรูปต้นฉบับ",
+    vat_exceeds_total: "VAT {vat} มากกว่ายอดรวม {total} ซึ่งเป็นไปไม่ได้ อาจอ่านตัวเลขผิด เช่นฟอร์มที่แยกช่องบาทกับสตางค์ แล้วอ่านรวมเป็นจำนวนเดียวที่ใหญ่เกินจริง ตรวจกับรูปต้นฉบับ",
     total_words_mismatch: "ยอดรวมที่เขียนเป็นตัวอักษร ({words}) เท่ากับ {wordsAmount} แต่ยอดรวมเป็นตัวเลขคือ {total} ตรวจทั้งสองกับรูปต้นฉบับ อาจอ่านตัวเลขหรือตัวอักษรผิด",
     tax_base_mismatch: "VAT {vat} ไม่ใช่ {rate}% ของมูลค่าที่เสียภาษี ({base}) ตรวจตัวเลขทั้งสองกับรูปต้นฉบับ",
     invalid_buyer_tax_id: "เลขผู้เสียภาษีของผู้ซื้อ {text} ไม่ถูกต้อง (หลักตรวจสุดท้ายไม่ตรง) อาจอ่านตัวเลขผิด ตรวจกับรูปต้นฉบับ",
@@ -357,6 +358,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     negative_amount: "Negative amount, but the item name doesn't say it's a discount. The minus sign may be misread.",
     addon_split: "The amount printed on this item ({printed}) already includes the add-on below it. It is shown as {base} plus the add-on price so nothing is counted twice. Please check it against the original.",
     invalid_tax_id: "Tax ID {text} is not valid (its check digit does not match), so a digit may have been misread. Check it against the original.",
+    vat_exceeds_total: "VAT {vat} is more than the total {total}, which cannot be. An amount may have been read far too large, for example from a form with baht and satang in separate columns. Check it against the original.",
     total_words_mismatch: "The total in words ({words}) says {wordsAmount}, but the total in figures is {total}. Check both against the original; a figure or a word may have been misread.",
     tax_base_mismatch: "VAT {vat} is not {rate}% of the amount subject to VAT ({base}). Check both figures against the original.",
     invalid_buyer_tax_id: "The buyer's tax ID {text} is not valid (its check digit does not match), so a digit may have been misread. Check it against the original.",
@@ -408,6 +410,7 @@ export function flagText(f: Flag, lang: Lang): string {
     case "invalid_tax_id": return tpl(t.invalid_tax_id!, p);
     case "invalid_buyer_tax_id": return tpl(t.invalid_buyer_tax_id!, p);
     case "total_words_mismatch": return tpl(t.total_words_mismatch!, p);
+    case "vat_exceeds_total": return tpl(t.vat_exceeds_total!, p);
     case "tax_base_mismatch": return tpl(t.tax_base_mismatch!, p);
     case "slip_amount_mismatch": return tpl(t.slip_amount_mismatch!, p);
     case "slip_date_mismatch": return tpl(t.slip_date_mismatch!, p);

@@ -118,3 +118,21 @@ describe("the checks on them", () => {
     expect(codes(r)).toContain("buyerTaxId:invalid_buyer_tax_id");
   });
 });
+
+describe("VAT larger than the total", () => {
+  it("warns, as when a baht and satang column pair is read as one number", () => {
+    const r = normalizeExtraction(receipt({ subtotalText: "84112", vatText: "5888", totalText: "900" }), { today });
+    expect(codes(r)).toContain("vat:vat_exceeds_total");
+    expect(codes(r)).not.toContain("vat:vat_mismatch"); // one message about the VAT, not two
+  });
+
+  it("says nothing when the VAT is a part of the total", () => {
+    const r = normalizeExtraction(receipt({ subtotalText: "841.12", vatText: "58.88", totalText: "900" }), { today });
+    expect(codes(r)).not.toContain("vat:vat_exceeds_total");
+  });
+
+  it("clears after the VAT is corrected", () => {
+    const r = normalizeExtraction(receipt({ subtotalText: "84112", vatText: "5888", totalText: "900" }), { today });
+    expect(codes(revalidate({ ...r, vat: 58.88, subtotal: 841.12 }, { today, previous: r }))).not.toContain("vat:vat_exceeds_total");
+  });
+});

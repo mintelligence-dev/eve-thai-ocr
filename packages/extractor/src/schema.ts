@@ -172,6 +172,7 @@ export const FlagSchema = z.object({
     "line_total_mismatch",
     "items_total_mismatch",
     "vat_mismatch",
+    "vat_exceeds_total",
     "negative_amount",
     "not_a_receipt",
     "addon_split",
