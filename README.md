@@ -67,13 +67,13 @@ bench/                   Compare vision models on your own documents
 
 ### Export formats
 
-JSON is the full structure, including `flags` and `assumed`. CSV has one row per line item, with the document fields repeated, a UTF-8 BOM so Excel opens Thai text correctly, and spreadsheet-formula characters neutralised:
+JSON is the full structure. CSV holds every value the JSON holds except `flags` and a line item's `assumed`, which describe how the numbers were read rather than the document (a test keeps the two in step). CSV has one row per line item, with the document fields repeated, a UTF-8 BOM so Excel opens Thai text correctly, and spreadsheet-formula characters neutralised:
 
-`document_type, merchant, date, time, currency, subtotal, vat, total, payer, reference, fee, tax_id, recipient_name, bank_check, bank_provider, bank_checked_at, bank_amount, bank_date, bank_trans_ref, item_description, item_quantity, item_unit_price, item_amount`
+`document_type, merchant, date, time, currency, subtotal, vat, total, payer, reference, fee, tax_id, recipient_name, bank_check, bank_check_reason, bank_provider, bank_checked_at, bank_amount, bank_fee, bank_date, bank_trans_ref, bank_sender_bank, bank_sender_name, bank_receiver_bank, bank_receiver_name, slip_qr_bank, slip_qr_reference, item_description, item_quantity, item_unit_price, item_amount`
 
 For a transfer slip, `merchant` is the payee (the shop name when the slip shows one) and `reference` is the transaction reference; `recipient_name` is the account holder's name when the slip shows both a shop name and a person's name. For a receipt, `reference` is the receipt number.
 
-The `bank_*` columns are empty unless the slip was checked with the bank (see [Checking a slip with the bank](#checking-a-slip-with-the-bank)). `bank_check` is `verified` (the bank has this transfer), `not_found`, `pending` (too recent to tell) or `unavailable` (the bank or the service could not answer, which says nothing about the slip); the other columns say which service was asked, when (ISO time), and the amount, date and time (with offset) and reference the **bank** reported. The JSON has the same under `verification`, with the reason when unavailable.
+The `bank_*` columns are empty unless the slip was checked with the bank (see [Checking a slip with the bank](#checking-a-slip-with-the-bank)). `bank_check` is `verified` (the bank has this transfer), `not_found`, `pending` (too recent to tell) or `unavailable` (the bank or the service could not answer, which says nothing about the slip); `bank_check_reason` says why when it is `unavailable`; the other columns say which service was asked, when (ISO time), and the amount, fee, date and time (with offset), reference, the two banks' codes and **the sender's and receiver's names** the **bank** reported. `slip_qr_bank` and `slip_qr_reference` are what the slip's QR code itself holds. The JSON has the same under `verification` and `slipQr`.
 
 ### Setup
 
@@ -258,13 +258,13 @@ bench/                   เทียบโมเดลวิชันด้ว�
 
 ### รูปแบบไฟล์ที่ส่งออก
 
-JSON คือโครงสร้างเต็ม รวม `flags` และ `assumed` ส่วน CSV มีหนึ่งแถวต่อหนึ่งรายการสินค้า โดยซ้ำช่องระดับเอกสารทุกแถว ใส่ตัวกำกับ UTF-8 เพื่อให้ Excel เปิดภาษาไทยได้ถูกต้อง และกันอักขระที่ Excel จะนำไปรันเป็นสูตร:
+JSON คือโครงสร้างเต็ม ส่วน CSV มีค่าทุกอย่างที่ JSON มี ยกเว้น `flags` และ `assumed` ของรายการสินค้า ซึ่งบอกว่าตัวเลขถูกอ่านมาอย่างไร ไม่ใช่เนื้อหาเอกสาร (มีเทสต์คุมให้สองไฟล์ตรงกัน) CSV มีหนึ่งแถวต่อหนึ่งรายการสินค้า โดยซ้ำช่องระดับเอกสารทุกแถว ใส่ตัวกำกับ UTF-8 เพื่อให้ Excel เปิดภาษาไทยได้ถูกต้อง และกันอักขระที่ Excel จะนำไปรันเป็นสูตร:
 
-`document_type, merchant, date, time, currency, subtotal, vat, total, payer, reference, fee, tax_id, recipient_name, bank_check, bank_provider, bank_checked_at, bank_amount, bank_date, bank_trans_ref, item_description, item_quantity, item_unit_price, item_amount`
+`document_type, merchant, date, time, currency, subtotal, vat, total, payer, reference, fee, tax_id, recipient_name, bank_check, bank_check_reason, bank_provider, bank_checked_at, bank_amount, bank_fee, bank_date, bank_trans_ref, bank_sender_bank, bank_sender_name, bank_receiver_bank, bank_receiver_name, slip_qr_bank, slip_qr_reference, item_description, item_quantity, item_unit_price, item_amount`
 
 ในสลิปโอนเงิน `merchant` คือผู้รับเงิน (ชื่อร้านเมื่อสลิปแสดงชื่อร้าน) และ `reference` คือเลขอ้างอิงรายการ ส่วน `recipient_name` คือชื่อเจ้าของบัญชีผู้รับ เมื่อสลิปแสดงทั้งชื่อร้านและชื่อบุคคล ในใบเสร็จ `reference` คือเลขที่ใบเสร็จ
 
-คอลัมน์ `bank_*` จะว่างถ้าไม่ได้ตรวจสลิปกับธนาคาร (ดู [ตรวจสลิปกับธนาคาร](#ตรวจสลิปกับธนาคาร)) `bank_check` คือ `verified` (ธนาคารมีรายการโอนนี้), `not_found`, `pending` (รายการใหม่เกินไป ยังบอกไม่ได้) หรือ `unavailable` (ธนาคารหรือบริการตอบไม่ได้ ซึ่งไม่ได้บอกอะไรเกี่ยวกับสลิป) คอลัมน์อื่นบอกว่าถามบริการไหน เมื่อไร (เวลาแบบ ISO) และยอด วันเวลา (พร้อมเขตเวลา) กับเลขอ้างอิงที่**ธนาคาร**รายงาน ใน JSON มีข้อมูลเดียวกันที่ `verification` พร้อมเหตุผลเมื่อตอบไม่ได้
+คอลัมน์ `bank_*` จะว่างถ้าไม่ได้ตรวจสลิปกับธนาคาร (ดู [ตรวจสลิปกับธนาคาร](#ตรวจสลิปกับธนาคาร)) `bank_check` คือ `verified` (ธนาคารมีรายการโอนนี้), `not_found`, `pending` (รายการใหม่เกินไป ยังบอกไม่ได้) หรือ `unavailable` (ธนาคารหรือบริการตอบไม่ได้ ซึ่งไม่ได้บอกอะไรเกี่ยวกับสลิป) `bank_check_reason` บอกเหตุผลเมื่อเป็น `unavailable` คอลัมน์อื่นบอกว่าถามบริการไหน เมื่อไร (เวลาแบบ ISO) และยอด ค่าธรรมเนียม วันเวลา (พร้อมเขตเวลา) เลขอ้างอิง รหัสธนาคารสองฝั่ง และ**ชื่อผู้โอนกับชื่อผู้รับ**ที่**ธนาคาร**รายงาน ส่วน `slip_qr_bank` และ `slip_qr_reference` คือสิ่งที่ QR บนสลิปเก็บไว้ ใน JSON มีข้อมูลเดียวกันที่ `verification` และ `slipQr`
 
 ### วิธีติดตั้ง
 

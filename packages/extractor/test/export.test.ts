@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { toCSV, toJSON } from "../src/export.js";
+import { CSV_COLUMNS, JSON_ONLY_PATHS, toCSV, toJSON } from "../src/export.js";
 import { normalizeExtraction } from "../src/normalize.js";
 import { DEFAULT_MODEL, HandwritingNotSupportedError, defaultProviderOptions, extractReceipt } from "../src/extract.js";
-import { ReceiptSchema } from "../src/schema.js";
+import { ReceiptSchema, type Receipt } from "../src/schema.js";
 import * as fx from "./fixtures/index.js";
 
 const today = new Date("2025-10-14T00:00:00Z");
@@ -31,16 +31,21 @@ describe("export", () => {
 
   it("exports the payer, reference and fee of a slip", () => {
     const { names, get } = cells(toCSV(normalizeExtraction(fx.transferSlip, { today })));
-    expect(names.slice(names.indexOf("total"), names.indexOf("item_description"))).toEqual([
-      "total", "payer", "reference", "fee", "tax_id", "recipient_name",
-      "bank_check", "bank_provider", "bank_checked_at", "bank_amount", "bank_date", "bank_trans_ref",
+    expect(names).toEqual([
+      "document_type", "merchant", "date", "time", "currency", "subtotal", "vat", "total",
+      "payer", "reference", "fee", "tax_id", "recipient_name",
+      "bank_check", "bank_check_reason", "bank_provider", "bank_checked_at",
+      "bank_amount", "bank_fee", "bank_date", "bank_trans_ref",
+      "bank_sender_bank", "bank_sender_name", "bank_receiver_bank", "bank_receiver_name",
+      "slip_qr_bank", "slip_qr_reference",
+      "item_description", "item_quantity", "item_unit_price", "item_amount",
     ]);
     expect(get("total")).toBe("2500");
     expect(get("payer")).toBe("นายสมมติ ตัวอย่าง");
     expect(get("reference")).toBe("202509030941" + "0001");
     expect(get("fee")).toBe("0");
     // nothing about the bank for a slip nobody checked
-    for (const c of ["bank_check", "bank_provider", "bank_checked_at", "bank_amount", "bank_date", "bank_trans_ref"]) expect(get(c), c).toBe("");
+    for (const c of names.filter((n) => n.startsWith("bank_") || n.startsWith("slip_qr_"))) expect(get(c), c).toBe("");
   });
 
   it("records what the bank said about a slip, next to the status", () => {
@@ -52,11 +57,29 @@ describe("export", () => {
           status: "verified",
           provider: "slip2go",
           checkedAt: "2026-11-10T06:00:00.000Z",
-          bank: { transRef: "2025090309410001", date: "2025-09-03T09:41:00+07:00", amount: 2500, fee: 0, senderBank: "004", receiverBank: "014" },
+          bank: {
+            transRef: "2025090309410001",
+            date: "2025-09-03T09:41:00+07:00",
+            amount: 2500,
+            fee: 0,
+            senderBank: "004",
+            receiverBank: "014",
+            senderName: "นายสมมติ ตัวอย่าง",
+            receiverName: "ร้านตัวอย่าง",
+          },
         },
+        slipQr: { sendingBank: "004", transRef: "2025090309410001" },
       }),
     );
     expect(get("bank_check")).toBe("verified");
+    expect(get("bank_check_reason")).toBe("");
+    expect(get("bank_fee")).toBe("0");
+    expect(get("bank_sender_bank")).toBe("004");
+    expect(get("bank_sender_name")).toBe("นายสมมติ ตัวอย่าง");
+    expect(get("bank_receiver_bank")).toBe("014");
+    expect(get("bank_receiver_name")).toBe("ร้านตัวอย่าง");
+    expect(get("slip_qr_bank")).toBe("004");
+    expect(get("slip_qr_reference")).toBe("2025090309410001");
     expect(get("bank_provider")).toBe("slip2go");
     expect(get("bank_checked_at")).toBe("2026-11-10T06:00:00.000Z");
     expect(get("bank_amount")).toBe("2500");
@@ -69,11 +92,49 @@ describe("export", () => {
     for (const [status, reason] of [["not_found", undefined], ["pending", undefined], ["unavailable", "busy"]] as const) {
       const { get } = cells(toCSV({ ...receipt, verification: { status, reason, provider: "easyslip", checkedAt: "2026-11-10T06:00:00.000Z" } }));
       expect(get("bank_check")).toBe(status);
+      expect(get("bank_check_reason")).toBe(reason ?? "");
       expect(get("bank_provider")).toBe("easyslip");
       expect(get("bank_checked_at")).toBe("2026-11-10T06:00:00.000Z");
       expect(get("bank_amount")).toBe("");
       expect(get("bank_trans_ref")).toBe("");
     }
+  });
+
+  it("holds every value the JSON holds, except the two it says it leaves out", () => {
+    // a receipt with every optional value filled in, so that every place in the JSON is there
+    const full: Receipt = {
+      ...normalizeExtraction(fx.transferSlip, { today }),
+      merchant: "m", payer: "p", recipientName: "r", reference: "x", taxId: "1", fee: 1, date: "2025-09-03", time: "09:41",
+      subtotal: 1, vat: 1, total: 1,
+      lineItems: [{ description: "d", quantity: 1, unitPrice: 1, amount: 1, assumed: true }],
+      slipQr: { sendingBank: "004", transRef: "t" },
+      verification: {
+        status: "verified", reason: "busy", provider: "p", checkedAt: "2026-01-01T00:00:00Z",
+        bank: { transRef: "t", date: "2025-09-03T09:41:00+07:00", amount: 1, fee: 0, senderBank: "004", receiverBank: "014", senderName: "s", receiverName: "r" },
+      },
+      flags: [{ path: "total", code: "missing", severity: "warning", message: "m" }],
+    };
+
+    /** Every place in a receipt that holds a value, written like the paths of the columns. */
+    const places = (value: unknown, prefix = ""): string[] => {
+      if (prefix === "flags") return ["flags"];
+      if (Array.isArray(value)) return value.flatMap((v) => places(v, `${prefix}[]`));
+      if (value !== null && typeof value === "object") {
+        return Object.entries(value).flatMap(([k, v]) => places(v, prefix ? (prefix.endsWith("[]") ? `${prefix}.${k}` : `${prefix}.${k}`) : k));
+      }
+      return [prefix];
+    };
+    const inJson = [...new Set(places(JSON.parse(toJSON(full))))].sort();
+    const inCsv = CSV_COLUMNS.map((c) => c.path);
+    const leftOut: readonly string[] = JSON_ONLY_PATHS;
+
+    // nothing in the JSON is missing from the CSV without being declared, and the CSV invents nothing
+    expect(inJson.filter((p) => !inCsv.includes(p) && !leftOut.includes(p))).toEqual([]);
+    expect(inCsv.filter((p) => !inJson.includes(p))).toEqual([]);
+    expect(leftOut.filter((p) => !inJson.includes(p))).toEqual([]);
+    // each column is its own, and each path has one column
+    expect(new Set(CSV_COLUMNS.map((c) => c.name)).size).toBe(CSV_COLUMNS.length);
+    expect(new Set(inCsv).size).toBe(inCsv.length);
   });
 
   it("keeps totals for a slip with no line items", () => {
