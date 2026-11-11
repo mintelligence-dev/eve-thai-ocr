@@ -18,7 +18,7 @@ describe("export", () => {
     expect(csv.startsWith("﻿")).toBe(true);
     const lines = csv.trim().split("\r\n");
     expect(lines).toHaveLength(3);
-    expect(lines[1]).toContain("ลาเต้เย็น,2,65,130");
+    expect(lines[1]).toContain(",ลาเต้เย็น,2,,65,,130");
   });
 
   /** The cells of the first data row, by column name. */
@@ -32,13 +32,15 @@ describe("export", () => {
   it("exports the payer, reference and fee of a slip", () => {
     const { names, get } = cells(toCSV(normalizeExtraction(fx.transferSlip, { today })));
     expect(names).toEqual([
-      "document_type", "merchant", "date", "time", "currency", "subtotal", "vat", "total",
-      "payer", "reference", "fee", "tax_id", "recipient_name",
+      "document_type", "document_subtype", "merchant", "merchant_address", "branch", "date", "time", "currency",
+      "subtotal", "total_discount", "taxable_amount", "exempt_amount", "vat", "total", "total_in_words",
+      "payer", "reference", "book_number", "reference_document", "fee", "tax_id", "recipient_name",
+      "buyer_name", "buyer_address", "buyer_tax_id", "payment_method", "has_signature",
       "bank_check", "bank_check_reason", "bank_provider", "bank_checked_at",
       "bank_amount", "bank_fee", "bank_date", "bank_trans_ref",
       "bank_sender_bank", "bank_sender_name", "bank_receiver_bank", "bank_receiver_name",
       "slip_qr_bank", "slip_qr_reference",
-      "item_description", "item_quantity", "item_unit_price", "item_amount",
+      "item_code", "item_description", "item_quantity", "item_unit", "item_unit_price", "item_discount", "item_amount",
     ]);
     expect(get("total")).toBe("2500");
     expect(get("payer")).toBe("นายสมมติ ตัวอย่าง");
@@ -106,7 +108,9 @@ describe("export", () => {
       ...normalizeExtraction(fx.transferSlip, { today }),
       merchant: "m", payer: "p", recipientName: "r", reference: "x", taxId: "1", fee: 1, date: "2025-09-03", time: "09:41",
       subtotal: 1, vat: 1, total: 1,
-      lineItems: [{ description: "d", quantity: 1, unitPrice: 1, amount: 1, assumed: true }],
+      documentSubtype: "receipt", bookNumber: "b", merchantAddress: "a", branch: "h", buyerName: "n", buyerAddress: "d", buyerTaxId: "1",
+      referenceDocument: "o", paymentMethod: "cash", totalDiscount: 1, taxableAmount: 1, exemptAmount: 1, totalInWords: "w", hasSignature: false,
+      lineItems: [{ description: "d", quantity: 1, unitPrice: 1, amount: 1, unit: "u", productCode: "c", discount: 1, assumed: true }],
       slipQr: { sendingBank: "004", transRef: "t" },
       verification: {
         status: "verified", reason: "busy", provider: "p", checkedAt: "2026-01-01T00:00:00Z",

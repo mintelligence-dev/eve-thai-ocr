@@ -55,9 +55,9 @@ describe("add-ons in a full extraction", () => {
     merchant: "Demo Tea Shop", dateText: "2025-10-03", timeText: null,
     subtotalText: null, vatText: null, totalText: "105.00",
     lineItems: [
-      { description: "Iced tea", quantityText: "1", unitPriceText: "100.00", amountText: "125.00" },
-      { description: "Extra pearls", quantityText: null, unitPriceText: "25.00", amountText: null },
-      { description: "Member discount", quantityText: null, unitPriceText: null, amountText: "-20.00" },
+      { description: "Iced tea", quantityText: "1", unitPriceText: "100.00", amountText: "125.00", unit: null, productCode: null, discountText: null },
+      { description: "Extra pearls", quantityText: null, unitPriceText: "25.00", amountText: null, unit: null, productCode: null, discountText: null },
+      { description: "Member discount", quantityText: null, unitPriceText: null, amountText: "-20.00", unit: null, productCode: null, discountText: null },
     ],
   };
 

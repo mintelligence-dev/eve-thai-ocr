@@ -10,7 +10,7 @@ const item = (
   quantityText: string | null,
   unitPriceText: string | null,
   amountText: string | null,
-) => ({ description, quantityText, unitPriceText, amountText });
+) => ({ description, quantityText, unitPriceText, amountText, unit: null, productCode: null, discountText: null });
 
 const base: RawExtraction = {
   documentType: "receipt",
@@ -30,6 +30,20 @@ const base: RawExtraction = {
   subtotalText: null,
   vatText: null,
   totalText: null,
+  documentSubtype: null,
+  bookNumber: null,
+  merchantAddress: null,
+  branch: null,
+  buyerName: null,
+  buyerAddress: null,
+  buyerTaxIdText: null,
+  referenceDocument: null,
+  paymentMethod: null,
+  totalDiscountText: null,
+  taxableAmountText: null,
+  exemptAmountText: null,
+  totalInWords: null,
+  hasSignature: null,
   lineItems: [],
   uncertainFields: [],
 };

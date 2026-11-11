@@ -30,18 +30,32 @@ interface Column<T> {
 /** Columns that repeat on every row: the document's own fields, then what the bank and the QR code said. */
 const DOCUMENT_COLUMNS: Column<Receipt>[] = [
   { name: "document_type", path: "documentType", value: (r) => r.documentType },
+  { name: "document_subtype", path: "documentSubtype", value: (r) => r.documentSubtype ?? null },
   { name: "merchant", path: "merchant", value: (r) => r.merchant },
+  { name: "merchant_address", path: "merchantAddress", value: (r) => r.merchantAddress ?? null },
+  { name: "branch", path: "branch", value: (r) => r.branch ?? null },
   { name: "date", path: "date", value: (r) => r.date },
   { name: "time", path: "time", value: (r) => r.time },
   { name: "currency", path: "currency", value: (r) => r.currency },
   { name: "subtotal", path: "subtotal", value: (r) => r.subtotal },
+  { name: "total_discount", path: "totalDiscount", value: (r) => r.totalDiscount ?? null },
+  { name: "taxable_amount", path: "taxableAmount", value: (r) => r.taxableAmount ?? null },
+  { name: "exempt_amount", path: "exemptAmount", value: (r) => r.exemptAmount ?? null },
   { name: "vat", path: "vat", value: (r) => r.vat },
   { name: "total", path: "total", value: (r) => r.total },
+  { name: "total_in_words", path: "totalInWords", value: (r) => r.totalInWords ?? null },
   { name: "payer", path: "payer", value: (r) => r.payer },
   { name: "reference", path: "reference", value: (r) => r.reference },
+  { name: "book_number", path: "bookNumber", value: (r) => r.bookNumber ?? null },
+  { name: "reference_document", path: "referenceDocument", value: (r) => r.referenceDocument ?? null },
   { name: "fee", path: "fee", value: (r) => r.fee },
   { name: "tax_id", path: "taxId", value: (r) => r.taxId },
   { name: "recipient_name", path: "recipientName", value: (r) => r.recipientName },
+  { name: "buyer_name", path: "buyerName", value: (r) => r.buyerName ?? null },
+  { name: "buyer_address", path: "buyerAddress", value: (r) => r.buyerAddress ?? null },
+  { name: "buyer_tax_id", path: "buyerTaxId", value: (r) => r.buyerTaxId ?? null },
+  { name: "payment_method", path: "paymentMethod", value: (r) => r.paymentMethod ?? null },
+  { name: "has_signature", path: "hasSignature", value: (r) => (r.hasSignature == null ? null : String(r.hasSignature)) },
   { name: "bank_check", path: "verification.status", value: (r) => r.verification?.status ?? null },
   { name: "bank_check_reason", path: "verification.reason", value: (r) => r.verification?.reason ?? null },
   { name: "bank_provider", path: "verification.provider", value: (r) => r.verification?.provider ?? null },
@@ -60,9 +74,12 @@ const DOCUMENT_COLUMNS: Column<Receipt>[] = [
 
 /** Columns that differ from row to row: one line item each. */
 const ITEM_COLUMNS: Column<Receipt["lineItems"][number]>[] = [
+  { name: "item_code", path: "lineItems[].productCode", value: (i) => i.productCode ?? null },
   { name: "item_description", path: "lineItems[].description", value: (i) => i.description },
   { name: "item_quantity", path: "lineItems[].quantity", value: (i) => i.quantity },
+  { name: "item_unit", path: "lineItems[].unit", value: (i) => i.unit ?? null },
   { name: "item_unit_price", path: "lineItems[].unitPrice", value: (i) => i.unitPrice },
+  { name: "item_discount", path: "lineItems[].discount", value: (i) => i.discount ?? null },
   { name: "item_amount", path: "lineItems[].amount", value: (i) => i.amount },
 ];
 

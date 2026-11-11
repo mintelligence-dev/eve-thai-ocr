@@ -77,12 +77,77 @@ export const RawExtractionSchema = z.object({
   subtotalText: z.string().nullable().describe("Subtotal before VAT, as printed."),
   vatText: z.string().nullable().describe("VAT amount, as printed."),
   totalText: z.string().nullable().describe("Grand total / transferred amount, as printed."),
+  documentSubtype: z
+    .enum(["receipt", "receipt_tax_invoice", "tax_invoice"])
+    .nullable()
+    .describe(
+      "Receipts only. Which title the document carries: 'receipt' for ใบเสร็จรับเงิน (also when it says it is NOT a tax invoice), 'receipt_tax_invoice' for ใบเสร็จรับเงิน/ใบกำกับภาษี, 'tax_invoice' for ใบกำกับภาษี alone (also 'abbreviated tax invoice'). Null when no such title is printed, and on transfer slips.",
+    ),
+  bookNumber: z
+    .string()
+    .nullable()
+    .describe("Receipts only: the book number (เล่มที่) of a receipt book, when printed separately from the receipt number. Null otherwise."),
+  merchantAddress: z
+    .string()
+    .nullable()
+    .describe("Receipts only: the seller's address as printed, on one line. Null if not printed."),
+  branch: z
+    .string()
+    .nullable()
+    .describe("Receipts only: the seller's branch as printed: 'สำนักงานใหญ่' for the head office, or the branch name or number (สาขา ...). Null if not printed."),
+  buyerName: z
+    .string()
+    .nullable()
+    .describe("Receipts only: the buyer's name (ชื่อ / นามผู้ซื้อ / ลูกค้า / Customer / Name), the name only. Null if the buyer is not named."),
+  buyerAddress: z
+    .string()
+    .nullable()
+    .describe("Receipts only: the buyer's address as printed, on one line. Null if not printed."),
+  buyerTaxIdText: z
+    .string()
+    .nullable()
+    .describe("Receipts only: the BUYER's tax ID as printed (the seller's goes in taxIdText). Null if not printed."),
+  referenceDocument: z
+    .string()
+    .nullable()
+    .describe(
+      "Receipts only: the number of ANOTHER document this one refers to (อ้างอิง / อ้างถึง / ใบส่งสินค้า / PO / order number), not this document's own number. Null if none.",
+    ),
+  paymentMethod: z
+    .enum(["cash", "cheque", "transfer", "card", "other"])
+    .nullable()
+    .describe(
+      "Receipts only: how it was paid, only when the document says so (a ticked box, a stamp, or a printed payment line with an amount). Null when a list of options is printed and none is marked.",
+    ),
+  totalDiscountText: z.string().nullable().describe("Receipts only: the total discount (ส่วนลดรวม / ส่วนลด) as printed, as a positive number. Null if none."),
+  taxableAmountText: z
+    .string()
+    .nullable()
+    .describe("Receipts only: the amount subject to VAT (มูลค่าสินค้าที่เสียภาษี / ราคาสินค้าไม่รวมภาษี / ฐานภาษี), as printed. Null if not printed."),
+  exemptAmountText: z
+    .string()
+    .nullable()
+    .describe("Receipts only: the amount exempt from VAT or zero-rated (มูลค่าสินค้าที่ได้รับยกเว้นภาษี / ภาษี 0%), as printed. Null if not printed."),
+  totalInWords: z
+    .string()
+    .nullable()
+    .describe("Receipts only: the grand total written in words (ตัวอักษร), copied exactly as printed, for example 'หนึ่งพันสองร้อยบาทถ้วน'. Null if not printed."),
+  hasSignature: z
+    .boolean()
+    .nullable()
+    .describe("Receipts only: true if a handwritten signature or a signed stamp is on the receiver's (ผู้รับเงิน / Collector) line, false if that line is visibly empty, null if there is no such line."),
   lineItems: z.array(
     z.object({
       description: z.string(),
       quantityText: z.string().nullable(),
       unitPriceText: z.string().nullable(),
       amountText: z.string().nullable(),
+      unit: z
+        .string()
+        .nullable()
+        .describe("The unit of measure printed for this line (ชิ้น, กล่อง, UNIT, kg). Null if none; never a currency."),
+      productCode: z.string().nullable().describe("The product or item code (รหัสสินค้า) printed for this line. Null if none."),
+      discountText: z.string().nullable().describe("The discount printed for this line (ส่วนลด), as a positive number. Null if none."),
     }),
   ),
   uncertainFields: z
@@ -121,6 +186,9 @@ export const FlagSchema = z.object({
     "slip_receiver_mismatch",
     "slip_time_mismatch",
     "slip_qr_reference_mismatch",
+    "total_words_mismatch",
+    "tax_base_mismatch",
+    "invalid_buyer_tax_id",
   ]),
   severity: z.enum(["error", "warning"]),
   /** English text, for logs and API consumers. */
@@ -137,6 +205,12 @@ export const LineItemSchema = z.object({
   unitPrice: z.number().nullable(),
   /** Baht. */
   amount: z.number().nullable(),
+  /** Unit of measure (ชิ้น, กล่อง...). */
+  unit: z.string().nullable().optional(),
+  /** Product or item code (รหัสสินค้า). */
+  productCode: z.string().nullable().optional(),
+  /** Discount on this line, in baht, as a positive number. */
+  discount: z.number().nullable().optional(),
   /**
    * True when quantity and unit price were not printed and were filled in as
    * 1 x amount. Cleared when a person edits either field.
@@ -210,6 +284,29 @@ export const ReceiptSchema = z.object({
   reference: z.string().nullable(),
   /** The shop's tax ID, digits only. */
   taxId: z.string().nullable(),
+  /** Receipts: which title it carries (receipt, receipt and tax invoice, tax invoice). */
+  documentSubtype: z.enum(["receipt", "receipt_tax_invoice", "tax_invoice"]).nullable().optional(),
+  /** Receipts: the book number (เล่มที่) of a receipt book. */
+  bookNumber: z.string().nullable().optional(),
+  /** Receipts: the seller's address and branch (สำนักงานใหญ่ or the branch). */
+  merchantAddress: z.string().nullable().optional(),
+  branch: z.string().nullable().optional(),
+  /** Receipts: the buyer's name, address and tax ID (digits only). */
+  buyerName: z.string().nullable().optional(),
+  buyerAddress: z.string().nullable().optional(),
+  buyerTaxId: z.string().nullable().optional(),
+  /** Receipts: the number of another document this one refers to (not its own number). */
+  referenceDocument: z.string().nullable().optional(),
+  /** Receipts: how it was paid, when the document says. */
+  paymentMethod: z.enum(["cash", "cheque", "transfer", "card", "other"]).nullable().optional(),
+  /** Receipts: the total discount, the amount subject to VAT and the amount exempt from it, in baht. */
+  totalDiscount: z.number().nullable().optional(),
+  taxableAmount: z.number().nullable().optional(),
+  exemptAmount: z.number().nullable().optional(),
+  /** Receipts: the total as written in words, as printed. It is compared with `total`. */
+  totalInWords: z.string().nullable().optional(),
+  /** Receipts: whether the receiver's line is signed (true), visibly empty (false), or there is none (null). */
+  hasSignature: z.boolean().nullable().optional(),
   /** Transfer fee in baht, on a transfer slip. */
   fee: z.number().nullable(),
   /** ISO date (Gregorian), e.g. 2025-05-12. */

@@ -9,6 +9,9 @@ const item = (description: string, quantityText: string | null, unitPriceText: s
   quantityText,
   unitPriceText,
   amountText,
+  unit: null,
+  productCode: null,
+  discountText: null,
 });
 
 /** `path:code` for every flag, in order. */

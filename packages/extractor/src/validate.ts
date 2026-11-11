@@ -2,6 +2,7 @@ import { isDiscountLabel } from "./discount.js";
 import type { Flag, Receipt } from "./schema.js";
 import { qrReferenceFlags, verificationFlags } from "./slip.js";
 import { isValidThaiTaxId, taxIdDigits } from "./taxid.js";
+import { parseThaiAmountWords } from "./thai.js";
 
 export interface ValidateOptions {
   today?: Date;
@@ -190,7 +191,10 @@ export function validateReceipt(
       });
     }
     if (item.quantity !== null && item.unitPrice !== null && item.amount !== null) {
-      const expected = Math.round(item.quantity * toSatang(item.unitPrice));
+      const gross = Math.round(item.quantity * toSatang(item.unitPrice));
+      // A line's discount is taken off before the amount on some receipts and only shown beside it on others.
+      const net = item.discount ? gross - toSatang(item.discount) : gross;
+      const expected = Math.abs(net - toSatang(item.amount)) <= TOLERANCE ? net : gross;
       if (Math.abs(expected - toSatang(item.amount)) > TOLERANCE) {
         flags.push({
           path: `lineItems.${i}.amount`,
@@ -256,6 +260,49 @@ export function validateReceipt(
       message: `Tax ID "${taxId}" is not a valid 13-digit Thai tax ID (the check digit does not match). It may have been misread.`,
       params: { text: taxId },
     });
+  }
+
+  const buyerTaxId = r.buyerTaxId ? taxIdDigits(r.buyerTaxId) : "";
+  if (buyerTaxId && !isValidThaiTaxId(buyerTaxId)) {
+    flags.push({
+      path: "buyerTaxId",
+      code: "invalid_buyer_tax_id",
+      severity: "warning",
+      message: `The buyer's tax ID "${buyerTaxId}" is not a valid 13-digit Thai ID (the check digit does not match). It may have been misread.`,
+      params: { text: buyerTaxId },
+    });
+  }
+
+  // The total written in words must say the same amount as the figure. When the words
+  // cannot be read as a number there is nothing to compare, so nothing is flagged.
+  if (r.totalInWords && r.total !== null) {
+    const words = parseThaiAmountWords(r.totalInWords);
+    if (words !== null && words !== toSatang(r.total)) {
+      flags.push({
+        path: "totalInWords",
+        code: "total_words_mismatch",
+        severity: "warning",
+        message: `The total in words (${r.totalInWords}) says ${(words / 100).toFixed(2)}, but the total is ${r.total.toFixed(2)}. One of them may have been misread.`,
+        params: { words: r.totalInWords, wordsAmount: (words / 100).toFixed(2), total: r.total.toFixed(2) },
+      });
+    }
+  }
+
+  // The VAT is the rate of the amount that VAT applies to (or, when that amount already holds it, 7/107 of it).
+  if (r.taxableAmount != null && r.vat !== null) {
+    const base = toSatang(r.taxableAmount);
+    const vat = toSatang(r.vat);
+    const exclusive = Math.round(base * vatRate);
+    const inclusive = Math.round((base * vatRate) / (1 + vatRate));
+    if (Math.abs(vat - exclusive) > TOLERANCE && Math.abs(vat - inclusive) > TOLERANCE) {
+      flags.push({
+        path: "taxableAmount",
+        code: "tax_base_mismatch",
+        severity: "warning",
+        message: `VAT ${r.vat.toFixed(2)} is not ${(vatRate * 100).toFixed(0)}% of the amount subject to VAT (${r.taxableAmount.toFixed(2)}).`,
+        params: { vat: r.vat.toFixed(2), base: r.taxableAmount.toFixed(2), rate: (vatRate * 100).toFixed(0) },
+      });
+    }
   }
 
   // What the bank said about a transfer slip, compared with the figures as they are now.

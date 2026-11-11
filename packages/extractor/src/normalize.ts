@@ -105,6 +105,16 @@ export function normalizeExtraction(
   const rawCurrency = clean(raw.currency)?.toUpperCase();
   const currency = rawCurrency && !["BHT", "BAHT", "฿", "บาท"].includes(rawCurrency) ? rawCurrency : "THB";
 
+  // A discount is written as a positive number; "as printed" with a minus sign still means the same.
+  const optionalCells = (item: RawExtraction["lineItems"][number], i: number) => {
+    const discount = money(item.discountText ?? null, `lineItems.${i}.discount`);
+    return {
+      ...(clean(item.unit) ? { unit: clean(item.unit) } : {}),
+      ...(clean(item.productCode) ? { productCode: clean(item.productCode) } : {}),
+      ...(discount !== null ? { discount: Math.abs(discount) } : {}),
+    };
+  };
+
   // A transfer slip has no line items; anything the model listed is a misread
   // of the slip's own fields (From, To, fee...), so it is dropped.
   const parsedItems: LineItem[] = (raw.documentType === "transfer_slip" ? [] : raw.lineItems).map((item, i) => ({
@@ -112,6 +122,7 @@ export function normalizeExtraction(
     quantity: clean(item.quantityText) ? parseQuantity(item.quantityText!) : null,
     unitPrice: money(item.unitPriceText, `lineItems.${i}.unitPrice`),
     amount: money(item.amountText, `lineItems.${i}.amount`),
+    ...optionalCells(item, i),
   }));
 
   // Add-on lines whose price is already inside the line above (see addons.ts).
@@ -140,6 +151,32 @@ export function normalizeExtraction(
   const taxIdText = clean(raw.taxIdText);
   const taxId = taxIdText ? taxIdDigits(taxIdText) || null : null;
 
+  // The fields below belong to receipts; a slip has none of them, whatever the model made of it.
+  const onReceipt = raw.documentType !== "transfer_slip";
+  const buyerTaxIdText = onReceipt ? clean(raw.buyerTaxIdText) : null;
+  const buyerTaxId = buyerTaxIdText ? taxIdDigits(buyerTaxIdText) || null : null;
+  const receiptOnly = onReceipt
+    ? {
+        documentSubtype: raw.documentSubtype ?? null,
+        bookNumber: clean(raw.bookNumber),
+        merchantAddress: clean(raw.merchantAddress),
+        branch: clean(raw.branch),
+        buyerName: clean(raw.buyerName),
+        buyerAddress: clean(raw.buyerAddress),
+        buyerTaxId,
+        referenceDocument: clean(raw.referenceDocument),
+        paymentMethod: raw.paymentMethod ?? null,
+        totalDiscount: (() => {
+          const d = money(raw.totalDiscountText, "totalDiscount");
+          return d === null ? null : Math.abs(d);
+        })(),
+        taxableAmount: money(raw.taxableAmountText, "taxableAmount"),
+        exemptAmount: money(raw.exemptAmountText, "exemptAmount"),
+        totalInWords: clean(raw.totalInWords),
+        hasSignature: raw.hasSignature ?? null,
+      }
+    : {};
+
   const base: Omit<Receipt, "flags"> = {
     documentType: raw.documentType,
     merchant: clean(raw.merchant),
@@ -155,6 +192,7 @@ export function normalizeExtraction(
     vat: money(raw.vatText, "vat"),
     total: money(raw.totalText, "total"),
     lineItems,
+    ...receiptOnly,
   };
 
   // Dedupe, then summarise when the model doubts many line-item cells at once.
@@ -196,6 +234,8 @@ const FIELD_FLAGS = new Set<Flag["code"]>(["model_uncertain", "unparseable", "tw
 const SCALAR_FIELDS = [
   "documentType", "merchant", "payer", "recipientName", "reference", "taxId", "fee",
   "date", "time", "currency", "subtotal", "vat", "total",
+  "documentSubtype", "bookNumber", "merchantAddress", "branch", "buyerName", "buyerAddress", "buyerTaxId",
+  "referenceDocument", "paymentMethod", "totalDiscount", "taxableAmount", "exemptAmount", "totalInWords", "hasSignature",
 ] as const;
 type ScalarField = (typeof SCALAR_FIELDS)[number];
 

@@ -62,7 +62,7 @@ h3 { font-size: 15px; }
    underneath, and a row with a problem is tinted. The name column takes all the
    space the number columns leave (quantity has room for 4 digits). */
 .items { margin-top: 4px; }
-.item-head, .item-fields { display: grid; grid-template-columns: minmax(0, 1fr) 72px 108px 108px 44px; gap: 8px; align-items: start; }
+.item-head, .item-fields { display: grid; grid-template-columns: var(--cols, minmax(0, 1fr) 72px 108px 108px 44px); gap: 8px; align-items: start; }
 .item-head { padding: 0 8px 4px; font-size: 13px; color: var(--muted); }
 .item { padding: 8px; }
 .item + .item { border-top: 1px solid var(--line); }

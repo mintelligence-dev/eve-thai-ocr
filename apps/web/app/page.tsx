@@ -17,6 +17,7 @@ import {
 import { ImageError, MAX_UPLOAD_BYTES, looksTooSmall, prepareImage } from "@/lib/image";
 import { PdfError, isPdfFile, pdfToImages } from "@/lib/pdf";
 import { SlipCheck } from "./slip-check";
+import { ReceiptFields } from "./receipt-fields";
 import { readNdjson } from "@/lib/ndjson";
 import { LANGS, T, apiErrorText, detectLang, fieldLabel, flagText, tpl, type ApiError, type Dict, type Lang } from "@/lib/i18n";
 
@@ -61,6 +62,8 @@ export default function Home() {
   const [reviewed, setReviewed] = useState(false);
   // Show the fields that do not apply to the current document type.
   const [showHidden, setShowHidden] = useState(false);
+  // Counts the documents shown, so that the field list forgets which fields it has shown.
+  const [resultId, setResultId] = useState(0);
   // Model that read the current document; null for the built-in samples.
   const [model, setModel] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,7 +87,10 @@ export default function Home() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("sample");
     const sample = SAMPLES.find((s) => s.id === id);
-    if (sample) setReceipt(normalizeExtraction(sample.raw));
+    if (sample) {
+      setReceipt(normalizeExtraction(sample.raw));
+      setResultId((n) => n + 1);
+    }
   }, []);
 
   useEffect(() => {
@@ -213,6 +219,7 @@ export default function Home() {
         } else if (event.type === "final") {
           finished = true;
           setReceipt(event.receipt);
+          setResultId((n) => n + 1);
           setModel(event.model);
         } else {
           finished = true;
@@ -366,6 +373,7 @@ export default function Home() {
                 setReviewed(false);
                 setModel(null);
                 setReceipt(normalizeExtraction(s.raw));
+                setResultId((n) => n + 1);
               }}
             >
               {t.sample[s.id] ?? s.id}
@@ -414,104 +422,33 @@ export default function Home() {
 
           {(() => {
             const isSlip = receipt.documentType === "transfer_slip";
-            // A field that does not apply to this kind of document is hidden, unless it
-            // holds a value (never hide data silently) or the user asks to see it.
-            const hasReceiptData = receipt.subtotal !== null || receipt.vat !== null || receipt.taxId !== null || receipt.lineItems.length > 0;
-            const hasSlipData = receipt.payer !== null || receipt.recipientName !== null || receipt.fee !== null;
-            const showReceiptParts = !isSlip || hasReceiptData || showHidden;
-            const showSlipParts = isSlip || hasSlipData || showHidden;
+            // Line items do not apply to a transfer slip, unless it holds some or the person asks to see everything.
+            const showReceiptParts = !isSlip || receipt.lineItems.length > 0 || showHidden;
+            // The unit, code and discount columns appear only when some line has one (or everything is shown).
+            const filled = (pick: (i: LineItem) => unknown) => showHidden || receipt.lineItems.some((i) => pick(i) != null && pick(i) !== "");
+            const withCode = filled((i) => i.productCode);
+            const withUom = filled((i) => i.unit);
+            const withDiscount = filled((i) => i.discount);
+            const cols = [withCode && "110px", "minmax(0, 1fr)", "72px", withUom && "84px", "108px", withDiscount && "96px", "108px", "44px"].filter(Boolean).join(" ");
+            const colStyle = { "--cols": cols } as React.CSSProperties;
             return (
               <>
-                <div className="grid">
-                  <label>
-                    {t.type}
-                    <select className={cls("documentType")} value={receipt.documentType} onChange={(e) => edit({ documentType: e.target.value as Receipt["documentType"] })}>
-                      {(Object.keys(t.docTypes) as (keyof typeof t.docTypes)[]).map((k) => (
-                        <option key={k} value={k}>{t.docTypes[k]}</option>
-                      ))}
-                    </select>
-                    {hint("documentType")}
-                  </label>
-                  <label>
-                    {isSlip ? t.payee : t.merchant}
-                    <input className={cls("merchant")} value={receipt.merchant ?? ""} onChange={(e) => edit({ merchant: e.target.value || null })} />
-                    {hint("merchant")}
-                  </label>
-                  {showSlipParts && (
-                    <label>
-                      {t.recipientName}
-                      <input className={cls("recipientName")} placeholder={t.recipientNameHint} value={receipt.recipientName ?? ""} onChange={(e) => edit({ recipientName: e.target.value || null })} />
-                      {hint("recipientName")}
-                    </label>
-                  )}
-                  {showReceiptParts && (
-                    <label>
-                      {t.taxId}
-                      <input className={cls("taxId")} inputMode="numeric" value={receipt.taxId ?? ""} onChange={(e) => edit({ taxId: e.target.value.replace(/\D/g, "") || null })} />
-                      {hint("taxId")}
-                    </label>
-                  )}
-                  {showSlipParts && (
-                    <label>
-                      {t.payer}
-                      <input className={cls("payer")} value={receipt.payer ?? ""} onChange={(e) => edit({ payer: e.target.value || null })} />
-                      {hint("payer")}
-                    </label>
-                  )}
-                  <label>
-                    {t.date}
-                    <input type="date" className={cls("date")} value={receipt.date ?? ""} onChange={(e) => edit({ date: e.target.value || null })} />
-                    {hint("date")}
-                  </label>
-                  <label>
-                    {t.time}
-                    <input type="time" className={cls("time")} value={receipt.time ?? ""} onChange={(e) => edit({ time: e.target.value || null })} />
-                    {hint("time")}
-                  </label>
-                  <label>
-                    {t.currency}
-                    <input className={cls("currency")} value={receipt.currency} onChange={(e) => edit({ currency: e.target.value.toUpperCase() })} />
-                    {hint("currency")}
-                  </label>
-                  {showReceiptParts && (["subtotal", "vat"] as const).map((k) => (
-                    <label key={k}>
-                      {t[k]}
-                      <input type="number" step="0.01" className={cls(k)} value={receipt[k] ?? ""} onChange={(e) => edit({ [k]: num(e.target.value) })} />
-                      {hint(k)}
-                    </label>
-                  ))}
-                  <label>
-                    {isSlip ? t.amountTransferred : t.total}
-                    <input type="number" step="0.01" className={cls("total")} value={receipt.total ?? ""} onChange={(e) => edit({ total: num(e.target.value) })} />
-                    {hint("total")}
-                  </label>
-                  {showSlipParts && (
-                    <label>
-                      {t.fee}
-                      <input type="number" step="0.01" className={cls("fee")} value={receipt.fee ?? ""} onChange={(e) => edit({ fee: num(e.target.value) })} />
-                      {hint("fee")}
-                    </label>
-                  )}
-                  <label>
-                    {isSlip ? t.reference : t.receiptNumber}
-                    <input className={cls("reference")} value={receipt.reference ?? ""} onChange={(e) => edit({ reference: e.target.value || null })} />
-                    {hint("reference")}
-                  </label>
-                </div>
-                {isSlip && (
-                  <button className="ghost small" onClick={() => setShowHidden((v) => !v)} aria-expanded={showHidden}>
-                    {showHidden ? t.hideUnrelated : t.showHidden}
-                  </button>
-                )}
+                <ReceiptFields key={resultId} receipt={receipt} edit={edit} cls={cls} hint={hint} t={t} showAll={showHidden} />
+                <button className="ghost small" onClick={() => setShowHidden((v) => !v)} aria-expanded={showHidden}>
+                  {showHidden ? t.hideUnrelated : t.showHidden}
+                </button>
                 {showReceiptParts && (
                   <>
           <h3>{t.items}</h3>
           {hint("lineItems")}
           <div className="items" role="table" aria-label={t.items}>
-            <div className="item-head" role="row">
+            <div className="item-head" role="row" style={colStyle}>
+              {withCode && <span role="columnheader">{t.colCode}</span>}
               <span role="columnheader">{t.colName}</span>
               <span role="columnheader">{t.colQty}</span>
+              {withUom && <span role="columnheader">{t.colUom}</span>}
               <span role="columnheader">{t.colUnit}</span>
+              {withDiscount && <span role="columnheader">{t.colDiscount}</span>}
               <span role="columnheader">{t.colAmount}</span>
               <span />
             </div>
@@ -520,13 +457,22 @@ export default function Home() {
               const level = rowFlags.some((f) => f.severity === "error") ? "bad" : rowFlags.length ? "warn" : "";
               return (
                 <div key={i} className={`item ${level}`} role="row">
-                  <div className="item-fields">
+                  <div className="item-fields" style={colStyle}>
+                    {withCode && (
+                      <div className="c-code" role="cell" data-label={t.colCode}><input className={cls(`lineItems.${i}.productCode`)} value={it.productCode ?? ""} aria-label={`${t.colCode} ${i + 1}`} onChange={(e) => editItem(i, { productCode: e.target.value || null })} /></div>
+                    )}
                     <div className="c-name" role="cell" data-label={t.colName}>
                       {/* A textarea wraps long names instead of cutting them off. */}
                       <textarea rows={1} className={cls(`lineItems.${i}.description`)} value={it.description} aria-label={`${t.colName} ${i + 1}`} onChange={(e) => editItem(i, { description: e.target.value.replace(/\n/g, " ") })} />
                     </div>
                     <div className="c-qty" role="cell" data-label={t.colQty}><input type="number" step="any" className={`${cls(`lineItems.${i}.quantity`)} ${it.assumed ? "assumed" : ""}`} title={it.assumed ? t.assumedHint : undefined} value={it.quantity ?? ""} aria-label={`${t.colQty} ${i + 1}`} onChange={(e) => editItem(i, { quantity: num(e.target.value), assumed: false })} /></div>
+                    {withUom && (
+                      <div className="c-uom" role="cell" data-label={t.colUom}><input className={cls(`lineItems.${i}.unit`)} value={it.unit ?? ""} aria-label={`${t.colUom} ${i + 1}`} onChange={(e) => editItem(i, { unit: e.target.value || null })} /></div>
+                    )}
                     <div className="c-unit" role="cell" data-label={t.colUnit}><input type="number" step="0.01" className={`${cls(`lineItems.${i}.unitPrice`)} ${it.assumed ? "assumed" : ""}`} title={it.assumed ? t.assumedHint : undefined} value={it.unitPrice ?? ""} aria-label={`${t.colUnit} ${i + 1}`} onChange={(e) => editItem(i, { unitPrice: num(e.target.value), assumed: false })} /></div>
+                    {withDiscount && (
+                      <div className="c-discount" role="cell" data-label={t.colDiscount}><input type="number" step="0.01" min="0" className={cls(`lineItems.${i}.discount`)} value={it.discount ?? ""} aria-label={`${t.colDiscount} ${i + 1}`} onChange={(e) => editItem(i, { discount: num(e.target.value) })} /></div>
+                    )}
                     <div className="c-amount" role="cell" data-label={t.colAmount}><input type="number" step="0.01" className={cls(`lineItems.${i}.amount`)} value={it.amount ?? ""} aria-label={`${t.colAmount} ${i + 1}`} onChange={(e) => editItem(i, it.assumed ? { amount: num(e.target.value), unitPrice: num(e.target.value) } : { amount: num(e.target.value) })} /></div>
                     <div className="c-del" role="cell"><button className="ghost" aria-label={tpl(t.removeItem, { n: i + 1 })} onClick={() => edit({ lineItems: receipt.lineItems.filter((_, k) => k !== i) })}>✕</button></div>
                   </div>

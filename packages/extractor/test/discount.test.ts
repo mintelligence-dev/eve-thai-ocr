@@ -26,8 +26,8 @@ describe("negative amounts", () => {
         ...fx.thaiDigitsReceipt,
         subtotalText: null, vatText: null, totalText: "100.00",
         lineItems: [
-          { description: "Tea", quantityText: null, unitPriceText: null, amountText: "120.00" },
-          { description, quantityText: null, unitPriceText: null, amountText },
+          { description: "Tea", quantityText: null, unitPriceText: null, amountText: "120.00", unit: null, productCode: null, discountText: null },
+          { description, quantityText: null, unitPriceText: null, amountText, unit: null, productCode: null, discountText: null },
         ],
       },
       { today },

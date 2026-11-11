@@ -63,8 +63,8 @@ describe("normalizeExtraction", () => {
       {
         ...fx.transferSlip,
         lineItems: [
-          { description: "นายสมมติ", quantityText: null, unitPriceText: null, amountText: "2,500.00" },
-          { description: "ค่าธรรมเนียม", quantityText: null, unitPriceText: null, amountText: "0.00" },
+          { description: "นายสมมติ", quantityText: null, unitPriceText: null, amountText: "2,500.00", unit: null, productCode: null, discountText: null },
+          { description: "ค่าธรรมเนียม", quantityText: null, unitPriceText: null, amountText: "0.00", unit: null, productCode: null, discountText: null },
         ],
       },
       { today },
@@ -143,7 +143,7 @@ describe("normalizeExtraction", () => {
       {
         ...fx.thaiDigitsReceipt,
         lineItems: [
-          { description: "x", quantityText: "3", unitPriceText: "65.00", amountText: "130.00" },
+          { description: "x", quantityText: "3", unitPriceText: "65.00", amountText: "130.00", unit: null, productCode: null, discountText: null },
         ],
       },
       { today },
@@ -167,7 +167,7 @@ describe("normalizeExtraction", () => {
       lineItems: [
         ["Milk", "48.75 N"], ["Soap", "59.00 P"], ["Cheese", "190.00"], ["Noodles", "92.00"],
         ["Rice", "803.00"], ["Eggs", "62.00 N"],
-      ].map(([description, amountText]) => ({ description: description!, quantityText: null, unitPriceText: null, amountText: amountText! })),
+      ].map(([description, amountText]) => ({ description: description!, quantityText: null, unitPriceText: null, amountText: amountText!, unit: null, productCode: null, discountText: null })),
     };
     const r = normalizeExtraction(raw, { today });
     expect(r.lineItems.map((l) => l.amount)).toEqual([48.75, 59, 190, 92, 803, 62]);
@@ -209,8 +209,8 @@ describe("normalizeExtraction", () => {
         ...fx.thaiDigitsReceipt,
         subtotalText: null, vatText: null, totalText: "74.41",
         lineItems: [
-          { description: "A", quantityText: null, unitPriceText: null, amountText: "100.00" },
-          { description: "Promo", quantityText: null, unitPriceText: null, amountText: "-25.59" },
+          { description: "A", quantityText: null, unitPriceText: null, amountText: "100.00", unit: null, productCode: null, discountText: null },
+          { description: "Promo", quantityText: null, unitPriceText: null, amountText: "-25.59", unit: null, productCode: null, discountText: null },
         ],
       },
       { today },
@@ -224,12 +224,13 @@ describe("normalizeExtraction", () => {
   const noAmountItems = (n: number) =>
     Array.from({ length: n }, (_, i) => ({
       description: `item ${i}`, quantityText: null, unitPriceText: null, amountText: null,
+      unit: null, productCode: null, discountText: null,
     }));
 
   it("flags a line item with no amount", () => {
     const r = normalizeExtraction(
       { ...fx.thaiDigitsReceipt, lineItems: [
-        { description: "a", quantityText: null, unitPriceText: null, amountText: "174.41" },
+        { description: "a", quantityText: null, unitPriceText: null, amountText: "174.41", unit: null, productCode: null, discountText: null },
         ...noAmountItems(1),
       ] },
       { today },

@@ -218,3 +218,80 @@ export function parseQuantity(text: string): number | null {
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
+
+const WORD_DIGITS: Record<string, number> = {
+  ศูนย์: 0, หนึ่ง: 1, เอ็ด: 1, สอง: 2, ยี่: 2, สาม: 3, สี่: 4, ห้า: 5, หก: 6, เจ็ด: 7, แปด: 8, เก้า: 9,
+};
+const WORD_POWERS: Record<string, number> = { สิบ: 10, ร้อย: 100, พัน: 1000, หมื่น: 10_000, แสน: 100_000 };
+/** Longest first, so that no word is taken for the start of another. */
+const WORDS = [...Object.keys(WORD_DIGITS), ...Object.keys(WORD_POWERS), "ล้าน", "บาท", "สตางค์", "ถ้วน"].sort(
+  (a, b) => b.length - a.length,
+);
+
+function wordTokens(text: string): string[] | null {
+  const t = text.normalize("NFC").replace(/[\s()\[\].,\-]+/g, "");
+  const out: string[] = [];
+  for (let i = 0; i < t.length; ) {
+    const word = WORDS.find((w) => t.startsWith(w, i));
+    if (!word) return null;
+    out.push(word);
+    i += word.length;
+  }
+  return out;
+}
+
+/** A number below a million, from its words: "สองหมื่นหนึ่งพันห้าร้อย" is 21,500. */
+function wordsBelowMillion(tokens: string[]): number | null {
+  let value = 0;
+  let digit: number | null = null;
+  for (const t of tokens) {
+    if (t in WORD_DIGITS) {
+      if (digit !== null) return null; // two digits in a row
+      digit = WORD_DIGITS[t]!;
+    } else if (t in WORD_POWERS) {
+      // "สิบ" alone is ten; the other places need a digit before them
+      if (digit === null && t !== "สิบ") return null;
+      value += (digit ?? 1) * WORD_POWERS[t]!;
+      digit = null;
+    } else {
+      return null;
+    }
+  }
+  return value + (digit ?? 0);
+}
+
+function wordsToInteger(tokens: string[]): number | null {
+  const million = tokens.lastIndexOf("ล้าน");
+  if (million < 0) return wordsBelowMillion(tokens);
+  const left = million === 0 ? null : wordsToInteger(tokens.slice(0, million));
+  const right = wordsBelowMillion(tokens.slice(million + 1));
+  return left === null || right === null ? null : left * 1_000_000 + right;
+}
+
+/**
+ * The amount a receipt writes in words ("หนึ่งพันสองร้อยบาทถ้วน", "สองร้อยห้าสิบบาทห้าสิบสตางค์"),
+ * in satang, or null when the words are not a number written that way (handwriting misread,
+ * another language, a word it does not know). Null means "cannot check", never "wrong".
+ */
+export function parseThaiAmountWords(text: string): number | null {
+  const tokens = wordTokens(text);
+  if (!tokens) return null;
+  const baht = tokens.indexOf("บาท");
+  if (baht < 0) return null;
+
+  const before = tokens.slice(0, baht);
+  const after = tokens.slice(baht + 1).filter((t) => t !== "ถ้วน");
+  const whole = before.length === 0 ? 0 : wordsToInteger(before);
+  if (whole === null) return null;
+
+  let satang = 0;
+  if (after.length > 0) {
+    if (after[after.length - 1] !== "สตางค์") return null;
+    const s = wordsBelowMillion(after.slice(0, -1));
+    if (s === null || s >= 100) return null;
+    satang = s;
+  } else if (before.length === 0) {
+    return null; // "บาท" alone
+  }
+  return whole * 100 + satang;
+}
