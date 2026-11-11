@@ -429,8 +429,9 @@ export default function Home() {
             const withCode = filled((i) => i.productCode);
             const withUom = filled((i) => i.unit);
             const withDiscount = filled((i) => i.discount);
-            const cols = [withCode && "110px", "minmax(0, 1fr)", "72px", withUom && "84px", "108px", withDiscount && "96px", "108px", "44px"].filter(Boolean).join(" ");
+            const cols = [withCode && "88px", "minmax(160px, 1fr)", "64px", withUom && "76px", "96px", withDiscount && "84px", "100px", "40px"].filter(Boolean).join(" ");
             const colStyle = { "--cols": cols } as React.CSSProperties;
+            const many = withCode || withUom || withDiscount;
             return (
               <>
                 <ReceiptFields key={resultId} receipt={receipt} edit={edit} cls={cls} hint={hint} t={t} showAll={showHidden} />
@@ -441,7 +442,7 @@ export default function Home() {
                   <>
           <h3>{t.items}</h3>
           {hint("lineItems")}
-          <div className="items" role="table" aria-label={t.items}>
+          <div className={many ? "items many" : "items"} role="table" aria-label={t.items}>
             <div className="item-head" role="row" style={colStyle}>
               {withCode && <span role="columnheader">{t.colCode}</span>}
               <span role="columnheader">{t.colName}</span>
