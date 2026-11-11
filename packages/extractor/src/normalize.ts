@@ -23,6 +23,16 @@ const clean = (s: string | null | undefined) => {
   return t ? t : null;
 };
 
+/**
+ * The total in words as it should be kept: without the brackets, dashes or full stop a receipt
+ * prints around it (for example "(One thousand baht only)" or "-เก้าร้อยบาทถ้วน.-"), which the
+ * model sometimes copies in part. Null when nothing is left.
+ */
+export function cleanWords(text: string | null | undefined): string | null {
+  const t = text?.replace(/^[\s([\-–—.*]+|[\s)\]\-–—.*]+$/g, "");
+  return t ? t : null;
+}
+
 /** Models sometimes echo the raw schema names ("dateText"); map them to field paths. */
 const uncertainPath = (field: string) =>
   field.trim().replace(/Text(?=\.|$)/g, "");
@@ -172,7 +182,7 @@ export function normalizeExtraction(
         })(),
         taxableAmount: money(raw.taxableAmountText, "taxableAmount"),
         exemptAmount: money(raw.exemptAmountText, "exemptAmount"),
-        totalInWords: clean(raw.totalInWords),
+        totalInWords: cleanWords(raw.totalInWords),
         hasSignature: raw.hasSignature ?? null,
       }
     : {};

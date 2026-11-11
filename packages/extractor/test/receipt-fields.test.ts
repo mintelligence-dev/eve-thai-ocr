@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeExtraction } from "../src/normalize.js";
+import { cleanWords, normalizeExtraction } from "../src/normalize.js";
 import { revalidate } from "../src/normalize.js";
 import { parseThaiAmountWords } from "../src/thai.js";
 import * as fx from "./fixtures/index.js";
@@ -134,5 +134,32 @@ describe("VAT larger than the total", () => {
   it("clears after the VAT is corrected", () => {
     const r = normalizeExtraction(receipt({ subtotalText: "84112", vatText: "5888", totalText: "900" }), { today });
     expect(codes(revalidate({ ...r, vat: 58.88, subtotal: 841.12 }, { today, previous: r }))).not.toContain("vat:vat_exceeds_total");
+  });
+});
+
+describe("the total in words, as kept", () => {
+  it.each([
+    ["(One thousand baht only)", "One thousand baht only"],
+    ["One thousand baht only)", "One thousand baht only"],
+    ["-เก้าร้อยบาทถ้วน.-", "เก้าร้อยบาทถ้วน"],
+    ["เก้าร้อยบาทถ้วน.", "เก้าร้อยบาทถ้วน"],
+    ["  (หนึ่งพันบาทถ้วน)  ", "หนึ่งพันบาทถ้วน"],
+    ["สองร้อยบาทถ้วน", "สองร้อยบาทถ้วน"],
+  ])("cleans %s", (printed, kept) => {
+    expect(cleanWords(printed)).toBe(kept);
+  });
+
+  it("keeps nothing from nothing", () => {
+    expect(cleanWords(null)).toBeNull();
+    expect(cleanWords("  ")).toBeNull();
+    expect(cleanWords("(-)")).toBeNull();
+  });
+
+  it("is what a receipt stores, and the check still reads it", () => {
+    const ok = normalizeExtraction(receipt({ totalInWords: "-หนึ่งพันสองร้อยบาทถ้วน.-" }), { today });
+    expect(ok.totalInWords).toBe("หนึ่งพันสองร้อยบาทถ้วน");
+    expect(codes(ok)).toEqual([]);
+    const bad = normalizeExtraction(receipt({ totalInWords: "(หนึ่งพันสามร้อยบาทถ้วน)" }), { today });
+    expect(codes(bad)).toEqual(["totalInWords:total_words_mismatch"]);
   });
 });
