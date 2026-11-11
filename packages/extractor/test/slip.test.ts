@@ -148,26 +148,26 @@ describe("verificationFlags", () => {
 });
 
 describe("the reference on the slip against the one in its QR code", () => {
-  const qr = { sendingBank: "014", transRef: "202511083SAmPleRef3Xyz4mITo" };
+  const qr = { sendingBank: "014", transRef: "20260101AbCdEfGh7JkMnOpIq" };
   const read = (reference: string | null, over: Partial<Receipt> = {}) => slip({ reference, slipQr: qr, ...over });
 
   it("says nothing when they agree, or when there is no QR code", () => {
-    expect(qrReferenceFlags(read("202511083SAmPleRef3Xyz4mITo"))).toEqual([]);
+    expect(qrReferenceFlags(read("20260101AbCdEfGh7JkMnOpIq"))).toEqual([]);
     expect(qrReferenceFlags(slip({ reference: "anything" }))).toEqual([]);
   });
 
   it("ignores case, spaces and punctuation, as for the bank's reference", () => {
-    expect(qrReferenceFlags(read("2026-1108 3rqeltbo3zaj4mito"))).toEqual([]);
+    expect(qrReferenceFlags(read("2026-0101 abcdefgh7jkmnopiq"))).toEqual([]);
   });
 
   it("warns, with both values, when a letter was misread (I read as l)", () => {
-    const flags = qrReferenceFlags(read("202511083SAmPleRef3Xyz4mlTo"));
+    const flags = qrReferenceFlags(read("20260101AbCdEfGh7JkMnOplq"));
     expect(flags).toEqual([
       expect.objectContaining({
         code: "slip_qr_reference_mismatch",
         severity: "warning",
         path: "reference",
-        params: { printed: "202511083SAmPleRef3Xyz4mlTo", qr: "202511083SAmPleRef3Xyz4mITo" },
+        params: { printed: "20260101AbCdEfGh7JkMnOplq", qr: "20260101AbCdEfGh7JkMnOpIq" },
       }),
     ]);
   });
@@ -182,18 +182,18 @@ describe("the reference on the slip against the one in its QR code", () => {
   });
 
   it("leaves it to the bank's own comparison once the bank has answered, so nothing is said twice", () => {
-    const verified = read("202511083SAmPleRef3Xyz4mlTo", {
-      verification: { status: "verified", provider: "test", checkedAt: "2025-10-14T00:00:00Z", bank: bank({ transRef: "202511083SAmPleRef3Xyz4mITo", amount: 2500 }) },
+    const verified = read("20260101AbCdEfGh7JkMnOplq", {
+      verification: { status: "verified", provider: "test", checkedAt: "2025-10-14T00:00:00Z", bank: bank({ transRef: "20260101AbCdEfGh7JkMnOpIq", amount: 2500 }) },
     });
     expect(qrReferenceFlags(verified)).toEqual([]);
     expect(verificationFlags(verified).map((f) => f.code)).toEqual(["slip_reference_mismatch"]);
     // an answer that is not a confirmation does not take over
-    const none = read("202511083SAmPleRef3Xyz4mlTo", { verification: { status: "not_found", provider: "test", checkedAt: "2025-10-14T00:00:00Z" } });
+    const none = read("20260101AbCdEfGh7JkMnOplq", { verification: { status: "not_found", provider: "test", checkedAt: "2025-10-14T00:00:00Z" } });
     expect(qrReferenceFlags(none)).toHaveLength(1);
   });
 
   it("follows the person's edits: put right, it goes; spoilt again, it returns; the QR code is kept", () => {
-    const wrong = revalidate(read("202511083SAmPleRef3Xyz4mlTo"), { today });
+    const wrong = revalidate(read("20260101AbCdEfGh7JkMnOplq"), { today });
     expect(wrong.flags.map((f) => f.code)).toContain("slip_qr_reference_mismatch");
     const fixed = revalidate({ ...wrong, reference: qr.transRef }, { today, previous: wrong });
     expect(fixed.flags.some((f) => f.code === "slip_qr_reference_mismatch")).toBe(false);

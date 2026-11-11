@@ -79,7 +79,7 @@ describe("scoring names strictly", () => {
   it("ignores case, spaces and punctuation in a strict comparison", () => {
     const clean = normalizeExtraction({ ...shopSlip, payer: "นาย ตัวอย่าง ก" }, { today });
     const s = (expected: Parameters<typeof scoreReceipt>[1]) => scoreReceipt(clean, expected);
-    expect(s({ merchant: "sample kitchen", payer: "นายตัวอย่าง ก.", recipientName: "น.ส.ตัวอย่างสมมติ", strictNames: true }).accuracy).toBe(1);
+    expect(s({ merchant: "sample  kitchen", payer: "นายตัวอย่าง ก.", recipientName: "น.ส.ตัวอย่างสมมติ", strictNames: true }).accuracy).toBe(1);
     expect(s({ recipientName: "น.ส. คนอื่น", strictNames: true }).checks[0]?.pass).toBe(false);
   });
 
