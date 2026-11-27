@@ -56,8 +56,8 @@ pnpm test
 - Add or update a test for any change to parsing, checks, export or the eve tools.
 - If you change how a document is read, run `pnpm bench` on the synthetic cases (`--cases bench/cases`) and say
   in the pull request what changed.
-- If you change how something behaves, update the README. Its English and Thai halves mirror each other: update
-  both, or say in the pull request that the Thai text needs doing.
+- If you change how something behaves, update the README. `README.md` (English) and `README.th.md` (Thai) mirror each
+  other section by section: update both, or say in the pull request that the Thai text needs doing.
 - Say in the pull request what you tested and what you could not test.
 - Never commit keys, `.env.local` or anything from `bench/private/`.
 
