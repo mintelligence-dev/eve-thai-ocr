@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
-  transpilePackages: ["@thai-receipt-reader/extractor"],
+  transpilePackages: ["@eve-thai-ocr/extractor"],
 };
 
 export default config;

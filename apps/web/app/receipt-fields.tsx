@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import type { Receipt } from "@thai-receipt-reader/extractor/core";
+import type { Receipt } from "@eve-thai-ocr/extractor/core";
 import type { Dict } from "@/lib/i18n";
 
 type Key = Exclude<keyof Receipt, "lineItems" | "flags" | "slipQr" | "verification">;

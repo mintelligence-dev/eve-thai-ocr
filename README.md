@@ -111,7 +111,7 @@ The page shows what the model has read as it goes (the API's `?stream=1` mode se
 ### Use the package
 
 ```ts
-import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@thai-receipt-reader/extractor";
+import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@eve-thai-ocr/extractor";
 
 try {
   const { receipt, usage } = await extractReceipt({
@@ -129,7 +129,7 @@ try {
 }
 ```
 
-Browser-safe helpers (no model code), such as `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON` and `toCSV`, are at `@thai-receipt-reader/extractor/core`.
+Browser-safe helpers (no model code), such as `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON` and `toCSV`, are at `@eve-thai-ocr/extractor/core`.
 
 ### Checking a slip with the bank
 
@@ -306,7 +306,7 @@ pnpm test                                      # รันเทสต์ทั�
 ### ใช้แพ็กเกจ
 
 ```ts
-import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@thai-receipt-reader/extractor";
+import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@eve-thai-ocr/extractor";
 
 try {
   const { receipt, usage } = await extractReceipt({
@@ -324,7 +324,7 @@ try {
 }
 ```
 
-ฟังก์ชันที่ใช้ในเบราว์เซอร์ได้ (ไม่มีโค้ดเรียกโมเดล) เช่น `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON`, `toCSV` อยู่ที่ `@thai-receipt-reader/extractor/core`
+ฟังก์ชันที่ใช้ในเบราว์เซอร์ได้ (ไม่มีโค้ดเรียกโมเดล) เช่น `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON`, `toCSV` อยู่ที่ `@eve-thai-ocr/extractor/core`
 
 ### ตรวจสลิปกับธนาคาร
 
