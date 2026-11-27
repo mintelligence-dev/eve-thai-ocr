@@ -1,6 +1,6 @@
 {
   "name": "@eve-thai-receipt-extension/extractor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Read printed Thai receipts, tax invoices and bank transfer slips into checked, editable data: a vision model transcribes, and deterministic code parses Thai digits, Buddhist Era dates and amounts, runs the checks and exports JSON or CSV.",
   "keywords": [
     "receipt",
