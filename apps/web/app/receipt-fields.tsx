@@ -3,13 +3,15 @@
 import { useRef, type ReactNode } from "react";
 import type { Receipt } from "@eve-thai-ocr/extractor/core";
 import type { Dict } from "@/lib/i18n";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 
 type Key = Exclude<keyof Receipt, "lineItems" | "flags" | "slipQr" | "verification">;
 
 interface Props {
   receipt: Receipt;
   edit: (patch: Partial<Receipt>) => void;
-  /** CSS class for a field by its flag level, and the flag messages under it. */
+  /** CSS class for a field by its flag level ("bad", "warn" or ""), and the flag messages under it. */
   cls: (path: string) => string;
   hint: (path: string) => ReactNode;
   t: Dict;
@@ -49,10 +51,11 @@ export function ReceiptFields({ receipt, edit, cls, hint, t, showAll }: Props) {
 
   const text = (key: Key, label: string, extra: { placeholder?: string; digits?: boolean } = {}) =>
     show(key) && (
-      <label key={key}>
+      <label key={key} className="field">
         {label}
-        <input
+        <Input
           className={cls(key)}
+          aria-invalid={cls(key) === "bad" || undefined}
           placeholder={extra.placeholder}
           inputMode={extra.digits ? "numeric" : undefined}
           value={(receipt[key] as string | null | undefined) ?? ""}
@@ -64,12 +67,13 @@ export function ReceiptFields({ receipt, edit, cls, hint, t, showAll }: Props) {
 
   const money = (key: Key, label: string) =>
     show(key) && (
-      <label key={key}>
+      <label key={key} className="field">
         {label}
-        <input
+        <Input
           type="number"
           step="0.01"
           className={cls(key)}
+          aria-invalid={cls(key) === "bad" || undefined}
           value={(receipt[key] as number | null | undefined) ?? ""}
           onChange={(e) => set(key, num(e.target.value))}
         />
@@ -79,44 +83,45 @@ export function ReceiptFields({ receipt, edit, cls, hint, t, showAll }: Props) {
 
   const choice = (key: Key, label: string, options: Record<string, string>) =>
     show(key) && (
-      <label key={key}>
+      <label key={key} className="field">
         {label}
-        <select className={cls(key)} value={(receipt[key] as string | null | undefined) ?? ""} onChange={(e) => set(key, e.target.value || null)}>
+        <NativeSelect className={cls(key)} aria-invalid={cls(key) === "bad" || undefined} value={(receipt[key] as string | null | undefined) ?? ""} onChange={(e) => set(key, e.target.value || null)}>
           <option value="">{t.notStated}</option>
           {Object.entries(options).map(([value, name]) => (
             <option key={value} value={value}>{name}</option>
           ))}
-        </select>
+        </NativeSelect>
         {hint(key)}
       </label>
     );
 
   const signature = () =>
     show("hasSignature") && (
-      <label key="hasSignature">
+      <label key="hasSignature" className="field">
         {t.hasSignature}
-        <select
+        <NativeSelect
           className={cls("hasSignature")}
+          aria-invalid={cls("hasSignature") === "bad" || undefined}
           value={receipt.hasSignature == null ? "" : receipt.hasSignature ? "yes" : "no"}
           onChange={(e) => set("hasSignature", e.target.value === "" ? null : e.target.value === "yes")}
         >
           <option value="">{t.notStated}</option>
           <option value="yes">{t.signature.yes}</option>
           <option value="no">{t.signature.no}</option>
-        </select>
+        </NativeSelect>
         {hint("hasSignature")}
       </label>
     );
 
   return (
-    <div className="grid">
-      <label>
+    <div className="fields-grid">
+      <label className="field">
         {t.type}
-        <select className={cls("documentType")} value={receipt.documentType} onChange={(e) => edit({ documentType: e.target.value as Receipt["documentType"] })}>
+        <NativeSelect className={cls("documentType")} aria-invalid={cls("documentType") === "bad" || undefined} value={receipt.documentType} onChange={(e) => edit({ documentType: e.target.value as Receipt["documentType"] })}>
           {(Object.keys(t.docTypes) as (keyof typeof t.docTypes)[]).map((k) => (
             <option key={k} value={k}>{t.docTypes[k]}</option>
           ))}
-        </select>
+        </NativeSelect>
         {hint("documentType")}
       </label>
       {choice("documentSubtype", t.documentSubtype, t.subtypes)}
@@ -129,21 +134,21 @@ export function ReceiptFields({ receipt, edit, cls, hint, t, showAll }: Props) {
       {text("buyerName", t.buyerName)}
       {text("buyerAddress", t.buyerAddress)}
       {text("buyerTaxId", t.buyerTaxId, { digits: true })}
-      <label>
+      <label className="field">
         {t.date}
-        <input type="date" className={cls("date")} value={receipt.date ?? ""} onChange={(e) => edit({ date: e.target.value || null })} />
+        <Input type="date" className={cls("date")} aria-invalid={cls("date") === "bad" || undefined} value={receipt.date ?? ""} onChange={(e) => edit({ date: e.target.value || null })} />
         {hint("date")}
       </label>
       {show("time") && (
-        <label>
+        <label className="field">
           {t.time}
-          <input type="time" className={cls("time")} value={receipt.time ?? ""} onChange={(e) => edit({ time: e.target.value || null })} />
+          <Input type="time" className={cls("time")} aria-invalid={cls("time") === "bad" || undefined} value={receipt.time ?? ""} onChange={(e) => edit({ time: e.target.value || null })} />
           {hint("time")}
         </label>
       )}
-      <label>
+      <label className="field">
         {t.currency}
-        <input className={cls("currency")} value={receipt.currency} onChange={(e) => edit({ currency: e.target.value.toUpperCase() })} />
+        <Input className={cls("currency")} aria-invalid={cls("currency") === "bad" || undefined} value={receipt.currency} onChange={(e) => edit({ currency: e.target.value.toUpperCase() })} />
         {hint("currency")}
       </label>
       {text("bookNumber", t.bookNumber)}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { bangkokDay, type SlipQr, type Verification } from "@eve-thai-ocr/extractor/core";
 import { findSlipQr, type FoundSlipQr } from "@/lib/qr";
 import { apiErrorText, tpl, type ApiError, type Dict, type Lang } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 
 interface Service {
   enabled: boolean;
@@ -128,7 +129,7 @@ export function SlipCheck({
         <div className="verify-status warn" role="status">
           {tpl(t.slipQrMismatch, { printed: reference ?? "", qr: qrRef.qr })}
           <div className="row">
-            <button className="ghost" onClick={onUseQrReference}>{t.useQrReference}</button>
+            <Button variant="outline" size="sm" onClick={onUseQrReference}>{t.useQrReference}</Button>
           </div>
         </div>
       )}
@@ -136,9 +137,9 @@ export function SlipCheck({
         <>
           {!verification && <p className="hint">{tpl(t.slipDisclosure, { provider: service.provider ?? "" })}</p>}
           <div className="row">
-            <button onClick={check} disabled={busy}>
+            <Button onClick={check} disabled={busy}>
               {busy ? t.slipChecking : verification ? t.slipRecheck : t.slipCheck}
-            </button>
+            </Button>
           </div>
         </>
       )}
