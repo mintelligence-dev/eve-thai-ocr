@@ -1,0 +1,24 @@
+name: Feature request
+description: Something the project should do. English or Thai is fine.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation, in your own words. Which documents, who checks them, and where the data goes next.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: The project's rules
+      description: A request that needs one of these changed is unlikely to be accepted; say why if yours does.
+      options:
+        - label: The model still only transcribes; code parses and checks the figures
+        - label: A person still reviews the result, and export stays locked while an error remains
+        - label: Documents are still not stored
