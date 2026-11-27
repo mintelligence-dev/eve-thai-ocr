@@ -7,6 +7,8 @@ Turn photos of **printed** Thai receipts, tax invoices and bank transfer slips i
 [![eve](https://img.shields.io/badge/eve-1.4-black)](https://eve.dev)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![eve on npm](https://img.shields.io/npm/v/@eve-thai-receipt-extension/eve?label=eve)](https://www.npmjs.com/package/@eve-thai-receipt-extension/eve)
+[![extractor on npm](https://img.shields.io/npm/v/@eve-thai-receipt-extension/extractor?label=extractor)](https://www.npmjs.com/package/@eve-thai-receipt-extension/extractor)
 
 **English** · [ภาษาไทย](README.th.md)
 
@@ -124,6 +126,10 @@ The page shows what the model has read as it goes (the API's `?stream=1` mode se
 
 ### Use the package
 
+```bash
+npm install @eve-thai-receipt-extension/extractor
+```
+
 ```ts
 import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@eve-thai-receipt-extension/extractor";
 
@@ -147,7 +153,13 @@ Browser-safe helpers (no model code), such as `normalizeExtraction`, `revalidate
 
 ### Use with eve
 
-[`@eve-thai-receipt-extension/eve`](packages/eve) is an [eve](https://www.npmjs.com/package/eve) extension: a person sends a photo of a receipt or slip to your agent in a chat, checks what was read, corrects it in their own words and asks for the file. **It is not on npm yet:** use it from this workspace (`"@eve-thai-receipt-extension/eve": "workspace:*"`), as the example agent does. Mount it in your agent:
+[`@eve-thai-receipt-extension/eve`](packages/eve) is an [eve](https://www.npmjs.com/package/eve) extension: a person sends a photo of a receipt or slip to your agent in a chat, checks what was read, corrects it in their own words and asks for the file. Install it in your agent project (it brings `@eve-thai-receipt-extension/extractor` with it):
+
+```bash
+npm install @eve-thai-receipt-extension/eve
+```
+
+Then mount it:
 
 ```ts
 // agent/extensions/receipt.ts
