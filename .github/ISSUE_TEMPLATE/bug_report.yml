@@ -12,7 +12,7 @@ body:
       options:
         - Extractor (packages/extractor)
         - eve extension (packages/eve)
-        - Example app: web demo or agent (examples/thai-ocr-agent)
+        - Example app: web demo or agent (examples/thai-receipt-agent)
         - Model comparison (bench)
         - Docs
     validations:

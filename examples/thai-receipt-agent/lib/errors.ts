@@ -1,4 +1,4 @@
-import { DifferentDocumentsError, HandwritingNotSupportedError } from "@eve-thai-ocr/extractor";
+import { DifferentDocumentsError, HandwritingNotSupportedError } from "@eve-thai-receipt-extension/extractor";
 
 export interface Classified {
   code: "handwritten" | "different_documents" | "busy" | "extract_failed";

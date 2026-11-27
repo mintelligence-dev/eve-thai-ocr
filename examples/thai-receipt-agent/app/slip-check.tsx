@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { bangkokDay, type SlipQr, type Verification } from "@eve-thai-ocr/extractor/core";
+import { bangkokDay, type SlipQr, type Verification } from "@eve-thai-receipt-extension/extractor/core";
 import { findSlipQr, type FoundSlipQr } from "@/lib/qr";
 import { apiErrorText, tpl, type ApiError, type Dict, type Lang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";

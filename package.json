@@ -1,17 +1,17 @@
 {
-  "name": "eve-thai-ocr",
+  "name": "eve-thai-receipt-extension",
   "private": true,
   "version": "0.1.0",
   "license": "MIT",
   "packageManager": "pnpm@10.28.1",
   "scripts": {
-    "dev": "pnpm --filter thai-ocr-agent dev",
-    "dev:agent": "pnpm build:eve && pnpm --filter thai-ocr-agent dev:eve",
-    "build": "pnpm --filter thai-ocr-agent build",
-    "build:eve": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter @eve-thai-ocr/eve build",
+    "dev": "pnpm --filter thai-receipt-agent dev",
+    "dev:agent": "pnpm build:eve && pnpm --filter thai-receipt-agent dev:eve",
+    "build": "pnpm --filter thai-receipt-agent build",
+    "build:eve": "pnpm --filter @eve-thai-receipt-extension/extractor build && pnpm --filter @eve-thai-receipt-extension/eve build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "bench": "pnpm --filter @eve-thai-ocr/extractor build && node --env-file-if-exists=examples/thai-ocr-agent/.env.local bench/compare.mjs"
+    "bench": "pnpm --filter @eve-thai-receipt-extension/extractor build && node --env-file-if-exists=examples/thai-receipt-agent/.env.local bench/compare.mjs"
   },
   "pnpm": {
     "overrides": {

@@ -1,4 +1,4 @@
-import { DEFAULT_MODEL } from "@eve-thai-ocr/extractor";
+import { DEFAULT_MODEL } from "@eve-thai-receipt-extension/extractor";
 import { defineExtension } from "eve/extension";
 import { z } from "zod";
 

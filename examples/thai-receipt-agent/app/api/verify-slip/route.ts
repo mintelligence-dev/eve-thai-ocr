@@ -2,7 +2,7 @@ import {
   parseSlipQr,
   slipVerifierFromEnv,
   type Verification,
-} from "@eve-thai-ocr/extractor";
+} from "@eve-thai-receipt-extension/extractor";
 import { clientKey, slipPerVisitor } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";

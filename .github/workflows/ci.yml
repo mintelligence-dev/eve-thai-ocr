@@ -23,5 +23,5 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       # The example app: the web demo with the eve agent beside it (next build), and the agent on its own (eve build).
-      - run: pnpm --filter thai-ocr-agent build
-      - run: pnpm --filter thai-ocr-agent build:eve
+      - run: pnpm --filter thai-receipt-agent build
+      - run: pnpm --filter thai-receipt-agent build:eve

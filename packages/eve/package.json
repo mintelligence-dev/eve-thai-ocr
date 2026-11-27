@@ -1,5 +1,5 @@
 {
-  "name": "@eve-thai-ocr/eve",
+  "name": "@eve-thai-receipt-extension/eve",
   "version": "0.1.0",
   "description": "eve extension: read printed Thai receipts, tax invoices and bank transfer slips from attached photos into checked, editable data, then export JSON or CSV.",
   "keywords": [
@@ -15,12 +15,12 @@
   "author": "M Intelligence",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mintelligence-dev/eve-thai-ocr.git",
+    "url": "git+https://github.com/mintelligence-dev/eve-thai-receipt-extension.git",
     "directory": "packages/eve"
   },
-  "homepage": "https://github.com/mintelligence-dev/eve-thai-ocr#readme",
+  "homepage": "https://github.com/mintelligence-dev/eve-thai-receipt-extension#readme",
   "bugs": {
-    "url": "https://github.com/mintelligence-dev/eve-thai-ocr/issues"
+    "url": "https://github.com/mintelligence-dev/eve-thai-receipt-extension/issues"
   },
   "type": "module",
   "eve": {
@@ -51,7 +51,7 @@
     "prepublishOnly": "eve extension build"
   },
   "dependencies": {
-    "@eve-thai-ocr/extractor": "workspace:*",
+    "@eve-thai-receipt-extension/extractor": "workspace:*",
     "zod": "^4.6.7"
   },
   "devDependencies": {

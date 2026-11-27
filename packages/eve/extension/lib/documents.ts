@@ -17,7 +17,7 @@ import {
   type Flag,
   type LineItem,
   type Receipt,
-} from "@eve-thai-ocr/extractor";
+} from "@eve-thai-receipt-extension/extractor";
 import { z } from "zod";
 
 /** Where eve copies the files people attach (see eve's "Inbound attachments"). */

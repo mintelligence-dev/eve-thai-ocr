@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FlagSchema, SAMPLES, normalizeExtraction } from "@eve-thai-ocr/extractor/core";
+import { FlagSchema, SAMPLES, normalizeExtraction } from "@eve-thai-receipt-extension/extractor/core";
 import { T, apiErrorText, detectLang, fieldLabel, flagText, LANGS } from "./i18n";
 
 const today = new Date("2025-10-14T00:00:00Z");
