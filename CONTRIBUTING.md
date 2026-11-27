@@ -70,9 +70,18 @@ pnpm test
 
 ## Releases
 
-Nothing is on npm yet. When it is, maintainers publish `@eve-thai-receipt-extension/extractor` first, then `@eve-thai-receipt-extension/eve`,
-tag the commit `v<version>` and create a GitHub Release. Versions follow [Semantic Versioning](https://semver.org);
-while they are below 1.0, a minor version may change behaviour.
+Maintainers publish to npm with **pnpm**, not npm: `@eve-thai-receipt-extension/eve` depends on the extractor as
+`workspace:*`, and `pnpm publish` writes the exact version into the published package, while `npm publish` would ship
+the `workspace:` range as it is. Publish the extractor first:
+
+```bash
+pnpm --filter @eve-thai-receipt-extension/extractor publish
+pnpm --filter @eve-thai-receipt-extension/eve publish
+```
+
+Each package builds itself before publishing (`prepublishOnly`). Then tag the commit `v<version>` and create a GitHub
+Release. Versions follow [Semantic Versioning](https://semver.org); while they are below 1.0, a minor version may
+change behaviour. The eve package pins the exact extractor version it was tested with.
 
 ## Conduct
 

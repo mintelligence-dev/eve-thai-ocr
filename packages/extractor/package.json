@@ -1,7 +1,27 @@
 {
   "name": "@eve-thai-receipt-extension/extractor",
   "version": "0.1.0",
+  "description": "Read printed Thai receipts, tax invoices and bank transfer slips into checked, editable data: a vision model transcribes, and deterministic code parses Thai digits, Buddhist Era dates and amounts, runs the checks and exports JSON or CSV.",
+  "keywords": [
+    "receipt",
+    "tax-invoice",
+    "transfer-slip",
+    "thai",
+    "ocr",
+    "ai-sdk",
+    "vision"
+  ],
   "license": "MIT",
+  "author": "M Intelligence",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mintelligence-dev/eve-thai-receipt-extension.git",
+    "directory": "packages/extractor"
+  },
+  "homepage": "https://github.com/mintelligence-dev/eve-thai-receipt-extension#readme",
+  "bugs": {
+    "url": "https://github.com/mintelligence-dev/eve-thai-receipt-extension/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,12 +36,15 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "ai": "^7.0.183",
@@ -31,5 +54,11 @@
     "@types/node": "^26.6.5",
     "typescript": "^7.0.2",
     "vitest": "^5.0.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
