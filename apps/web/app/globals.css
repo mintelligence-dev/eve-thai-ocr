@@ -1,172 +1,313 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
 /* Light is the default. Dark applies only when the user picks it with the theme
    switch (data-theme="dark", also set early by a script in layout.tsx so there is
    no flash on load). The OS setting is not followed. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Mintel UI theme (https://mintel-ui.vercel.app, registry item @mintel/mintel-theme). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-foreground: var(--brand-accent-foreground);
+  --color-brand-cyan: var(--brand-cyan);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-grouped: var(--grouped);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-manrope, Manrope), var(--font-plex-thai, "IBM Plex Sans Thai"), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-rubik, Rubik), var(--font-plex-thai, "IBM Plex Sans Thai"), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains, "JetBrains Mono"), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --text-title-1: 1.75rem;
+  --text-title-1--line-height: 1.22;
+  --text-title-1--letter-spacing: -0.015em;
+  --text-title-1--font-weight: 700;
+  --text-title-2: 1.375rem;
+  --text-title-2--line-height: 1.27;
+  --text-title-2--letter-spacing: -0.01em;
+  --text-title-2--font-weight: 600;
+  --text-title-3: 1.25rem;
+  --text-title-3--line-height: 1.3;
+  --text-title-3--letter-spacing: -0.005em;
+  --text-title-3--font-weight: 600;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.34;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring-snappy: linear(0, 0.0277, 0.0868, 0.158, 0.2469, 0.3401, 0.4325, 0.5204, 0.6016, 0.6686, 0.7339, 0.7906, 0.8389, 0.8793, 0.9097, 0.9371, 0.9588, 0.9757, 0.9885, 0.9972, 1.0041, 1.0088, 1.0117, 1.0132, 1.0138, 1.0136, 1.0129, 1.012, 1.0108, 1.0095, 1.0083, 1.0071, 1.0059, 1.0049, 1.0039, 1.0032, 1.0025, 1.0019, 1.0014, 1.001, 1.0007, 1.0004, 1.0002, 1.0001, 1, 0.9999, 0.9999, 0.9998, 1);
+  --brand-gradient: linear-gradient(135deg, var(--brand) 0%, var(--brand-accent) 100%);
+  @keyframes mintel-shake {
+    0%, 100% { translate: 0; }
+    20%, 60% { translate: -4px; }
+    40%, 80% { translate: 4px; }
+  }
+}
+
 :root {
   color-scheme: light;
-  --bg: #fafaf9; --fg: #1c1917; --muted: #57534e; --card: #fff; --line: #d6d3d1;
-  --accent: #0f766e; --warn: #b45309; --warn-bg: #fffbeb; --bad: #b91c1c; --bad-bg: #fef2f2;
-  --ok: #166534; --ok-bg: #f0fdf4;
+  --radius: 0.625rem;
+  --background: #FFFFFF;
+  --foreground: #181B31;
+  --card: #FFFFFF;
+  --card-foreground: #181B31;
+  --popover: #FFFFFF;
+  --popover-foreground: #181B31;
+  --primary: #295DA8;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F2F3F8;
+  --secondary-foreground: #181B31;
+  --muted: #F2F3F8;
+  --muted-foreground: #646775;
+  --accent: #EDF6FF;
+  --accent-foreground: #1A3F73;
+  --destructive: #B91C1C;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E6EA;
+  --input: #E5E6EA;
+  --ring: #5186D5;
+  --brand: #295DA8;
+  --brand-foreground: #FFFFFF;
+  --brand-accent: #7040F2;
+  --brand-accent-foreground: #FFFFFF;
+  --brand-cyan: #06B6D4;
+  --success: #137038;
+  --warning: #A14A08;
+  --info: #0E7490;
+  --grouped: #F2F3F8;
+  --warn-tint: #F59E0B;
 }
+
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #1c1917; --fg: #fafaf9; --muted: #a8a29e; --card: #292524; --line: #44403c;
-  --accent: #2dd4bf; --warn: #fbbf24; --warn-bg: #3a2c0b; --bad: #f87171; --bad-bg: #3b1515;
-  --ok: #4ade80; --ok-bg: #12301c;
-}
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, "Noto Sans Thai", sans-serif; }
-main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
-h1 { margin: 0 0 4px; } h2, h3 { margin: 16px 0 8px; }
-.lede { color: var(--muted); margin: 0 0 8px; }
-.note { font-size: 14px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 16px; }
-.drop { border: 2px dashed var(--line); border-radius: 8px; min-height: 140px; display: grid; place-items: center; text-align: center; padding: 12px; cursor: pointer; color: var(--muted); }
-.drop img { max-width: 100%; max-height: 320px; }
-.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
-.or { font-size: 14px; color: var(--muted); }
-button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); cursor: pointer; }
-button.ghost { background: transparent; color: var(--accent); }
-button:disabled { opacity: .45; cursor: not-allowed; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
-input, select, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); width: 100%; }
-input.warn, select.warn, textarea.warn { border-color: var(--warn); background-color: var(--warn-bg); }
-input.bad, select.bad, textarea.bad { border-color: var(--bad); background-color: var(--bad-bg); }
-/* One look for the drop-down in every browser: the same box as an input, and a small chevron
-   (two gradients, so that it follows the theme colours) instead of the system's own button. */
-select {
-  appearance: none; -webkit-appearance: none; line-height: 1.4; padding-right: 34px; cursor: pointer;
-  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 19px) 50%, calc(100% - 13px) 50%;
-  background-size: 6px 6px, 6px 6px;
-  background-repeat: no-repeat;
-}
-small.warning { color: var(--warn); } small.error, .error { color: var(--bad); }
-.flags { list-style: none; padding: 0; display: grid; gap: 6px; }
-.flags li { padding: 6px 10px; border-radius: 6px; font-size: 14px; }
-.flags li.warning { background: var(--warn-bg); color: var(--warn); }
-.flags li.error { background: var(--bad-bg); color: var(--bad); }
-.ok { color: var(--ok); }
-.export { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 12px; }
-label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--fg); }
-label.check input { width: auto; }
-.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.lang { display: flex; gap: 4px; }
-.lang button { padding: 4px 12px; font-size: 14px; }
-.lang button.on { background: var(--accent); color: var(--bg); }
-.drop:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.drop small { font-size: 13px; }
-h3 { font-size: 15px; }
-.model { margin: -4px 0 8px; font-size: 13px; color: var(--muted); }
-.model, .flags b { overflow-wrap: anywhere; }
-.previews { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
-.preview { min-width: 0; }
-.preview-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.preview-head h3 { margin: 0; }
-.muted { color: var(--muted); }
-.preview pre { margin: 8px 0 0; padding: 12px; max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
-.preview pre:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-/* Line items. Each item is a row of fields; its warnings sit on a full-width line
-   underneath, and a row with a problem is tinted. The name column takes all the
-   space the number columns leave (quantity has room for 4 digits). */
-.items { margin-top: 4px; }
-.item-head, .item-fields { display: grid; grid-template-columns: var(--cols, minmax(0, 1fr) 72px 108px 108px 44px); gap: 8px; align-items: start; }
-.item-head { padding: 0 8px 4px; font-size: 13px; color: var(--muted); }
-.item { padding: 8px; }
-.item + .item { border-top: 1px solid var(--line); }
-.item.warn { background: var(--warn-bg); }
-.item.bad { background: var(--bad-bg); }
-.item.warn, .item.bad { border-radius: 10px; border-top-color: transparent; }
-.item.warn + .item, .item.bad + .item { border-top-color: transparent; }
-.item-msgs { list-style: none; margin: 8px 0 0; padding: 0 2px; display: grid; gap: 2px; font-size: 14px; }
-.item-msgs li.warning { color: var(--warn); }
-.item-msgs li.error { color: var(--bad); }
-.item .c-del { text-align: center; }
-/* Right-aligned numbers, and no spinner arrows eating space or changing values on scroll. */
-.item input[type="number"] { text-align: right; appearance: textfield; -moz-appearance: textfield; }
-.item input[type="number"]::-webkit-inner-spin-button,
-.item input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-textarea { width: 100%; resize: none; min-height: 2.6em; field-sizing: content; line-height: 1.4; }
-
-/* Do the items add up to the total? */
-.sum { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 10px; font-size: 15px; }
-.sum.ok { background: var(--ok-bg); color: var(--ok); }
-.sum.warn { background: var(--warn-bg); color: var(--warn); }
-.sum-tag { font-size: 13px; white-space: nowrap; }
-
-/* Asking the bank about a transfer slip */
-.verify { margin: 16px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
-.verify h3 { margin-top: 0; }
-.verify-status { margin-top: 12px; padding: 10px 14px; border-radius: 10px; font-size: 15px; }
-.verify-status small { display: block; margin-top: 4px; color: inherit; opacity: 0.85; }
-.verify-status.ok { background: var(--ok-bg); color: var(--ok); }
-.verify-status.warn { background: var(--warn-bg); color: var(--warn); }
-.verify-status.bad { background: var(--bad-bg); color: var(--bad); }
-
-.theme { display: flex; gap: 4px; }
-.theme button { padding: 4px 12px; font-size: 14px; }
-.theme button.on { background: var(--accent); color: var(--bg); }
-.controls { display: flex; gap: 12px; flex-wrap: wrap; }
-
-/* Phones: each item becomes a small card. */
-/* With the extra columns (code, unit, discount) the row needs more room, so it stacks sooner. */
-@media (max-width: 880px) {
-  .items.many .item-head { display: none; }
-  .items.many .item-fields { grid-template-columns: repeat(3, 1fr); }
-  .items.many .item-fields > div::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; color: var(--muted); }
-  .items.many .c-name { grid-column: 1 / -1; }
-  .items.many .c-del { grid-column: 1 / -1; text-align: right; }
-  .items.many .c-del::before { content: none; }
-}
-@media (max-width: 680px) {
-  .item-head { display: none; }
-  .item-fields { grid-template-columns: repeat(3, 1fr); }
-  .item-fields > div::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; color: var(--muted); }
-  .item .c-name { grid-column: 1 / -1; }
-  .item .c-del { grid-column: 1 / -1; text-align: right; }
-  .item .c-del::before { content: none; }
+  --background: #0C0E1E;
+  --foreground: #F9FAFE;
+  --card: #181B31;
+  --card-foreground: #F9FAFE;
+  --popover: #181B31;
+  --popover-foreground: #F9FAFE;
+  --primary: #8DB6F2;
+  --primary-foreground: #0C0E1E;
+  --secondary: #272A3D;
+  --secondary-foreground: #F9FAFE;
+  --muted: #272A3D;
+  --muted-foreground: #9EA1AE;
+  --accent: #272A3D;
+  --accent-foreground: #F9FAFE;
+  --destructive: #F87171;
+  --destructive-foreground: #FFFFFF;
+  --border: #272A3D;
+  --input: #3B3E52;
+  --ring: #8DB6F2;
+  --brand: #8DB6F2;
+  --brand-foreground: #0C0E1E;
+  --brand-accent: #9E82FF;
+  --brand-accent-foreground: #0C0E1E;
+  --brand-cyan: #22D3EE;
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --info: #22D3EE;
+  --grouped: #0C0E1E;
+  --warn-tint: #FBBF24;
 }
 
-.sum + button { margin-top: 12px; }
+/* What a check says about a value: red must be fixed, yellow should be checked, green is fine.
+   They follow the Mintel status tokens, with a light tint of the same colour behind. */
+:root {
+  --bad: var(--destructive);
+  --bad-bg: color-mix(in oklab, var(--destructive) 9%, var(--card));
+  --warn: var(--warning);
+  /* An amber tint, so "please check" stays yellow next to the red of "must fix". */
+  --warn-bg: color-mix(in oklab, var(--warn-tint) 16%, var(--card));
+  --ok: var(--success);
+  --ok-bg: color-mix(in oklab, var(--success) 9%, var(--card));
+}
 
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  /* Tailwind v4 resets the cursor on buttons. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    /* Mintel UI grouped surface, so the white cards stand out from the page. */
+    background: var(--grouped);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+  }
+  code,
+  pre {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer components {
+  /* The page */
+  .page { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; display: grid; gap: 16px; }
+  .lede { color: var(--muted-foreground); margin: 0; }
+  .note { font-size: 14px; color: var(--muted-foreground); border-left: 3px solid var(--brand); padding-left: 10px; margin: 0; }
+  .card-body { padding: 20px; }
+  @media (min-width: 640px) { .card-body { padding: 24px; } }
+  .card-body h2 { margin: 0 0 4px; }
+  .card-body h3 { margin: 20px 0 8px; font-size: 15px; font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .or { font-size: 14px; color: var(--muted-foreground); }
+  .muted { color: var(--muted-foreground); }
+  .model { margin: 0 0 8px; font-size: 13px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+
+  /* Drop zone and photos */
+  .drop { border: 2px dashed var(--border); border-radius: var(--radius-xl); min-height: 140px; display: grid; place-items: center; text-align: center; padding: 16px; cursor: pointer; color: var(--muted-foreground); background: var(--grouped); transition: border-color .2s, background-color .2s; }
+  .drop:hover { border-color: color-mix(in oklab, var(--brand) 45%, var(--border)); }
+  .drop:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); border-color: var(--ring); }
+  .drop small { font-size: 13px; }
+  .drop:has(.thumbs) { cursor: default; padding: 8px; }
+  .thumbs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; width: 100%; }
+  .thumbs li { position: relative; display: grid; gap: 6px; justify-items: center; }
+  .thumbs img { max-width: 100%; max-height: 320px; border-radius: var(--radius-md); }
+  .thumbs.many img { max-height: 220px; max-width: 200px; }
+  .thumbs .photo-no { position: absolute; top: 6px; left: 6px; }
+  .thumb-actions { display: flex; gap: 4px; }
+  .hint { margin: 14px 0 0; font-size: 14px; line-height: 1.7; color: var(--muted-foreground); }
+  .row + .hint { margin-top: 16px; }
+  .hint + .row { margin-top: 16px; }
+  .tips { margin-top: 20px; font-size: 14px; color: var(--muted-foreground); }
+  .tips ul { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 2px; list-style: disc; }
+
+  /* Fields */
+  .fields-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 12px; margin-top: 16px; }
+  .field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted-foreground); }
+  .field :is(input, select, textarea) { color: var(--foreground); }
+  .field small, .hint-line { font-size: 13px; line-height: 1.4; }
+  small.warning { color: var(--warn); }
+  small.error, .error { color: var(--bad); }
+  .ok { color: var(--ok); }
+
+  /* Flags at the top of the review */
+  .flags { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .flags li { padding: 8px 12px; border-radius: var(--radius-lg); font-size: 14px; border: 1px solid transparent; overflow-wrap: anywhere; }
+  .flags li.warning { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in oklab, var(--warning) 25%, transparent); }
+  .flags li.error { background: var(--bad-bg); color: var(--bad); border-color: color-mix(in oklab, var(--destructive) 25%, transparent); }
+
+  /* Line items. Each item is a row of fields; its warnings sit on a full-width line
+     underneath, and a row with a problem is tinted. The name column takes all the
+     space the number columns leave (quantity has room for 4 digits). */
+  .items { margin-top: 4px; }
+  .item-head, .item-fields { display: grid; grid-template-columns: var(--cols, minmax(0, 1fr) 72px 108px 108px 44px); gap: 8px; align-items: start; }
+  .item-head { padding: 0 8px 4px; font-size: 13px; color: var(--muted-foreground); }
+  .item { padding: 8px; }
+  .item + .item { border-top: 1px solid var(--border); }
+  .item.warn { background: var(--warn-bg); }
+  .item.bad { background: var(--bad-bg); }
+  .item.warn, .item.bad { border-radius: var(--radius-lg); border-top-color: transparent; }
+  .item.warn + .item, .item.bad + .item { border-top-color: transparent; }
+  .item-msgs { list-style: none; margin: 8px 0 0; padding: 0 2px; display: grid; gap: 2px; font-size: 14px; }
+  .item-msgs li.warning { color: var(--warn); }
+  .item-msgs li.error { color: var(--bad); }
+  .item .c-del { text-align: center; }
+  /* Right-aligned numbers, and no spinner arrows eating space or changing values on scroll. */
+  .item input[type="number"] { text-align: right; appearance: textfield; -moz-appearance: textfield; }
+  .item input[type="number"]::-webkit-inner-spin-button,
+  .item input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .item textarea { resize: none; min-height: 2.25rem; line-height: 1.4; }
+
+  /* Do the items add up to the total? */
+  .sum { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-lg); font-size: 15px; }
+  .sum.ok { background: var(--ok-bg); color: var(--ok); }
+  .sum.warn { background: var(--warn-bg); color: var(--warn); }
+
+  /* Asking the bank about a transfer slip */
+  .verify { margin: 16px 0 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--grouped); }
+  .verify h3 { margin-top: 0; }
+  .verify-status { margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-lg); font-size: 15px; }
+  .verify-status small { display: block; margin-top: 4px; color: inherit; opacity: 0.85; }
+  .verify-status.ok { background: var(--ok-bg); color: var(--ok); }
+  .verify-status.warn { background: var(--warn-bg); color: var(--warn); }
+  .verify-status.bad { background: var(--bad-bg); color: var(--bad); }
+  .notice { margin: 8px 0 0; font-size: 14px; }
+  .notice.warning { color: var(--warn); }
+
+  /* Export */
+  .export { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 6px; }
+  .previews { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 8px; }
+  .preview { min-width: 0; }
+  .preview-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .preview-head h3 { margin: 0; }
+  .preview pre { margin: 8px 0 0; padding: 12px; max-height: 360px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--grouped); font-size: 13px; line-height: 1.5; white-space: pre; }
+  .preview pre:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+
+  /* What the model has read so far, while it is still reading. Read-only and visibly provisional. */
+  .live { border-style: dashed; }
+  .live-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; margin: 8px 0 0; }
+  .live-fields dt { font-size: 13px; color: var(--muted-foreground); }
+  .live-fields dd { margin: 0; overflow-wrap: anywhere; }
+  .live-items { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 2px; font-size: 14px; }
+  .live-items li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; border-top: 1px solid var(--border); }
+  .live-items li span:first-child { overflow-wrap: anywhere; }
+  .live-items li span:last-child { white-space: nowrap; color: var(--muted-foreground); }
+  .live-time { font-size: 13px; margin: 0 0 8px; }
+
+  /* Phones: each item becomes a small card. */
+  /* With the extra columns (code, unit, discount) the row needs more room, so it stacks sooner. */
+  @media (max-width: 880px) {
+    .items.many .item-head { display: none; }
+    .items.many .item-fields { grid-template-columns: repeat(3, 1fr); }
+    .items.many .item-fields > div::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; color: var(--muted-foreground); }
+    .items.many .c-name { grid-column: 1 / -1; }
+    .items.many .c-del { grid-column: 1 / -1; text-align: right; }
+    .items.many .c-del::before { content: none; }
+  }
+  @media (max-width: 680px) {
+    .item-head { display: none; }
+    .item-fields { grid-template-columns: repeat(3, 1fr); }
+    .item-fields > div::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; color: var(--muted-foreground); }
+    .item .c-name { grid-column: 1 / -1; }
+    .item .c-del { grid-column: 1 / -1; text-align: right; }
+    .item .c-del::before { content: none; }
+  }
+}
+
+/* Outside the layers on purpose, so they win over the components' own border and background
+   utilities. A field a check has something to say about: */
+.warn:is([data-slot="input"], [data-slot="textarea"], [data-slot="native-select"]) { border-color: var(--warn); background-color: var(--warn-bg); }
+.bad:is([data-slot="input"], [data-slot="textarea"], [data-slot="native-select"]) { border-color: var(--bad); background-color: var(--bad-bg); }
 /* Values filled in because the receipt printed only a price (1 x amount). */
-.item input.assumed { font-style: italic; color: var(--muted); }
-
-button.small { padding: 4px 10px; font-size: 13px; margin-top: 12px; }
-
+.item input.assumed { font-style: italic; color: var(--muted-foreground); }
 /* The camera button only makes sense on touch devices; on desktop it would just open the file picker. */
 .camera-btn { display: none; }
-@media (pointer: coarse) { .camera-btn { display: inline-block; } }
-.tips { margin-top: 12px; font-size: 14px; color: var(--muted); }
-.tips ul { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 2px; }
-.notice { margin: 8px 0 0; font-size: 14px; }
-
-.notice.warning { color: var(--warn); }
-
-/* What the model has read so far, while it is still reading. Read-only and visibly provisional. */
-.live { border-style: dashed; }
-.live-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; margin: 8px 0 0; }
-.live-fields dt { font-size: 13px; color: var(--muted); }
-.live-fields dd { margin: 0; overflow-wrap: anywhere; }
-.live-items { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 2px; font-size: 14px; }
-.live-items li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; border-top: 1px solid var(--line); }
-.live-items li span:first-child { overflow-wrap: anywhere; }
-.live-items li span:last-child { white-space: nowrap; color: var(--muted); }
-.live-time { font-size: 13px; margin: 0 0 8px; }
-
-/* One or several photos of the same receipt. */
-.drop:has(.thumbs) { cursor: default; padding: 8px; }
-.thumbs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; width: 100%; }
-.thumbs li { position: relative; display: grid; gap: 6px; justify-items: center; }
-.thumbs img { max-width: 100%; max-height: 320px; border-radius: 6px; }
-.thumbs.many img { max-height: 220px; max-width: 200px; }
-.thumbs .badge { position: absolute; top: 6px; left: 6px; min-width: 22px; height: 22px; display: grid; place-items: center; border-radius: 11px; background: var(--accent); color: var(--bg); font-size: 13px; }
-.thumb-actions { display: flex; gap: 4px; }
-.thumb-actions button.small { margin-top: 0; }
-
-/* Short help text under the upload area: room above and below, so it never touches the box or the buttons. */
-.hint { margin: 14px 0 0; font-size: 14px; line-height: 1.7; color: var(--muted); }
-.row + .hint { margin-top: 16px; }
-.hint + .row { margin-top: 16px; }
-.tips { margin-top: 20px; }
+@media (pointer: coarse) { .camera-btn { display: inline-flex; } }
