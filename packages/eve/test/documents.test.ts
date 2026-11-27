@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { RawExtraction } from "@eve-thai-ocr/extractor";
+import type { RawExtraction } from "@eve-thai-receipt-extension/extractor";
 import { describe, expect, it } from "vitest";
 
 import * as fx from "../../extractor/test/fixtures/index.js";

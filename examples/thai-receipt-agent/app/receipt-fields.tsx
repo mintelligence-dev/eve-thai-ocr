@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import type { Receipt } from "@eve-thai-ocr/extractor/core";
+import type { Receipt } from "@eve-thai-receipt-extension/extractor/core";
 import type { Dict } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";

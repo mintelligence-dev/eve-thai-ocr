@@ -26,8 +26,8 @@ The rules below are the point of the project. A change that weakens one will be 
 Needs Node 24 or newer and pnpm 10 (`corepack enable`, or run `npx pnpm@10.28.1` in place of `pnpm`).
 
 ```bash
-git clone https://github.com/mintelligence-dev/eve-thai-ocr.git
-cd eve-thai-ocr
+git clone https://github.com/mintelligence-dev/eve-thai-receipt-extension.git
+cd eve-thai-receipt-extension
 pnpm install
 pnpm build:eve
 pnpm test
@@ -37,9 +37,9 @@ The repository is a pnpm workspace:
 
 | Folder | What it is |
 |---|---|
-| `packages/extractor` | `@eve-thai-ocr/extractor`: the model call, parsing, checks, export and scoring. `./core` is the browser-safe part. |
-| `packages/eve` | `@eve-thai-ocr/eve`: the eve extension (read, correct and export a document attached in a chat). |
-| `examples/thai-ocr-agent` | The example app, one Next.js project: the web demo (upload, review, export, the optional bank check) and an eve agent that mounts the extension, with an eval. |
+| `packages/extractor` | `@eve-thai-receipt-extension/extractor`: the model call, parsing, checks, export and scoring. `./core` is the browser-safe part. |
+| `packages/eve` | `@eve-thai-receipt-extension/eve`: the eve extension (read, correct and export a document attached in a chat). |
+| `examples/thai-receipt-agent` | The example app, one Next.js project: the web demo (upload, review, export, the optional bank check) and an eve agent that mounts the extension, with an eval. |
 | `bench` | Compare models against documents with known values. |
 
 Run the web demo and the agent with `pnpm dev`, or the agent alone in the eve terminal UI with `pnpm dev:agent`. Both need AI Gateway credentials; see the README.
@@ -63,14 +63,14 @@ pnpm test
 ## Style
 
 - Code, comments, commit messages and pull requests are in English.
-- Text people see in the web app is in Thai and English (`examples/thai-ocr-agent/lib/i18n.ts`).
+- Text people see in the web app is in Thai and English (`examples/thai-receipt-agent/lib/i18n.ts`).
 - Commit subjects are plain sentences that say what changes for the person using it, for example
   "Warn when the VAT is larger than the total". The body says why.
 - Amounts are kept in integer satang while they are worked on, never as floating-point baht.
 
 ## Releases
 
-Nothing is on npm yet. When it is, maintainers publish `@eve-thai-ocr/extractor` first, then `@eve-thai-ocr/eve`,
+Nothing is on npm yet. When it is, maintainers publish `@eve-thai-receipt-extension/extractor` first, then `@eve-thai-receipt-extension/eve`,
 tag the commit `v<version>` and create a GitHub Release. Versions follow [Semantic Versioning](https://semver.org);
 while they are below 1.0, a minor version may change behaviour.
 

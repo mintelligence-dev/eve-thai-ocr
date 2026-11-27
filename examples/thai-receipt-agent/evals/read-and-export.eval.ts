@@ -12,7 +12,7 @@ export default defineEval({
     const read = await session.sendFile("ช่วยอ่านใบเสร็จนี้ให้หน่อย", receipt, "image/png");
     read.expectOk();
     // The figures must come from the tool, not from the agent's own look at the photo.
-    read.calledTool("ocr__read_document", { count: 1 });
+    read.calledTool("receipt__read_document", { count: 1 });
     t.check(read.reply, includes(/185/));
 
     // The reading model sometimes misreads a Thai digit (a date, a price). The extractor then
@@ -23,7 +23,7 @@ export default defineEval({
     exported.expectOk();
     const reply = exported.reply ?? "";
     const exportedByTool = exported.toolCalls.some(
-      (call) => call.name === "ocr__export_document" && call.status === "completed",
+      (call) => call.name === "receipt__export_document" && call.status === "completed",
     );
     const csvInReply = /document_type,/.test(reply);
     t.check(!csvInReply || exportedByTool, equals(true));

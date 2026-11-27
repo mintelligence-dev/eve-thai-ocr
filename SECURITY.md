@@ -5,7 +5,7 @@
 Please do not open a public issue for a security problem.
 
 Report it privately through GitHub: on the repository's **Security** tab choose **Report a vulnerability**
-([direct link](https://github.com/mintelligence-dev/eve-thai-ocr/security/advisories/new)).
+([direct link](https://github.com/mintelligence-dev/eve-thai-receipt-extension/security/advisories/new)).
 Only the maintainers see the report. Include what is affected, how to reproduce it and what an attacker could do with it.
 **Never attach a real receipt or transfer slip**: they hold names, tax IDs and payment details. Use a synthetic document
 (see `bench/make-cases.py`) or describe the layout.

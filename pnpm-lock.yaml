@@ -11,12 +11,12 @@ importers:
 
   .: {}
 
-  examples/thai-ocr-agent:
+  examples/thai-receipt-agent:
     dependencies:
-      '@eve-thai-ocr/eve':
+      '@eve-thai-receipt-extension/eve':
         specifier: workspace:*
         version: link:../../packages/eve
-      '@eve-thai-ocr/extractor':
+      '@eve-thai-receipt-extension/extractor':
         specifier: workspace:*
         version: link:../../packages/extractor
       '@radix-ui/react-checkbox':
@@ -92,7 +92,7 @@ importers:
 
   packages/eve:
     dependencies:
-      '@eve-thai-ocr/extractor':
+      '@eve-thai-receipt-extension/extractor':
         specifier: workspace:*
         version: link:../extractor
       zod:

@@ -1,8 +1,8 @@
-# eve Thai OCR
+# eve Thai Receipt Extension
 
 Turn photos of **printed** Thai receipts, tax invoices and bank transfer slips into checked, editable data (JSON / CSV). It comes as a web app, a TypeScript library, and an extension for [eve](https://eve.dev) agents.
 
-[![CI](https://github.com/mintelligence-dev/eve-thai-ocr/actions/workflows/ci.yml/badge.svg)](https://github.com/mintelligence-dev/eve-thai-ocr/actions/workflows/ci.yml)
+[![CI](https://github.com/mintelligence-dev/eve-thai-receipt-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/mintelligence-dev/eve-thai-receipt-extension/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![eve](https://img.shields.io/badge/eve-1.4-black)](https://eve.dev)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
@@ -10,7 +10,7 @@ Turn photos of **printed** Thai receipts, tax invoices and bank transfer slips i
 
 **English** · [ภาษาไทย](README.th.md)
 
-**Live demo: <https://eve-thai-ocr.vercel.app>.** Try the built-in samples first; they don't call the AI. A document you upload is read by the AI model and not stored. Please don't upload other people's receipts or slips.
+**Live demo: <https://eve-thai-receipt-extension.vercel.app>.** Try the built-in samples first; they don't call the AI. A document you upload is read by the AI model and not stored. Please don't upload other people's receipts or slips.
 
 ![The review screen: values read from a receipt, with what must be fixed in red and what to check in yellow; export stays locked until the red items are fixed](docs/screenshot-review.en.png)
 
@@ -74,7 +74,7 @@ The model only **transcribes** text exactly as printed (output validated with Zo
 ```
 packages/extractor       Reusable TypeScript package: extract, normalise, validate, export, score
 packages/eve             eve extension: read, correct and export documents attached in a chat
-examples/thai-ocr-agent  Example app: the Next.js web demo (upload → review → preview → export)
+examples/thai-receipt-agent  Example app: the Next.js web demo (upload → review → preview → export)
                          and an eve agent that mounts the extension, in one project
 bench/                   Compare vision models on your own documents
 ```
@@ -99,7 +99,7 @@ Requires Node 24+ and pnpm.
 
 ```bash
 pnpm install
-cp examples/thai-ocr-agent/.env.example examples/thai-ocr-agent/.env.local   # add AI_GATEWAY_API_KEY
+cp examples/thai-receipt-agent/.env.example examples/thai-receipt-agent/.env.local   # add AI_GATEWAY_API_KEY
 pnpm dev     # the web demo and the agent, http://localhost:3000
 pnpm test    # all tests
 ```
@@ -125,7 +125,7 @@ The page shows what the model has read as it goes (the API's `?stream=1` mode se
 ### Use the package
 
 ```ts
-import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@eve-thai-ocr/extractor";
+import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@eve-thai-receipt-extension/extractor";
 
 try {
   const { receipt, usage } = await extractReceipt({
@@ -143,20 +143,20 @@ try {
 }
 ```
 
-Browser-safe helpers (no model code), such as `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON` and `toCSV`, are at `@eve-thai-ocr/extractor/core`.
+Browser-safe helpers (no model code), such as `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON` and `toCSV`, are at `@eve-thai-receipt-extension/extractor/core`.
 
 ### Use with eve
 
-[`@eve-thai-ocr/eve`](packages/eve) is an [eve](https://www.npmjs.com/package/eve) extension: a person sends a photo of a receipt or slip to your agent in a chat, checks what was read, corrects it in their own words and asks for the file. **It is not on npm yet:** use it from this workspace (`"@eve-thai-ocr/eve": "workspace:*"`), as the example agent does. Mount it in your agent:
+[`@eve-thai-receipt-extension/eve`](packages/eve) is an [eve](https://www.npmjs.com/package/eve) extension: a person sends a photo of a receipt or slip to your agent in a chat, checks what was read, corrects it in their own words and asks for the file. **It is not on npm yet:** use it from this workspace (`"@eve-thai-receipt-extension/eve": "workspace:*"`), as the example agent does. Mount it in your agent:
 
 ```ts
-// agent/extensions/ocr.ts
-import ocr from "@eve-thai-ocr/eve";
+// agent/extensions/receipt.ts
+import receipt from "@eve-thai-receipt-extension/eve";
 
-export default ocr({ model: process.env.RECEIPT_MODEL || undefined }); // default google/gemini-2.5-flash
+export default receipt({ model: process.env.RECEIPT_MODEL || undefined }); // default google/gemini-2.5-flash
 ```
 
-The agent gets three tools (named after the mount, here `ocr__…`):
+The agent gets three tools (named after the mount, here `receipt__…`):
 
 | Tool | What it does |
 |---|---|
@@ -164,7 +164,7 @@ The agent gets three tools (named after the mount, here `ocr__…`):
 | `correct_document` | Applies what the person says the paper shows. Values are passed as typed (`"๑,๒๕๐"`, `"12 พ.ค. 68"`) and parsed by the extractor, so the agent never converts a year or works out an amount. Every check runs again. |
 | `export_document` | CSV or JSON, as described in [Export formats](#export-formats). **Refused while anything must still be fixed**, like the web app's export lock. |
 
-The documents are kept in the eve session, not in a database. The extension's instructions tell the agent never to take a figure from the photo itself (eve shows the agent the photo too) and to pass on a tool's message when it refuses. [`examples/thai-ocr-agent`](examples/thai-ocr-agent) mounts it beside the web demo: `pnpm install`, then `pnpm dev:agent` opens the eve terminal UI, and `pnpm --filter thai-ocr-agent eval` reads and exports a synthetic receipt end to end (it calls the models, so it needs AI Gateway credentials).
+The documents are kept in the eve session, not in a database. The extension's instructions tell the agent never to take a figure from the photo itself (eve shows the agent the photo too) and to pass on a tool's message when it refuses. [`examples/thai-receipt-agent`](examples/thai-receipt-agent) mounts it beside the web demo: `pnpm install`, then `pnpm dev:agent` opens the eve terminal UI, and `pnpm --filter thai-receipt-agent eval` reads and exports a synthetic receipt end to end (it calls the models, so it needs AI Gateway credentials).
 
 What the eve path does **not** do yet, and how its privacy differs from the web app:
 
@@ -192,14 +192,14 @@ A forged slip looks as real as a genuine one, so the picture alone proves nothin
 
 ```bash
 pnpm bench -- --dry-run     # plan and rough cost, no calls
-pnpm bench                  # needs AI_GATEWAY_API_KEY in examples/thai-ocr-agent/.env.local
+pnpm bench                  # needs AI_GATEWAY_API_KEY in examples/thai-receipt-agent/.env.local
 ```
 
 It scores each model against ground truth you write (shop, totals, items, tax ID, "must not invent anything on a blank page", …) and prints accuracy, speed and cost. Synthetic cases live in `bench/cases/`. Keep real documents in `bench/private/` (git-ignored). Details: [`bench/README.md`](bench/README.md).
 
 ### Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmintelligence-dev%2Feve-thai-ocr&root-directory=examples%2Fthai-ocr-agent&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmintelligence-dev%2Feve-thai-receipt-extension&root-directory=examples%2Fthai-receipt-agent&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
 
 Keep "Include source files outside of the Root Directory" enabled (Vercel's default) so the workspace package is available. The repository must be public for the button to work.
 

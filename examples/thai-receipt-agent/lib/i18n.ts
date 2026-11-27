@@ -1,4 +1,4 @@
-import type { Flag } from "@eve-thai-ocr/extractor/core";
+import type { Flag } from "@eve-thai-receipt-extension/extractor/core";
 
 export type Lang = "th" | "en";
 export const LANGS: Lang[] = ["th", "en"];

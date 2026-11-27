@@ -1,14 +1,14 @@
 {
-  "name": "thai-ocr-agent",
+  "name": "thai-receipt-agent",
   "version": "0.0.0",
   "private": true,
-  "description": "Example app for @eve-thai-ocr: the web demo (upload, review, export) and an eve agent that mounts @eve-thai-ocr/eve, in one Next.js project.",
+  "description": "Example app for @eve-thai-receipt-extension: the web demo (upload, review, export) and an eve agent that mounts @eve-thai-receipt-extension/eve, in one Next.js project.",
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "predev": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter @eve-thai-ocr/eve build",
+    "predev": "pnpm --filter @eve-thai-receipt-extension/extractor build && pnpm --filter @eve-thai-receipt-extension/eve build",
     "dev": "next dev",
-    "prebuild": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter @eve-thai-ocr/eve build",
+    "prebuild": "pnpm --filter @eve-thai-receipt-extension/extractor build && pnpm --filter @eve-thai-receipt-extension/eve build",
     "build": "next build",
     "start": "next start",
     "dev:eve": "eve dev",
@@ -18,8 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@eve-thai-ocr/eve": "workspace:*",
-    "@eve-thai-ocr/extractor": "workspace:*",
+    "@eve-thai-receipt-extension/eve": "workspace:*",
+    "@eve-thai-receipt-extension/extractor": "workspace:*",
     "@radix-ui/react-checkbox": "^1.4.1",
     "@radix-ui/react-label": "^2.1.17",
     "@radix-ui/react-slot": "^1.5.0",

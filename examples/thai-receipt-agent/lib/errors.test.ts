@@ -1,4 +1,4 @@
-import { HandwritingNotSupportedError } from "@eve-thai-ocr/extractor";
+import { HandwritingNotSupportedError } from "@eve-thai-receipt-extension/extractor";
 import { describe, expect, it } from "vitest";
 import { classifyError, describeFailure } from "./errors";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@eve-thai-ocr/extractor",
+  "name": "@eve-thai-receipt-extension/extractor",
   "version": "0.1.0",
   "license": "MIT",
   "type": "module",

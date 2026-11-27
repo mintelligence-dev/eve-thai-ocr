@@ -1,8 +1,8 @@
-# eve Thai OCR
+# eve Thai Receipt Extension
 
 แปลงรูปใบเสร็จ ใบกำกับภาษี และสลิปโอนเงินภาษาไทย **แบบพิมพ์** ให้เป็นข้อมูลที่ตรวจแล้วและแก้ไขได้ (JSON / CSV) มีทั้งเว็บแอป, ไลบรารี TypeScript และ extension สำหรับ agent ที่สร้างด้วย [eve](https://eve.dev)
 
-[![CI](https://github.com/mintelligence-dev/eve-thai-ocr/actions/workflows/ci.yml/badge.svg)](https://github.com/mintelligence-dev/eve-thai-ocr/actions/workflows/ci.yml)
+[![CI](https://github.com/mintelligence-dev/eve-thai-receipt-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/mintelligence-dev/eve-thai-receipt-extension/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![eve](https://img.shields.io/badge/eve-1.4-black)](https://eve.dev)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
@@ -10,7 +10,7 @@
 
 [English](README.md) · **ภาษาไทย**
 
-**เดโม: <https://eve-thai-ocr.vercel.app>** ลองกดตัวอย่างในหน้าเว็บก่อนได้ ตัวอย่างไม่ได้เรียก AI ส่วนเอกสารที่อัปโหลดจะส่งให้โมเดล AI อ่าน และไม่ถูกเก็บไว้ อย่าอัปโหลดใบเสร็จหรือสลิปของคนอื่น
+**เดโม: <https://eve-thai-receipt-extension.vercel.app>** ลองกดตัวอย่างในหน้าเว็บก่อนได้ ตัวอย่างไม่ได้เรียก AI ส่วนเอกสารที่อัปโหลดจะส่งให้โมเดล AI อ่าน และไม่ถูกเก็บไว้ อย่าอัปโหลดใบเสร็จหรือสลิปของคนอื่น
 
 ![หน้าตรวจทานข้อมูล: ค่าที่อ่านจากใบเสร็จ จุดที่ต้องแก้เป็นสีแดง จุดที่ควรตรวจเป็นสีเหลือง และส่งออกไม่ได้จนกว่าจะแก้จุดสีแดง](docs/screenshot-review.png)
 
@@ -74,7 +74,7 @@
 ```
 packages/extractor       แพ็กเกจ TypeScript ใช้ซ้ำได้: ดึงข้อมูล แปลง ตรวจสอบ ส่งออก ให้คะแนน
 packages/eve             eve extension: อ่าน แก้ และส่งออกเอกสารที่แนบมาในแชต
-examples/thai-ocr-agent  แอปตัวอย่าง: เว็บเดโม Next.js (อัปโหลด → ตรวจทาน → ดูตัวอย่าง → ส่งออก)
+examples/thai-receipt-agent  แอปตัวอย่าง: เว็บเดโม Next.js (อัปโหลด → ตรวจทาน → ดูตัวอย่าง → ส่งออก)
                          และ eve agent ที่ mount extension นี้ อยู่ในโปรเจกต์เดียวกัน
 bench/                   เทียบโมเดลวิชันด้วยเอกสารของคุณเอง
 ```
@@ -99,7 +99,7 @@ JSON คือโครงสร้างเต็ม ส่วน CSV มีค
 
 ```bash
 pnpm install
-cp examples/thai-ocr-agent/.env.example examples/thai-ocr-agent/.env.local   # ใส่ AI_GATEWAY_API_KEY
+cp examples/thai-receipt-agent/.env.example examples/thai-receipt-agent/.env.local   # ใส่ AI_GATEWAY_API_KEY
 pnpm dev     # เว็บเดโมและ agent, http://localhost:3000
 pnpm test    # รันเทสต์ทั้งหมด
 ```
@@ -125,7 +125,7 @@ pnpm test    # รันเทสต์ทั้งหมด
 ### ใช้แพ็กเกจ
 
 ```ts
-import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@eve-thai-ocr/extractor";
+import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@eve-thai-receipt-extension/extractor";
 
 try {
   const { receipt, usage } = await extractReceipt({
@@ -143,20 +143,20 @@ try {
 }
 ```
 
-ฟังก์ชันที่ใช้ในเบราว์เซอร์ได้ (ไม่มีโค้ดเรียกโมเดล) เช่น `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON`, `toCSV` อยู่ที่ `@eve-thai-ocr/extractor/core`
+ฟังก์ชันที่ใช้ในเบราว์เซอร์ได้ (ไม่มีโค้ดเรียกโมเดล) เช่น `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON`, `toCSV` อยู่ที่ `@eve-thai-receipt-extension/extractor/core`
 
 ### ใช้กับ eve
 
-[`@eve-thai-ocr/eve`](packages/eve) เป็น extension ของ [eve](https://www.npmjs.com/package/eve) คนส่งรูปใบเสร็จหรือสลิปให้ agent ในแชต ตรวจค่าที่อ่านได้ บอกค่าที่ถูกด้วยคำพูดของตัวเอง แล้วขอไฟล์ได้ **ตอนนี้ยังไม่ได้ขึ้น npm** ให้ใช้จาก workspace นี้ (`"@eve-thai-ocr/eve": "workspace:*"`) แบบเดียวกับ agent ตัวอย่าง mount ใน agent แบบนี้
+[`@eve-thai-receipt-extension/eve`](packages/eve) เป็น extension ของ [eve](https://www.npmjs.com/package/eve) คนส่งรูปใบเสร็จหรือสลิปให้ agent ในแชต ตรวจค่าที่อ่านได้ บอกค่าที่ถูกด้วยคำพูดของตัวเอง แล้วขอไฟล์ได้ **ตอนนี้ยังไม่ได้ขึ้น npm** ให้ใช้จาก workspace นี้ (`"@eve-thai-receipt-extension/eve": "workspace:*"`) แบบเดียวกับ agent ตัวอย่าง mount ใน agent แบบนี้
 
 ```ts
-// agent/extensions/ocr.ts
-import ocr from "@eve-thai-ocr/eve";
+// agent/extensions/receipt.ts
+import receipt from "@eve-thai-receipt-extension/eve";
 
-export default ocr({ model: process.env.RECEIPT_MODEL || undefined }); // ค่าเริ่มต้น google/gemini-2.5-flash
+export default receipt({ model: process.env.RECEIPT_MODEL || undefined }); // ค่าเริ่มต้น google/gemini-2.5-flash
 ```
 
-agent จะได้ tool 3 ตัว (ขึ้นต้นด้วยชื่อที่ mount ในตัวอย่างคือ `ocr__…`)
+agent จะได้ tool 3 ตัว (ขึ้นต้นด้วยชื่อที่ mount ในตัวอย่างคือ `receipt__…`)
 
 | Tool | ทำอะไร |
 |---|---|
@@ -164,7 +164,7 @@ agent จะได้ tool 3 ตัว (ขึ้นต้นด้วยชื�
 | `correct_document` | แก้ตามที่คนบอกว่าในกระดาษเขียนไว้ ส่งค่าตามที่พิมพ์ (`"๑,๒๕๐"`, `"12 พ.ค. 68"`) แล้วให้ตัวอ่านแปลงเอง agent จึงไม่ต้องแปลงปีหรือคิดเลขเอง ตรวจใหม่ทุกข้อทุกครั้ง |
 | `export_document` | CSV หรือ JSON ตาม [รูปแบบไฟล์ที่ส่งออก](#รูปแบบไฟล์ที่ส่งออก) **ส่งออกไม่ได้ถ้ายังมีจุดที่ต้องแก้** เหมือนที่เว็บล็อกปุ่มส่งออก |
 
-เอกสารเก็บไว้ใน session ของ eve ไม่มีฐานข้อมูล instructions ของ extension สั่งให้ agent ห้ามเอาตัวเลขจากรูปเอง (eve ส่งรูปให้โมเดลของ agent เห็นด้วย) และให้บอกข้อความของ tool ต่อเมื่อ tool ปฏิเสธ [`examples/thai-ocr-agent`](examples/thai-ocr-agent) mount extension นี้ไว้คู่กับเว็บเดโม `pnpm install` แล้ว `pnpm dev:agent` จะเปิด terminal UI ของ eve ส่วน `pnpm --filter thai-ocr-agent eval` จะลองอ่านและส่งออกใบเสร็จตัวอย่างตั้งแต่ต้นจนจบ (เรียกโมเดลจริง ต้องมี credential ของ AI Gateway)
+เอกสารเก็บไว้ใน session ของ eve ไม่มีฐานข้อมูล instructions ของ extension สั่งให้ agent ห้ามเอาตัวเลขจากรูปเอง (eve ส่งรูปให้โมเดลของ agent เห็นด้วย) และให้บอกข้อความของ tool ต่อเมื่อ tool ปฏิเสธ [`examples/thai-receipt-agent`](examples/thai-receipt-agent) mount extension นี้ไว้คู่กับเว็บเดโม `pnpm install` แล้ว `pnpm dev:agent` จะเปิด terminal UI ของ eve ส่วน `pnpm --filter thai-receipt-agent eval` จะลองอ่านและส่งออกใบเสร็จตัวอย่างตั้งแต่ต้นจนจบ (เรียกโมเดลจริง ต้องมี credential ของ AI Gateway)
 
 สิ่งที่เส้นทาง eve **ยังไม่ทำ** และความเป็นส่วนตัวที่ต่างจากเว็บ
 
@@ -192,14 +192,14 @@ agent จะได้ tool 3 ตัว (ขึ้นต้นด้วยชื�
 
 ```bash
 pnpm bench -- --dry-run     # ดูแผนและค่าใช้จ่ายคร่าวๆ โดยไม่เรียกโมเดล
-pnpm bench                  # ต้องมี AI_GATEWAY_API_KEY ใน examples/thai-ocr-agent/.env.local
+pnpm bench                  # ต้องมี AI_GATEWAY_API_KEY ใน examples/thai-receipt-agent/.env.local
 ```
 
 ให้คะแนนแต่ละโมเดลกับเฉลยที่คุณเขียนเอง (ร้าน ยอด รายการ เลขผู้เสียภาษี "ห้ามแต่งข้อมูลจากหน้าเปล่า" ฯลฯ) แล้วแสดงความแม่นยำ ความเร็ว และค่าใช้จ่าย เคสสังเคราะห์อยู่ใน `bench/cases/` เอกสารจริงให้เก็บใน `bench/private/` (ไม่ขึ้น git) รายละเอียดที่ [`bench/README.md`](bench/README.md)
 
 ### Deploy บน Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmintelligence-dev%2Feve-thai-ocr&root-directory=examples%2Fthai-ocr-agent&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmintelligence-dev%2Feve-thai-receipt-extension&root-directory=examples%2Fthai-receipt-agent&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
 
 เปิด "Include source files outside of the Root Directory" ไว้ตามค่าเริ่มต้นของ Vercel เพื่อให้แพ็กเกจในเวิร์กสเปซถูกใช้ได้ และ repo ต้องเป็น public ปุ่มจึงจะใช้งานได้
 
