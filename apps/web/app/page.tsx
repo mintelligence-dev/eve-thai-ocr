@@ -421,7 +421,7 @@ export default function Home() {
 
       {receipt && (
         <section aria-label={t.review}>
-          <Card className="gap-0 py-0" data-shot="review">
+          <Card className="gap-0 py-0">
             <div className="card-body">
               <h2 className="text-title-2">{t.review}</h2>
               <p className="model">{model ? tpl(t.modelUsed, { model }) : t.sampleNoAi}</p>
