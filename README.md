@@ -12,6 +12,10 @@ Turn photos of **printed** Thai receipts, tax invoices and bank transfer slips i
 
 **Live demo: <https://eve-thai-ocr.vercel.app>.** Try the built-in samples first; they don't call the AI. A document you upload is read by the AI model and not stored. Please don't upload other people's receipts or slips.
 
+![The review screen: values read from a receipt, with what must be fixed in red and what to check in yellow; export stays locked until the red items are fixed](docs/screenshot-review.en.png)
+
+<sub>Built-in sample with invented data; no AI call.</sub>
+
 Open-source AI tool that turns **printed** Thai receipts and bank transfer slips into editable, structured data (JSON / CSV). For small shops, freelancers and developers building expense tools. A person always reviews the result before anything is exported.
 
 ### What it does
