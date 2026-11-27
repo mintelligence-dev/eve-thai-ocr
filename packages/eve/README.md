@@ -2,6 +2,8 @@
 
 [eve](https://www.npmjs.com/package/eve) extension that reads **printed** Thai receipts, tax invoices and bank transfer slips from photos attached in a chat, lets the person correct the result in their own words, and exports CSV or JSON. The reading, parsing and checks are [`@eve-thai-ocr/extractor`](../extractor), the same code as the web app in this repository.
 
+Not published to npm yet: use it from this repository's workspace (`"@eve-thai-ocr/eve": "workspace:*"`).
+
 ```ts
 // agent/extensions/ocr.ts
 import ocr from "@eve-thai-ocr/eve";

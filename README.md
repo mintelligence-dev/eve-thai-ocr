@@ -135,7 +135,7 @@ Browser-safe helpers (no model code), such as `normalizeExtraction`, `revalidate
 
 ### Use with eve
 
-[`@eve-thai-ocr/eve`](packages/eve) is an [eve](https://www.npmjs.com/package/eve) extension: a person sends a photo of a receipt or slip to your agent in a chat, checks what was read, corrects it in their own words and asks for the file. Mount it in your agent:
+[`@eve-thai-ocr/eve`](packages/eve) is an [eve](https://www.npmjs.com/package/eve) extension: a person sends a photo of a receipt or slip to your agent in a chat, checks what was read, corrects it in their own words and asks for the file. **It is not on npm yet:** use it from this workspace (`"@eve-thai-ocr/eve": "workspace:*"`), as the example agent does. Mount it in your agent:
 
 ```ts
 // agent/extensions/ocr.ts
@@ -152,7 +152,7 @@ The agent gets three tools (named after the mount, here `ocr__…`):
 | `correct_document` | Applies what the person says the paper shows. Values are passed as typed (`"๑,๒๕๐"`, `"12 พ.ค. 68"`) and parsed by the extractor, so the agent never converts a year or works out an amount. Every check runs again. |
 | `export_document` | CSV or JSON, as described in [Export formats](#export-formats). **Refused while anything must still be fixed**, like the web app's export lock. |
 
-The documents are kept in the eve session, not in a database. The extension's instructions tell the agent never to take a figure from the photo itself (eve shows the agent the photo too) and to pass on a tool's message when it refuses. [`examples/thai-ocr-agent`](examples/thai-ocr-agent) is a working agent: `pnpm install`, `pnpm build:eve`, then `pnpm dev:agent` opens the eve terminal UI.
+The documents are kept in the eve session, not in a database. The extension's instructions tell the agent never to take a figure from the photo itself (eve shows the agent the photo too) and to pass on a tool's message when it refuses. [`examples/thai-ocr-agent`](examples/thai-ocr-agent) is a working agent: `pnpm install`, `pnpm build:eve`, then `pnpm dev:agent` opens the eve terminal UI, and `pnpm --filter thai-ocr-agent eval` reads and exports a synthetic receipt end to end (it calls the models, so it needs AI Gateway credentials).
 
 What the eve path does **not** do yet, and how its privacy differs from the web app:
 
@@ -359,7 +359,7 @@ try {
 
 ### ใช้กับ eve
 
-[`@eve-thai-ocr/eve`](packages/eve) เป็น extension ของ [eve](https://www.npmjs.com/package/eve) คนส่งรูปใบเสร็จหรือสลิปให้ agent ในแชต ตรวจค่าที่อ่านได้ บอกค่าที่ถูกด้วยคำพูดของตัวเอง แล้วขอไฟล์ได้ mount ใน agent แบบนี้
+[`@eve-thai-ocr/eve`](packages/eve) เป็น extension ของ [eve](https://www.npmjs.com/package/eve) คนส่งรูปใบเสร็จหรือสลิปให้ agent ในแชต ตรวจค่าที่อ่านได้ บอกค่าที่ถูกด้วยคำพูดของตัวเอง แล้วขอไฟล์ได้ **ตอนนี้ยังไม่ได้ขึ้น npm** ให้ใช้จาก workspace นี้ (`"@eve-thai-ocr/eve": "workspace:*"`) แบบเดียวกับ agent ตัวอย่าง mount ใน agent แบบนี้
 
 ```ts
 // agent/extensions/ocr.ts
@@ -376,7 +376,7 @@ agent จะได้ tool 3 ตัว (ขึ้นต้นด้วยชื�
 | `correct_document` | แก้ตามที่คนบอกว่าในกระดาษเขียนไว้ ส่งค่าตามที่พิมพ์ (`"๑,๒๕๐"`, `"12 พ.ค. 68"`) แล้วให้ตัวอ่านแปลงเอง agent จึงไม่ต้องแปลงปีหรือคิดเลขเอง ตรวจใหม่ทุกข้อทุกครั้ง |
 | `export_document` | CSV หรือ JSON ตาม [รูปแบบไฟล์ที่ส่งออก](#รูปแบบไฟล์ที่ส่งออก) **ส่งออกไม่ได้ถ้ายังมีจุดที่ต้องแก้** เหมือนที่เว็บล็อกปุ่มส่งออก |
 
-เอกสารเก็บไว้ใน session ของ eve ไม่มีฐานข้อมูล instructions ของ extension สั่งให้ agent ห้ามเอาตัวเลขจากรูปเอง (eve ส่งรูปให้โมเดลของ agent เห็นด้วย) และให้บอกข้อความของ tool ต่อเมื่อ tool ปฏิเสธ [`examples/thai-ocr-agent`](examples/thai-ocr-agent) เป็น agent ที่ใช้งานได้ `pnpm install`, `pnpm build:eve` แล้ว `pnpm dev:agent` จะเปิด terminal UI ของ eve
+เอกสารเก็บไว้ใน session ของ eve ไม่มีฐานข้อมูล instructions ของ extension สั่งให้ agent ห้ามเอาตัวเลขจากรูปเอง (eve ส่งรูปให้โมเดลของ agent เห็นด้วย) และให้บอกข้อความของ tool ต่อเมื่อ tool ปฏิเสธ [`examples/thai-ocr-agent`](examples/thai-ocr-agent) เป็น agent ที่ใช้งานได้ `pnpm install`, `pnpm build:eve` แล้ว `pnpm dev:agent` จะเปิด terminal UI ของ eve ส่วน `pnpm --filter thai-ocr-agent eval` จะลองอ่านและส่งออกใบเสร็จตัวอย่างตั้งแต่ต้นจนจบ (เรียกโมเดลจริง ต้องมี credential ของ AI Gateway)
 
 สิ่งที่เส้นทาง eve **ยังไม่ทำ** และความเป็นส่วนตัวที่ต่างจากเว็บ
 
