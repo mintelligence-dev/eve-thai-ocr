@@ -34,6 +34,25 @@ describe("normalizeExtraction", () => {
     expect(r.flags).toEqual([]);
   });
 
+  it("reads a price written in Bengali digits, and asks a person to check it", () => {
+    const raw = {
+      ...fx.thaiDigitsReceipt,
+      lineItems: [
+        { ...fx.thaiDigitsReceipt.lineItems[0]!, unitPriceText: "৬৫.০০", quantityText: "২" },
+        fx.thaiDigitsReceipt.lineItems[1]!,
+      ],
+      dateText: "১২/০৫/২৫৬৮",
+    };
+    const r = normalizeExtraction(raw, { today });
+    expect(r.lineItems[0]).toMatchObject({ quantity: 2, unitPrice: 65, amount: 130 });
+    expect(r.date).toBe("2025-05-12");
+    const flagged = r.flags.filter((f) => f.code === "other_script_digits");
+    expect(flagged.map((f) => f.path).sort()).toEqual(["date", "lineItems.0.quantity", "lineItems.0.unitPrice"]);
+    expect(flagged.every((f) => f.severity === "warning" && f.params?.script === "Bengali")).toBe(true);
+    // Nothing else is wrong with it, so export is not locked.
+    expect(r.flags.filter((f) => f.severity === "error")).toEqual([]);
+  });
+
   it("extracts a transfer slip", () => {
     const r = normalizeExtraction(fx.transferSlip, { today });
     expect(r).toMatchObject({

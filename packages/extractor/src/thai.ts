@@ -1,8 +1,44 @@
 const THAI_DIGITS = "๐๑๒๓๔๕๖๗๘๙";
 
-/** Replace Thai digits (๐-๙) with ASCII digits. */
+/**
+ * The zero of the digits of scripts near Thai. A vision model sometimes writes a Thai digit
+ * in one of these (for example the Bengali ৬০.০০ for ๖๐.๐๐): the value is right, the script
+ * is not. Each script's digits run from its zero to its nine.
+ */
+const OTHER_SCRIPT_ZEROS: Record<string, number> = {
+  Lao: 0x0ed0,
+  Bengali: 0x09e6,
+  Devanagari: 0x0966,
+  Myanmar: 0x1040,
+  Khmer: 0x17e0,
+};
+
+/** The script of the first digit in `input` that is neither ASCII nor Thai, or null. */
+export function otherScriptDigits(input: string): string | null {
+  for (const ch of input) {
+    const cp = ch.codePointAt(0)!;
+    for (const [script, zero] of Object.entries(OTHER_SCRIPT_ZEROS)) {
+      if (cp >= zero && cp <= zero + 9) return script;
+    }
+  }
+  return null;
+}
+
+/**
+ * Replace Thai digits (๐-๙) with ASCII digits. Digits of the scripts in OTHER_SCRIPT_ZEROS
+ * are replaced too, by their value; normalizeExtraction flags each field where that happened,
+ * so a person compares it with the paper.
+ */
 export function thaiDigitsToArabic(input: string): string {
-  return input.replace(/[๐-๙]/g, (c) => String(THAI_DIGITS.indexOf(c)));
+  let out = input.replace(/[๐-๙]/g, (c) => String(THAI_DIGITS.indexOf(c)));
+  if (otherScriptDigits(out) === null) return out;
+  for (const zero of Object.values(OTHER_SCRIPT_ZEROS)) {
+    out = out.replace(/./gsu, (c) => {
+      const cp = c.codePointAt(0)!;
+      return cp >= zero && cp <= zero + 9 ? String(cp - zero) : c;
+    });
+  }
+  return out;
 }
 
 /** Full and abbreviated Thai month names (dots stripped) -> month number. */

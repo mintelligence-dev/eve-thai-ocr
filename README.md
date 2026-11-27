@@ -44,6 +44,7 @@ Open-source AI tool that turns **printed** Thai receipts and bank transfer slips
 Honestly: good, not perfect, and it varies between runs of the same photo. On our small private test set (three shop receipts and four bank slips from different banks) the default model read the shop, date, total and VAT correctly in most runs. The mistakes we saw most:
 
 - **Thai numerals in small print** (for example `๑๘๕.๐๐` read as `145`).
+- **Thai numerals written in another script's digits**, most often Bengali (`৬০.০০` for `๖๐.๐๐`). The value is usually right; it is converted and flagged yellow.
 - Lines with several prices, long receipts, faded thermal paper, tilted or blurry photos.
 - Values that are partly covered or cut off.
 
@@ -59,6 +60,7 @@ That is why the app cross-checks the numbers and asks you to confirm anything do
 | VAT | Checked against 7%. Receipts that mix VAT and VAT-exempt items are accepted when 1–3 items add up to the exempt part. |
 | Tax ID | 13 digits with the Thai check digit. A misread digit almost always breaks it. |
 | Dates | Not in the future, not over 10 years old; a two-digit year is shown with how it was read. |
+| Other-script digits | A value the model wrote in Lao, Bengali, Devanagari, Myanmar or Khmer digits is converted by its value and flagged yellow, to compare with the paper. |
 | Amounts | An amount with more than two decimals (`5.555`) is never guessed. A negative amount needs a name that says discount or promotion (`discount`, `promotion`, `ส่วนลด`, `ลดราคา`, `โปรโมชั่น`, `โปรโมชัน`); other names, such as `BOGO`, are flagged. |
 | Model unsure | Fields the model said it could not read confidently, or values that were hidden or cut off. |
 | Not a receipt | Blank, unreadable or unrelated images must be confirmed before anything is exported. |

@@ -167,6 +167,7 @@ export const FlagSchema = z.object({
     "unparseable",
     "unsupported_currency",
     "two_digit_year",
+    "other_script_digits",
     "date_in_future",
     "date_too_old",
     "line_total_mismatch",

@@ -5,10 +5,26 @@ import {
   parseQuantity,
   parseThaiDate,
   parseTime,
+  otherScriptDigits,
   thaiDigitsToArabic,
 } from "../src/thai.js";
 
 const today = new Date("2025-10-14T00:00:00Z");
+
+describe("digits of scripts near Thai", () => {
+  it("are replaced by their value, as Thai digits are", () => {
+    expect(thaiDigitsToArabic("৬০.০০")).toBe("60.00"); // Bengali
+    expect(thaiDigitsToArabic("໑໒/໐໕")).toBe("12/05"); // Lao
+    expect(thaiDigitsToArabic("१२३ ၄၅ ៦៧")).toBe("123 45 67"); // Devanagari, Myanmar, Khmer
+    expect(thaiDigitsToArabic("๖০ บาท")).toBe("60 บาท"); // mixed Thai and Bengali
+  });
+
+  it("are named, so a field read in them can be flagged", () => {
+    expect(otherScriptDigits("৬০.০০")).toBe("Bengali");
+    expect(otherScriptDigits("๖๐.๐๐ 60.00")).toBeNull();
+    expect(otherScriptDigits("ข้าวมันไก่")).toBeNull();
+  });
+});
 
 describe("thaiDigitsToArabic", () => {
   it("converts Thai digits and leaves other text alone", () => {
