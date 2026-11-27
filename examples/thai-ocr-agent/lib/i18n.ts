@@ -313,6 +313,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     uncertain: "AI ไม่มั่นใจข้อมูลในช่องนี้",
     unsupported_currency: "สกุลเงินเป็น {currency} ไม่ใช่ THB และระบบไม่ได้แปลงค่าเงินให้",
     two_digit_year: "“{text}” ระบุปีแค่ 2 หลัก ระบบอ่านเป็นปี {year} กรุณายืนยัน",
+    other_script_digits: "AI อ่าน “{text}” ออกมาเป็นตัวเลขของภาษาอื่น ({script}) ระบบแปลงเป็นตัวเลขให้แล้ว กรุณาเทียบกับรูปต้นฉบับ",
     date_in_future: "วันที่ {date} อยู่ในอนาคต ตรวจปีอีกครั้ง (พ.ศ. หรือ ค.ศ.)",
     date_too_old: "วันที่ {date} เก่ากว่า 10 ปี ตรวจปีอีกครั้ง",
     line_total_mismatch: "จำนวน × ราคาต่อหน่วย ได้ {expected} แต่จำนวนเงินคือ {amount}",
@@ -350,6 +351,7 @@ const FLAG: Record<Lang, Record<string, string>> = {
     uncertain: "The AI wasn't sure about this field.",
     unsupported_currency: "The currency is {currency}, not THB. Amounts are not converted.",
     two_digit_year: "“{text}” has a two-digit year. We read it as {year}. Please confirm.",
+    other_script_digits: "The AI wrote “{text}” in another script's digits ({script}). It was converted to numbers; compare it with the original.",
     date_in_future: "{date} is in the future. Check the year (Buddhist or Gregorian).",
     date_too_old: "{date} is more than 10 years ago. Check the year.",
     line_total_mismatch: "Quantity × unit price is {expected}, but the amount is {amount}.",
@@ -398,6 +400,7 @@ export function flagText(f: Flag, lang: Lang): string {
       return f.path === "lineItems" ? tpl(t.uncertain_items!, p) : t.uncertain!;
     case "unsupported_currency": return tpl(t.unsupported_currency!, p);
     case "two_digit_year": return tpl(t.two_digit_year!, p);
+    case "other_script_digits": return tpl(t.other_script_digits!, p);
     case "date_in_future": return tpl(t.date_in_future!, p);
     case "date_too_old": return tpl(t.date_too_old!, p);
     case "line_total_mismatch": return tpl(t.line_total_mismatch!, p);

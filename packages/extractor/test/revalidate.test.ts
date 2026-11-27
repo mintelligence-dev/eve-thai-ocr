@@ -98,6 +98,14 @@ describe("revalidate keeps what the document's reading said", () => {
     expect(codes(editItem(r, 0, { amount: 90 }))).not.toContain("lineItems.0.amount:addon_split");
   });
 
+  it("keeps the other-script warning until that value is changed", () => {
+    const r = read({ ...fx.thaiDigitsReceipt, totalText: "১৭৪.৪১" });
+    expect(r.total).toBe(174.41);
+    expect(codes(r)).toContain("total:other_script_digits");
+    expect(codes(edit(r, { merchant: "x" }))).toContain("total:other_script_digits");
+    expect(codes(edit(r, { total: 174.4 }))).not.toContain("total:other_script_digits");
+  });
+
   it("keeps the two-digit-year warning until the date is changed", () => {
     const r = read({ ...fx.thaiDigitsReceipt, dateText: "12/05/68" });
     expect(codes(r)).toContain("date:two_digit_year");

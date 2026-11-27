@@ -4,6 +4,7 @@ import { taxIdDigits } from "./taxid.js";
 import type { Flag, LineItem, RawExtraction, Receipt } from "./schema.js";
 import {
   hasTooManyDecimals,
+  otherScriptDigits,
   parseAmountToSatang,
   parseQuantity,
   parseThaiDate,
@@ -53,6 +54,20 @@ export function normalizeExtraction(
 ): Receipt {
   const flags: Flag[] = [];
 
+  // A value read in another script's digits (Bengali ৬০ for Thai ๖๐) is parsed by its value,
+  // and flagged so that a person compares it with the paper.
+  const otherScript = (text: string, path: string) => {
+    const script = otherScriptDigits(text);
+    if (script === null) return;
+    flags.push({
+      path,
+      code: "other_script_digits",
+      severity: "warning",
+      message: `"${text}" was read in ${script} digits, not Thai or Arabic ones. Compare it with the paper.`,
+      params: { text, script },
+    });
+  };
+
   const money = (text: string | null, path: string): number | null => {
     const t = clean(text);
     if (t === null) return null;
@@ -70,6 +85,7 @@ export function normalizeExtraction(
       });
       return null;
     }
+    otherScript(t, path);
     return satang / 100;
   };
 
@@ -87,6 +103,7 @@ export function normalizeExtraction(
       });
     } else {
       date = parsed.iso;
+      otherScript(dateText, "date");
       if (parsed.twoDigitYear) {
         flags.push({
           path: "date",
@@ -101,6 +118,7 @@ export function normalizeExtraction(
 
   const timeText = clean(raw.timeText);
   const time = timeText ? parseTime(timeText) : null;
+  if (timeText && time) otherScript(timeText, "time");
   if (timeText && !time) {
     flags.push({
       path: "time",
@@ -129,7 +147,13 @@ export function normalizeExtraction(
   // of the slip's own fields (From, To, fee...), so it is dropped.
   const parsedItems: LineItem[] = (raw.documentType === "transfer_slip" ? [] : raw.lineItems).map((item, i) => ({
     description: item.description.trim(),
-    quantity: clean(item.quantityText) ? parseQuantity(item.quantityText!) : null,
+    quantity: (() => {
+      const q = clean(item.quantityText);
+      if (q === null) return null;
+      const parsed = parseQuantity(q);
+      if (parsed !== null) otherScript(q, `lineItems.${i}.quantity`);
+      return parsed;
+    })(),
     unitPrice: money(item.unitPriceText, `lineItems.${i}.unitPrice`),
     amount: money(item.amountText, `lineItems.${i}.amount`),
     ...optionalCells(item, i),
@@ -160,11 +184,13 @@ export function normalizeExtraction(
 
   const taxIdText = clean(raw.taxIdText);
   const taxId = taxIdText ? taxIdDigits(taxIdText) || null : null;
+  if (taxIdText && taxId) otherScript(taxIdText, "taxId");
 
   // The fields below belong to receipts; a slip has none of them, whatever the model made of it.
   const onReceipt = raw.documentType !== "transfer_slip";
   const buyerTaxIdText = onReceipt ? clean(raw.buyerTaxIdText) : null;
   const buyerTaxId = buyerTaxIdText ? taxIdDigits(buyerTaxIdText) || null : null;
+  if (buyerTaxIdText && buyerTaxId) otherScript(buyerTaxIdText, "buyerTaxId");
   const receiptOnly = onReceipt
     ? {
         documentSubtype: raw.documentSubtype ?? null,
@@ -239,7 +265,7 @@ export function normalizeExtraction(
 }
 
 /** Flags that record how a field was read, and so hold until that field is changed. */
-const FIELD_FLAGS = new Set<Flag["code"]>(["model_uncertain", "unparseable", "two_digit_year", "addon_split"]);
+const FIELD_FLAGS = new Set<Flag["code"]>(["model_uncertain", "unparseable", "two_digit_year", "addon_split", "other_script_digits"]);
 
 const SCALAR_FIELDS = [
   "documentType", "merchant", "payer", "recipientName", "reference", "taxId", "fee",
