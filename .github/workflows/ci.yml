@@ -24,6 +24,4 @@ jobs:
       - run: pnpm test
       # The example agent compiles with the extension mounted.
       - run: pnpm --filter thai-ocr-agent build
-      # The web app's `next build` is left out for now: Next.js 16.4.3 has a published
-      # advisory, and its build stops on the first run to say so. Add
-      # `pnpm --filter web build` here after upgrading Next.js.
+      - run: pnpm --filter web build
