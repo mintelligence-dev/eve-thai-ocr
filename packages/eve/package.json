@@ -1,6 +1,6 @@
 {
   "name": "@eve-thai-receipt-extension/eve",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "eve extension: read printed Thai receipts, tax invoices and bank transfer slips from attached photos into checked, editable data, then export JSON or CSV.",
   "keywords": [
     "eve",
