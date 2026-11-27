@@ -62,6 +62,8 @@ The model only **transcribes** text exactly as printed (output validated with Zo
 ```
 apps/web                 Next.js demo: upload → review → preview → export
 packages/extractor       Reusable TypeScript package: extract, normalise, validate, export, score
+packages/eve             eve extension: read, correct and export documents attached in a chat
+examples/thai-ocr-agent  Example eve agent that mounts the extension
 bench/                   Compare vision models on your own documents
 ```
 
@@ -130,6 +132,33 @@ try {
 ```
 
 Browser-safe helpers (no model code), such as `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON` and `toCSV`, are at `@eve-thai-ocr/extractor/core`.
+
+### Use with eve
+
+[`@eve-thai-ocr/eve`](packages/eve) is an [eve](https://www.npmjs.com/package/eve) extension: a person sends a photo of a receipt or slip to your agent in a chat, checks what was read, corrects it in their own words and asks for the file. Mount it in your agent:
+
+```ts
+// agent/extensions/ocr.ts
+import ocr from "@eve-thai-ocr/eve";
+
+export default ocr({ model: process.env.RECEIPT_MODEL || undefined }); // default google/gemini-2.5-flash
+```
+
+The agent gets three tools (named after the mount, here `ocr__…`):
+
+| Tool | What it does |
+|---|---|
+| `read_document` | Reads one document from up to 4 attached photos (JPEG, PNG or WebP), with the same extractor and checks as the web app. Returns an id, the values read, and what must be fixed (`mustFix`) or checked (`pleaseCheck`). |
+| `correct_document` | Applies what the person says the paper shows. Values are passed as typed (`"๑,๒๕๐"`, `"12 พ.ค. 68"`) and parsed by the extractor, so the agent never converts a year or works out an amount. Every check runs again. |
+| `export_document` | CSV or JSON, as described in [Export formats](#export-formats). **Refused while anything must still be fixed**, like the web app's export lock. |
+
+The documents are kept in the eve session, not in a database. The extension's instructions tell the agent never to take a figure from the photo itself (eve shows the agent the photo too) and to pass on a tool's message when it refuses. [`examples/thai-ocr-agent`](examples/thai-ocr-agent) is a working agent: `pnpm install`, `pnpm build:eve`, then `pnpm dev:agent` opens the eve terminal UI.
+
+What the eve path does **not** do yet, and how its privacy differs from the web app:
+
+- **No PDF and no bank check.** Both use browser code here (pdf.js, and jsQR to find the slip's QR code). A PDF or HEIC file is refused with what to send instead.
+- **Photos are not shrunk or cleaned first.** In the web app the browser removes EXIF data such as the GPS location before upload; in a chat the photo reaches the agent as the person sent it, and eve keeps a copy in the session's sandbox (`/workspace/.eve/attachments/`) for the life of the session.
+- **The image goes to a model twice:** to the agent's own model, which eve shows each attached image to (up to 3 MiB), and to the model that reads the document. Choose both, and the channel, with the same care as in [Privacy and data](#privacy-and-data).
 
 ### Checking a slip with the bank
 
@@ -257,6 +286,8 @@ Receipts and slips contain personal and financial data. Please read this before 
 ```
 apps/web                 เว็บเดโม Next.js: อัปโหลด → ตรวจทาน → ดูตัวอย่าง → ส่งออก
 packages/extractor       แพ็กเกจ TypeScript ใช้ซ้ำได้: ดึงข้อมูล แปลง ตรวจสอบ ส่งออก ให้คะแนน
+packages/eve             eve extension: อ่าน แก้ และส่งออกเอกสารที่แนบมาในแชต
+examples/thai-ocr-agent  ตัวอย่าง eve agent ที่ mount extension นี้
 bench/                   เทียบโมเดลวิชันด้วยเอกสารของคุณเอง
 ```
 
@@ -325,6 +356,33 @@ try {
 ```
 
 ฟังก์ชันที่ใช้ในเบราว์เซอร์ได้ (ไม่มีโค้ดเรียกโมเดล) เช่น `normalizeExtraction`, `revalidate`, `itemsReconcile`, `toJSON`, `toCSV` อยู่ที่ `@eve-thai-ocr/extractor/core`
+
+### ใช้กับ eve
+
+[`@eve-thai-ocr/eve`](packages/eve) เป็น extension ของ [eve](https://www.npmjs.com/package/eve) คนส่งรูปใบเสร็จหรือสลิปให้ agent ในแชต ตรวจค่าที่อ่านได้ บอกค่าที่ถูกด้วยคำพูดของตัวเอง แล้วขอไฟล์ได้ mount ใน agent แบบนี้
+
+```ts
+// agent/extensions/ocr.ts
+import ocr from "@eve-thai-ocr/eve";
+
+export default ocr({ model: process.env.RECEIPT_MODEL || undefined }); // ค่าเริ่มต้น google/gemini-2.5-flash
+```
+
+agent จะได้ tool 3 ตัว (ขึ้นต้นด้วยชื่อที่ mount ในตัวอย่างคือ `ocr__…`)
+
+| Tool | ทำอะไร |
+|---|---|
+| `read_document` | อ่านเอกสาร 1 ใบจากรูปที่แนบไม่เกิน 4 รูป (JPEG, PNG หรือ WebP) ด้วยตัวอ่านและการตรวจชุดเดียวกับเว็บ คืน id ค่าที่อ่านได้ และสิ่งที่ต้องแก้ (`mustFix`) หรือควรตรวจ (`pleaseCheck`) |
+| `correct_document` | แก้ตามที่คนบอกว่าในกระดาษเขียนไว้ ส่งค่าตามที่พิมพ์ (`"๑,๒๕๐"`, `"12 พ.ค. 68"`) แล้วให้ตัวอ่านแปลงเอง agent จึงไม่ต้องแปลงปีหรือคิดเลขเอง ตรวจใหม่ทุกข้อทุกครั้ง |
+| `export_document` | CSV หรือ JSON ตาม [รูปแบบไฟล์ที่ส่งออก](#รูปแบบไฟล์ที่ส่งออก) **ส่งออกไม่ได้ถ้ายังมีจุดที่ต้องแก้** เหมือนที่เว็บล็อกปุ่มส่งออก |
+
+เอกสารเก็บไว้ใน session ของ eve ไม่มีฐานข้อมูล instructions ของ extension สั่งให้ agent ห้ามเอาตัวเลขจากรูปเอง (eve ส่งรูปให้โมเดลของ agent เห็นด้วย) และให้บอกข้อความของ tool ต่อเมื่อ tool ปฏิเสธ [`examples/thai-ocr-agent`](examples/thai-ocr-agent) เป็น agent ที่ใช้งานได้ `pnpm install`, `pnpm build:eve` แล้ว `pnpm dev:agent` จะเปิด terminal UI ของ eve
+
+สิ่งที่เส้นทาง eve **ยังไม่ทำ** และความเป็นส่วนตัวที่ต่างจากเว็บ
+
+- **ยังไม่รับ PDF และยังไม่ตรวจสลิปกับธนาคาร** เพราะทั้งสองอย่างใช้โค้ดฝั่งเบราว์เซอร์ (pdf.js และ jsQR ที่ใช้หา QR บนสลิป) ไฟล์ PDF หรือ HEIC จะถูกปฏิเสธพร้อมบอกว่าควรส่งอะไรแทน
+- **ไม่ได้ย่อหรือล้างรูปก่อน** บนเว็บ เบราว์เซอร์ลบข้อมูล EXIF เช่นพิกัด GPS ก่อนอัปโหลด แต่ในแชต รูปถึง agent ตามที่คนส่งมา และ eve เก็บสำเนาไว้ใน sandbox ของ session (`/workspace/.eve/attachments/`) ตลอดอายุ session
+- **รูปถูกส่งให้โมเดลสองครั้ง** ครั้งแรกให้โมเดลของ agent เอง (eve ส่งรูปที่แนบขนาดไม่เกิน 3 MiB ให้เห็น) อีกครั้งให้โมเดลที่อ่านเอกสาร เลือกทั้งสองโมเดลและช่องทางแชตด้วยความระมัดระวังเท่ากับใน [ความเป็นส่วนตัวและข้อมูล](#ความเป็นส่วนตัวและข้อมูล)
 
 ### ตรวจสลิปกับธนาคาร
 
