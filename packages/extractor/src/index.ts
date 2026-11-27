@@ -35,3 +35,4 @@ export {
   type SlipVerifier,
 } from "./slip-verify.js";
 export { cachedVerifier } from "./slip-cache.js";
+export { sniffImageType, type ImageType } from "./image-type.js";
