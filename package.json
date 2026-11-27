@@ -5,13 +5,13 @@
   "license": "MIT",
   "packageManager": "pnpm@10.28.1",
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "dev:agent": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter thai-ocr-agent dev",
-    "build": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter @eve-thai-ocr/eve build && pnpm --filter web build",
+    "dev": "pnpm --filter thai-ocr-agent dev",
+    "dev:agent": "pnpm build:eve && pnpm --filter thai-ocr-agent dev:eve",
+    "build": "pnpm --filter thai-ocr-agent build",
     "build:eve": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter @eve-thai-ocr/eve build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "bench": "pnpm --filter @eve-thai-ocr/extractor build && node --env-file-if-exists=apps/web/.env.local bench/compare.mjs"
+    "bench": "pnpm --filter @eve-thai-ocr/extractor build && node --env-file-if-exists=examples/thai-ocr-agent/.env.local bench/compare.mjs"
   },
   "pnpm": {
     "overrides": {

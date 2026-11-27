@@ -1,2 +1,5 @@
 .eve
 .output
+.next
+next-env.d.ts
+*.tsbuildinfo
