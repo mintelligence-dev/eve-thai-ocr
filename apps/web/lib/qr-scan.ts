@@ -7,7 +7,7 @@
  * would not, and a QR code that is small in the picture may only be found once that part
  * is enlarged. So the cheap looks come first and the enlarged ones after.
  */
-import { parseSlipQr, type SlipQr } from "@thai-receipt-reader/extractor/core";
+import { parseSlipQr, type SlipQr } from "@eve-thai-ocr/extractor/core";
 
 export interface FoundSlipQr {
   /** The QR text exactly as read. */

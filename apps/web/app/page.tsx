@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { RawPartial } from "@thai-receipt-reader/extractor";
+import type { RawPartial } from "@eve-thai-ocr/extractor";
 import {
   SAMPLES,
   compareQrReference,
@@ -13,7 +13,7 @@ import {
   type Flag,
   type LineItem,
   type Receipt,
-} from "@thai-receipt-reader/extractor/core";
+} from "@eve-thai-ocr/extractor/core";
 import { ImageError, MAX_UPLOAD_BYTES, looksTooSmall, prepareImage } from "@/lib/image";
 import { PdfError, isPdfFile, pdfToImages } from "@/lib/pdf";
 import { SlipCheck } from "./slip-check";

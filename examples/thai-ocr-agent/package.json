@@ -1,0 +1,28 @@
+{
+  "name": "thai-ocr-agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Example eve agent that mounts @eve-thai-ocr/eve: send a photo of a Thai receipt or transfer slip, check the result, export CSV or JSON.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "eve dev",
+    "build": "eve build",
+    "start": "eve start",
+    "typecheck": "tsc --noEmit",
+    "eval": "eve eval"
+  },
+  "dependencies": {
+    "@eve-thai-ocr/eve": "workspace:*",
+    "ai": "^7.0.183",
+    "eve": "1.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

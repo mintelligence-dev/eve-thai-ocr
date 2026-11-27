@@ -8,13 +8,13 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "prebuild": "pnpm --filter @thai-receipt-reader/extractor build",
-    "predev": "pnpm --filter @thai-receipt-reader/extractor build",
+    "prebuild": "pnpm --filter @eve-thai-ocr/extractor build",
+    "predev": "pnpm --filter @eve-thai-ocr/extractor build",
     "test": "vitest run"
   },
   "dependencies": {
-    "@thai-receipt-reader/extractor": "workspace:*",
-    "ai": "^7.0.139",
+    "@eve-thai-ocr/extractor": "workspace:*",
+    "ai": "^7.0.183",
     "jsqr": "1.4.0",
     "next": "^16.4.3",
     "pdfjs-dist": "6.4.299",

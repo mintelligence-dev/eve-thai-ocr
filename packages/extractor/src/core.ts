@@ -11,3 +11,4 @@ export { isValidThaiTaxId, taxIdDigits } from "./taxid.js";
 export { findImageConflicts, type ImageConflict, type ImageFact } from "./images.js";
 export { parseSlipQr, crc16CcittFalse, verificationFlags, qrReferenceFlags, compareQrReference, nameCore, namesAgree, bangkokDay, bangkokTime, type SlipQr } from "./slip.js";
 export type { SlipCheck } from "./slip-verify.js";
+export { sniffImageType, type ImageType } from "./image-type.js";

@@ -1,4 +1,4 @@
-import { DEFAULT_MODEL, MAX_IMAGES, extractReceipt, extractReceiptStream } from "@thai-receipt-reader/extractor";
+import { DEFAULT_MODEL, MAX_IMAGES, extractReceipt, extractReceiptStream } from "@eve-thai-ocr/extractor";
 import { describeFailure } from "@/lib/errors";
 import { sniffImageType } from "@/lib/image-type";
 import { clientKey, perVisitor, wholeSite } from "@/lib/rate-limit";
