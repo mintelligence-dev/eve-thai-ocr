@@ -6,7 +6,9 @@
   "packageManager": "pnpm@10.28.1",
   "scripts": {
     "dev": "pnpm --filter web dev",
-    "build": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter web build",
+    "dev:agent": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter thai-ocr-agent dev",
+    "build": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter @eve-thai-ocr/eve build && pnpm --filter web build",
+    "build:eve": "pnpm --filter @eve-thai-ocr/extractor build && pnpm --filter @eve-thai-ocr/eve build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "bench": "pnpm --filter @eve-thai-ocr/extractor build && node --env-file-if-exists=apps/web/.env.local bench/compare.mjs"
