@@ -1,0 +1,73 @@
+{
+  "name": "@eve-thai-ocr/eve",
+  "version": "0.1.0",
+  "description": "eve extension: read printed Thai receipts, tax invoices and bank transfer slips from attached photos into checked, editable data, then export JSON or CSV.",
+  "keywords": [
+    "eve",
+    "agent",
+    "ocr",
+    "receipt",
+    "tax-invoice",
+    "transfer-slip",
+    "thai"
+  ],
+  "license": "MIT",
+  "author": "M Intelligence",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mintelligence-dev/eve-thai-ocr.git",
+    "directory": "packages/eve"
+  },
+  "homepage": "https://github.com/mintelligence-dev/eve-thai-ocr#readme",
+  "bugs": {
+    "url": "https://github.com/mintelligence-dev/eve-thai-ocr/issues"
+  },
+  "type": "module",
+  "eve": {
+    "extension": {
+      "source": "./extension",
+      "dist": "./dist/extension"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "default": "./dist/tools/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "eve extension build",
+    "typecheck": "tsc && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "prepublishOnly": "eve extension build"
+  },
+  "dependencies": {
+    "@eve-thai-ocr/extractor": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "ai": "^7.0.181",
+    "eve": "1.4.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4"
+  },
+  "peerDependencies": {
+    "eve": "*"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

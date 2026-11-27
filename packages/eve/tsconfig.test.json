@@ -1,0 +1,6 @@
+{
+  // The tests import the extractor's synthetic fixtures, which sit outside this package,
+  // so they are checked here and not in tsconfig.json (which `eve extension build` uses).
+  "extends": "./tsconfig.json",
+  "include": ["extension/**/*.ts", "test/**/*.ts"]
+}
