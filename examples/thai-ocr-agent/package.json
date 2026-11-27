@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@eve-thai-ocr/eve": "workspace:*",
-    "ai": "^7.0.181",
+    "ai": "^7.0.183",
     "eve": "1.4.0",
     "zod": "^4.6.7"
   },
