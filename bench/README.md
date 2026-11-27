@@ -5,7 +5,7 @@ AI Gateway and scores each result against ground truth you provide.
 
 ```bash
 pnpm bench -- --dry-run                       # plan + rough cost, no calls
-pnpm bench                                    # run (needs AI_GATEWAY_API_KEY in apps/web/.env.local)
+pnpm bench                                    # run (needs AI_GATEWAY_API_KEY in examples/thai-ocr-agent/.env.local)
 pnpm bench -- --models google/gemini-2.5-flash,openai/gpt-4.1-mini --runs 3
 pnpm bench -- --only slip,tops                # only cases whose name contains one of these
 pnpm bench -- --cases bench/cases             # only the synthetic cases in the repo

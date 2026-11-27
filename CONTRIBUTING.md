@@ -39,11 +39,10 @@ The repository is a pnpm workspace:
 |---|---|
 | `packages/extractor` | `@eve-thai-ocr/extractor`: the model call, parsing, checks, export and scoring. `./core` is the browser-safe part. |
 | `packages/eve` | `@eve-thai-ocr/eve`: the eve extension (read, correct and export a document attached in a chat). |
-| `apps/web` | The Next.js demo: upload, review, export, and the optional bank check. |
-| `examples/thai-ocr-agent` | An example eve agent that mounts the extension, with an eval. |
+| `examples/thai-ocr-agent` | The example app, one Next.js project: the web demo (upload, review, export, the optional bank check) and an eve agent that mounts the extension, with an eval. |
 | `bench` | Compare models against documents with known values. |
 
-Run the web app with `pnpm dev`, or the eve agent with `pnpm dev:agent`. Both need AI Gateway credentials; see the README.
+Run the web demo and the agent with `pnpm dev`, or the agent alone in the eve terminal UI with `pnpm dev:agent`. Both need AI Gateway credentials; see the README.
 
 ## Before you open a pull request
 
@@ -64,7 +63,7 @@ pnpm test
 ## Style
 
 - Code, comments, commit messages and pull requests are in English.
-- Text people see in the web app is in Thai and English (`apps/web/lib/i18n.ts`).
+- Text people see in the web app is in Thai and English (`examples/thai-ocr-agent/lib/i18n.ts`).
 - Commit subjects are plain sentences that say what changes for the person using it, for example
   "Warn when the VAT is larger than the total". The body says why.
 - Amounts are kept in integer satang while they are worked on, never as floating-point baht.

@@ -70,10 +70,10 @@ That is why the app cross-checks the numbers and asks you to confirm anything do
 The model only **transcribes** text exactly as printed (output validated with Zod through the Vercel AI SDK). Deterministic TypeScript then parses digits, dates and amounts (integer satang, so no floating-point error) and runs all the checks above. Prices never come from the model's arithmetic. See [`packages/extractor`](packages/extractor).
 
 ```
-apps/web                 Next.js demo: upload → review → preview → export
 packages/extractor       Reusable TypeScript package: extract, normalise, validate, export, score
 packages/eve             eve extension: read, correct and export documents attached in a chat
-examples/thai-ocr-agent  Example eve agent that mounts the extension
+examples/thai-ocr-agent  Example app: the Next.js web demo (upload → review → preview → export)
+                         and an eve agent that mounts the extension, in one project
 bench/                   Compare vision models on your own documents
 ```
 
@@ -93,13 +93,13 @@ The `bank_*` columns are empty unless the slip was checked with the bank (see [C
 
 ### Setup
 
-Requires Node 20+ and pnpm.
+Requires Node 24+ and pnpm.
 
 ```bash
 pnpm install
-cp apps/web/.env.example apps/web/.env.local   # add AI_GATEWAY_API_KEY
-pnpm dev                                       # http://localhost:3000
-pnpm test                                      # all tests
+cp examples/thai-ocr-agent/.env.example examples/thai-ocr-agent/.env.local   # add AI_GATEWAY_API_KEY
+pnpm dev     # the web demo and the agent, http://localhost:3000
+pnpm test    # all tests
 ```
 
 No key yet? On the page, press one of the synthetic samples (or open `/?sample=transfer-slip`, `/?sample=thai-receipt`, `/?sample=needs-review`, `/?sample=addon-discount`) to try the review screen without calling a model.
@@ -162,7 +162,7 @@ The agent gets three tools (named after the mount, here `ocr__…`):
 | `correct_document` | Applies what the person says the paper shows. Values are passed as typed (`"๑,๒๕๐"`, `"12 พ.ค. 68"`) and parsed by the extractor, so the agent never converts a year or works out an amount. Every check runs again. |
 | `export_document` | CSV or JSON, as described in [Export formats](#export-formats). **Refused while anything must still be fixed**, like the web app's export lock. |
 
-The documents are kept in the eve session, not in a database. The extension's instructions tell the agent never to take a figure from the photo itself (eve shows the agent the photo too) and to pass on a tool's message when it refuses. [`examples/thai-ocr-agent`](examples/thai-ocr-agent) is a working agent: `pnpm install`, `pnpm build:eve`, then `pnpm dev:agent` opens the eve terminal UI, and `pnpm --filter thai-ocr-agent eval` reads and exports a synthetic receipt end to end (it calls the models, so it needs AI Gateway credentials).
+The documents are kept in the eve session, not in a database. The extension's instructions tell the agent never to take a figure from the photo itself (eve shows the agent the photo too) and to pass on a tool's message when it refuses. [`examples/thai-ocr-agent`](examples/thai-ocr-agent) mounts it beside the web demo: `pnpm install`, then `pnpm dev:agent` opens the eve terminal UI, and `pnpm --filter thai-ocr-agent eval` reads and exports a synthetic receipt end to end (it calls the models, so it needs AI Gateway credentials).
 
 What the eve path does **not** do yet, and how its privacy differs from the web app:
 
@@ -190,14 +190,14 @@ A forged slip looks as real as a genuine one, so the picture alone proves nothin
 
 ```bash
 pnpm bench -- --dry-run     # plan and rough cost, no calls
-pnpm bench                  # needs AI_GATEWAY_API_KEY in apps/web/.env.local
+pnpm bench                  # needs AI_GATEWAY_API_KEY in examples/thai-ocr-agent/.env.local
 ```
 
 It scores each model against ground truth you write (shop, totals, items, tax ID, "must not invent anything on a blank page", …) and prints accuracy, speed and cost. Synthetic cases live in `bench/cases/`. Keep real documents in `bench/private/` (git-ignored). Details: [`bench/README.md`](bench/README.md).
 
 ### Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmintelligence-dev%2Feve-thai-ocr&root-directory=apps%2Fweb&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmintelligence-dev%2Feve-thai-ocr&root-directory=examples%2Fthai-ocr-agent&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
 
 Keep "Include source files outside of the Root Directory" enabled (Vercel's default) so the workspace package is available. The repository must be public for the button to work.
 

@@ -84,7 +84,7 @@ console.log(`Rough cost: about $${estUsd.toFixed(3)} (assumes ~3k input + ~2k ou
 if (flag("dry-run")) process.exit(0);
 
 if (!process.env.AI_GATEWAY_API_KEY && !process.env.VERCEL_OIDC_TOKEN) {
-  console.error("Set AI_GATEWAY_API_KEY (e.g. in apps/web/.env.local; `pnpm bench` loads it).");
+  console.error("Set AI_GATEWAY_API_KEY (e.g. in examples/thai-ocr-agent/.env.local; `pnpm bench` loads it).");
   process.exit(1);
 }
 

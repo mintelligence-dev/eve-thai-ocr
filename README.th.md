@@ -70,10 +70,10 @@
 โมเดลมีหน้าที่ **คัดลอกข้อความตามที่พิมพ์** เท่านั้น (ผลลัพธ์ตรวจด้วย Zod ผ่าน Vercel AI SDK) จากนั้นโค้ด TypeScript แบบ deterministic จะแปลงเลข วันที่ และจำนวนเงิน (เก็บเป็นสตางค์จำนวนเต็ม ไม่มีค่าเพี้ยนจากทศนิยม) และรันการตรวจทั้งหมดข้างบน ราคาไม่เคยมาจากการคำนวณของโมเดล ดู [`packages/extractor`](packages/extractor)
 
 ```
-apps/web                 เว็บเดโม Next.js: อัปโหลด → ตรวจทาน → ดูตัวอย่าง → ส่งออก
 packages/extractor       แพ็กเกจ TypeScript ใช้ซ้ำได้: ดึงข้อมูล แปลง ตรวจสอบ ส่งออก ให้คะแนน
 packages/eve             eve extension: อ่าน แก้ และส่งออกเอกสารที่แนบมาในแชต
-examples/thai-ocr-agent  ตัวอย่าง eve agent ที่ mount extension นี้
+examples/thai-ocr-agent  แอปตัวอย่าง: เว็บเดโม Next.js (อัปโหลด → ตรวจทาน → ดูตัวอย่าง → ส่งออก)
+                         และ eve agent ที่ mount extension นี้ อยู่ในโปรเจกต์เดียวกัน
 bench/                   เทียบโมเดลวิชันด้วยเอกสารของคุณเอง
 ```
 
@@ -93,13 +93,13 @@ JSON คือโครงสร้างเต็ม ส่วน CSV มีค
 
 ### วิธีติดตั้ง
 
-ต้องมี Node 20+ และ pnpm
+ต้องมี Node 24+ และ pnpm
 
 ```bash
 pnpm install
-cp apps/web/.env.example apps/web/.env.local   # ใส่ AI_GATEWAY_API_KEY
-pnpm dev                                       # http://localhost:3000
-pnpm test                                      # รันเทสต์ทั้งหมด
+cp examples/thai-ocr-agent/.env.example examples/thai-ocr-agent/.env.local   # ใส่ AI_GATEWAY_API_KEY
+pnpm dev     # เว็บเดโมและ agent, http://localhost:3000
+pnpm test    # รันเทสต์ทั้งหมด
 ```
 
 ยังไม่มี key? กดตัวอย่างสังเคราะห์ในหน้าเว็บ (หรือเปิด `/?sample=transfer-slip`, `/?sample=thai-receipt`, `/?sample=needs-review`, `/?sample=addon-discount`) เพื่อลองหน้าตรวจทานโดยไม่ต้องเรียกโมเดล
@@ -162,7 +162,7 @@ agent จะได้ tool 3 ตัว (ขึ้นต้นด้วยชื�
 | `correct_document` | แก้ตามที่คนบอกว่าในกระดาษเขียนไว้ ส่งค่าตามที่พิมพ์ (`"๑,๒๕๐"`, `"12 พ.ค. 68"`) แล้วให้ตัวอ่านแปลงเอง agent จึงไม่ต้องแปลงปีหรือคิดเลขเอง ตรวจใหม่ทุกข้อทุกครั้ง |
 | `export_document` | CSV หรือ JSON ตาม [รูปแบบไฟล์ที่ส่งออก](#รูปแบบไฟล์ที่ส่งออก) **ส่งออกไม่ได้ถ้ายังมีจุดที่ต้องแก้** เหมือนที่เว็บล็อกปุ่มส่งออก |
 
-เอกสารเก็บไว้ใน session ของ eve ไม่มีฐานข้อมูล instructions ของ extension สั่งให้ agent ห้ามเอาตัวเลขจากรูปเอง (eve ส่งรูปให้โมเดลของ agent เห็นด้วย) และให้บอกข้อความของ tool ต่อเมื่อ tool ปฏิเสธ [`examples/thai-ocr-agent`](examples/thai-ocr-agent) เป็น agent ที่ใช้งานได้ `pnpm install`, `pnpm build:eve` แล้ว `pnpm dev:agent` จะเปิด terminal UI ของ eve ส่วน `pnpm --filter thai-ocr-agent eval` จะลองอ่านและส่งออกใบเสร็จตัวอย่างตั้งแต่ต้นจนจบ (เรียกโมเดลจริง ต้องมี credential ของ AI Gateway)
+เอกสารเก็บไว้ใน session ของ eve ไม่มีฐานข้อมูล instructions ของ extension สั่งให้ agent ห้ามเอาตัวเลขจากรูปเอง (eve ส่งรูปให้โมเดลของ agent เห็นด้วย) และให้บอกข้อความของ tool ต่อเมื่อ tool ปฏิเสธ [`examples/thai-ocr-agent`](examples/thai-ocr-agent) mount extension นี้ไว้คู่กับเว็บเดโม `pnpm install` แล้ว `pnpm dev:agent` จะเปิด terminal UI ของ eve ส่วน `pnpm --filter thai-ocr-agent eval` จะลองอ่านและส่งออกใบเสร็จตัวอย่างตั้งแต่ต้นจนจบ (เรียกโมเดลจริง ต้องมี credential ของ AI Gateway)
 
 สิ่งที่เส้นทาง eve **ยังไม่ทำ** และความเป็นส่วนตัวที่ต่างจากเว็บ
 
@@ -190,14 +190,14 @@ agent จะได้ tool 3 ตัว (ขึ้นต้นด้วยชื�
 
 ```bash
 pnpm bench -- --dry-run     # ดูแผนและค่าใช้จ่ายคร่าวๆ โดยไม่เรียกโมเดล
-pnpm bench                  # ต้องมี AI_GATEWAY_API_KEY ใน apps/web/.env.local
+pnpm bench                  # ต้องมี AI_GATEWAY_API_KEY ใน examples/thai-ocr-agent/.env.local
 ```
 
 ให้คะแนนแต่ละโมเดลกับเฉลยที่คุณเขียนเอง (ร้าน ยอด รายการ เลขผู้เสียภาษี "ห้ามแต่งข้อมูลจากหน้าเปล่า" ฯลฯ) แล้วแสดงความแม่นยำ ความเร็ว และค่าใช้จ่าย เคสสังเคราะห์อยู่ใน `bench/cases/` เอกสารจริงให้เก็บใน `bench/private/` (ไม่ขึ้น git) รายละเอียดที่ [`bench/README.md`](bench/README.md)
 
 ### Deploy บน Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmintelligence-dev%2Feve-thai-ocr&root-directory=apps%2Fweb&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmintelligence-dev%2Feve-thai-ocr&root-directory=examples%2Fthai-ocr-agent&env=AI_GATEWAY_API_KEY&envDescription=Vercel%20AI%20Gateway%20key&envLink=https%3A%2F%2Fvercel.com%2Fdocs%2Fai-gateway)
 
 เปิด "Include source files outside of the Root Directory" ไว้ตามค่าเริ่มต้นของ Vercel เพื่อให้แพ็กเกจในเวิร์กสเปซถูกใช้ได้ และ repo ต้องเป็น public ปุ่มจึงจะใช้งานได้
 

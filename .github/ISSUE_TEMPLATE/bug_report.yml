@@ -10,10 +10,9 @@ body:
     attributes:
       label: Area
       options:
-        - Web app (apps/web)
         - Extractor (packages/extractor)
         - eve extension (packages/eve)
-        - Example agent (examples/thai-ocr-agent)
+        - Example app: web demo or agent (examples/thai-ocr-agent)
         - Model comparison (bench)
         - Docs
     validations:
