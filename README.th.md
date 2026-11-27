@@ -7,6 +7,8 @@
 [![eve](https://img.shields.io/badge/eve-1.4-black)](https://eve.dev)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![eve on npm](https://img.shields.io/npm/v/@eve-thai-receipt-extension/eve?label=eve)](https://www.npmjs.com/package/@eve-thai-receipt-extension/eve)
+[![extractor on npm](https://img.shields.io/npm/v/@eve-thai-receipt-extension/extractor?label=extractor)](https://www.npmjs.com/package/@eve-thai-receipt-extension/extractor)
 
 [English](README.md) · **ภาษาไทย**
 
@@ -124,6 +126,10 @@ pnpm test    # รันเทสต์ทั้งหมด
 
 ### ใช้แพ็กเกจ
 
+```bash
+npm install @eve-thai-receipt-extension/extractor
+```
+
 ```ts
 import { extractReceipt, DifferentDocumentsError, HandwritingNotSupportedError, toCSV } from "@eve-thai-receipt-extension/extractor";
 
@@ -147,7 +153,13 @@ try {
 
 ### ใช้กับ eve
 
-[`@eve-thai-receipt-extension/eve`](packages/eve) เป็น extension ของ [eve](https://www.npmjs.com/package/eve) คนส่งรูปใบเสร็จหรือสลิปให้ agent ในแชต ตรวจค่าที่อ่านได้ บอกค่าที่ถูกด้วยคำพูดของตัวเอง แล้วขอไฟล์ได้ **ตอนนี้ยังไม่ได้ขึ้น npm** ให้ใช้จาก workspace นี้ (`"@eve-thai-receipt-extension/eve": "workspace:*"`) แบบเดียวกับ agent ตัวอย่าง mount ใน agent แบบนี้
+[`@eve-thai-receipt-extension/eve`](packages/eve) เป็น extension ของ [eve](https://www.npmjs.com/package/eve) คนส่งรูปใบเสร็จหรือสลิปให้ agent ในแชต ตรวจค่าที่อ่านได้ บอกค่าที่ถูกด้วยคำพูดของตัวเอง แล้วขอไฟล์ได้ ติดตั้งในโปรเจกต์ agent (จะได้ `@eve-thai-receipt-extension/extractor` มาด้วย)
+
+```bash
+npm install @eve-thai-receipt-extension/eve
+```
+
+แล้ว mount แบบนี้
 
 ```ts
 // agent/extensions/receipt.ts
