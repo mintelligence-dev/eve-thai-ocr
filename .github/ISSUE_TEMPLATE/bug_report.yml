@@ -1,0 +1,43 @@
+name: Bug report
+description: Something does not work as the README says. English or Thai is fine.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "**Do not attach a real receipt or transfer slip.** They hold names, tax IDs and payment details. Use a synthetic document, cover the personal details, or describe the layout."
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Web app (apps/web)
+        - Extractor (packages/extractor)
+        - eve extension (packages/eve)
+        - Example agent (examples/thai-ocr-agent)
+        - Model comparison (bench)
+        - Docs
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: For a misread document, say which field was wrong, what was read, and what is printed.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The kind of document (receipt, tax invoice, slip and which bank), how it was photographed, and what you did.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versions
+      description: Commit or package version, the reading model (RECEIPT_MODEL), eve version if relevant, Node version
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else

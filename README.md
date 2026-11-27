@@ -222,6 +222,10 @@ Receipts and slips contain personal and financial data. Please read this before 
 - If you run this for other people, tell them what happens to their image and get consent where the law requires it (for example under Thailand's PDPA). This README is not legal advice.
 - Use only synthetic data in public tests, issues and screenshots. Everything in `bench/cases/` is invented.
 
+### Contributing
+
+Issues and pull requests are welcome in English or Thai; see [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems privately as described in [SECURITY.md](SECURITY.md), never in a public issue, and never attach a real receipt or slip.
+
 ### License
 
 [MIT](LICENSE)
@@ -445,6 +449,10 @@ pnpm bench                  # ต้องมี AI_GATEWAY_API_KEY ใน apps/
 - ข้อความที่พิมพ์บนเอกสารอาจพยายามสั่งโมเดลได้ (prompt injection) ผลลัพธ์ต้องผ่านการตรวจรูปแบบและคนตรวจเสมอ และเซลล์ CSV ที่ขึ้นต้นด้วย `=`, `+`, `-` หรือ `@` ถูกทำให้ปลอดภัยแล้ว แต่ควรถือไฟล์ที่ส่งออกเป็นข้อมูลที่ยังไม่น่าเชื่อถือ
 - ถ้าคุณเปิดให้คนอื่นใช้ ควรแจ้งว่ารูปของเขาถูกส่งไปที่ไหน และขอความยินยอมเมื่อกฎหมายกำหนด (เช่น PDPA ของไทย) README นี้ไม่ใช่คำแนะนำทางกฎหมาย
 - ใช้ข้อมูลสังเคราะห์เท่านั้นในเทสต์ issue และภาพหน้าจอสาธารณะ ทุกอย่างใน `bench/cases/` ถูกแต่งขึ้น
+
+### ร่วมพัฒนา
+
+เปิด issue หรือ pull request ได้ทั้งภาษาไทยและอังกฤษ ดู [CONTRIBUTING.md](CONTRIBUTING.md) ปัญหาด้านความปลอดภัยให้แจ้งแบบส่วนตัวตาม [SECURITY.md](SECURITY.md) ห้ามเปิดเป็น issue สาธารณะ และห้ามแนบใบเสร็จหรือสลิปจริง
 
 ### สัญญาอนุญาต
 
