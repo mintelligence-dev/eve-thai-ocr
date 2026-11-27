@@ -240,4 +240,4 @@ Issues and pull requests are welcome in English or Thai; see [CONTRIBUTING.md](C
 
 ### License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © M Intelligence. Originally written by [PattarapongS](https://github.com/PattarapongS).

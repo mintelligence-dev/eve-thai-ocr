@@ -240,4 +240,4 @@ pnpm bench                  # ต้องมี AI_GATEWAY_API_KEY ใน examp
 
 ### สัญญาอนุญาต
 
-[MIT](LICENSE)
+[MIT](LICENSE) © M Intelligence เขียนขึ้นครั้งแรกโดย [PattarapongS](https://github.com/PattarapongS)
